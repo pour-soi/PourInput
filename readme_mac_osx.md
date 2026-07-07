@@ -1,6 +1,6 @@
-# macOS Support
+# Mouser Multi-Action macOS Support
 
-Mouser now supports macOS alongside Windows. This document covers macOS-specific setup and known differences.
+Mouser Multi-Action inherits Mouser's macOS support alongside Windows. This document covers macOS-specific setup and known differences.
 
 ## Requirements
 
@@ -22,7 +22,7 @@ On macOS, this will also install:
 
 ## Granting Accessibility Permission
 
-Mouser uses a **CGEventTap** to intercept and suppress mouse button events. macOS requires Accessibility permission for this:
+Mouser Multi-Action uses a **CGEventTap** to intercept and suppress mouse button events. macOS requires Accessibility permission for this:
 
 1. Open **System Settings → Privacy & Security → Accessibility**
 2. Click the **+** button
@@ -31,9 +31,9 @@ Mouser uses a **CGEventTap** to intercept and suppress mouse button events. macO
   - The Python binary (e.g. `/usr/local/bin/python3`)
   - The built `.app` bundle (if packaged)
 4. Ensure the checkbox is **enabled**
-5. Restart Mouser if it was already running
+5. Restart Mouser Multi-Action if it was already running
 
-If Accessibility is not granted, Mouser will print:
+If Accessibility is not granted, Mouser Multi-Action will print:
 ```
 [MouseHook] ERROR: Failed to create CGEventTap!
 ```
@@ -64,18 +64,18 @@ Actions that use **Ctrl** on Windows automatically use **Cmd (⌘)** on macOS:
 Desktop/navigation actions are also remapped to native macOS behavior:
 - **Alt+Tab** becomes **Cmd+Tab**
 - Compatibility entries like **Win+D** / **Task View** resolve to native macOS navigation shortcuts
-- Mouser also exposes macOS-specific actions such as **Mission Control**, **App Expose**, **Previous Desktop**, **Next Desktop**, **Show Desktop**, and **Launchpad**
+- Mouser Multi-Action also exposes macOS-specific actions such as **Mission Control**, **App Expose**, **Previous Desktop**, **Next Desktop**, **Show Desktop**, and **Launchpad**
 
 ### HID Access
 
 On macOS, the HID gesture listener uses non-exclusive access (`hid_darwin_set_open_exclusive(0)`)
-so the mouse continues to function normally while Mouser reads HID++ reports.
+so the mouse continues to function normally while Mouser Multi-Action reads HID++ reports.
 
 ### Trackpad and Magic Mouse Scroll
 
-Mouser ignores trackpad and Magic Mouse continuous scroll events by default so two-finger gestures and macOS natural scrolling keep working normally while mouse wheel mappings stay active.
+Mouser Multi-Action ignores trackpad and Magic Mouse continuous scroll events by default so two-finger gestures and macOS natural scrolling keep working normally while mouse wheel mappings stay active.
 
-You can change this in **Point & Scroll → Scroll Direction → Ignore trackpad**. Leave it enabled for built-in trackpads and most Logitech mouse setups. Disable it only if you intentionally want Mouser to handle Magic Mouse or trackpad scroll events.
+You can change this in **Point & Scroll → Scroll Direction → Ignore trackpad**. Leave it enabled for built-in trackpads and most Logitech mouse setups. Disable it only if you intentionally want Mouser Multi-Action to handle Magic Mouse or trackpad scroll events.
 
 ## Building a Native macOS App
 
@@ -116,11 +116,11 @@ Use `--start-hidden` to launch straight into the menu bar without opening the se
 
 ## Start at Login
 
-Mouser can now manage **Start at login** from the app UI on macOS.
+Mouser Multi-Action can manage **Start at login** from the app UI on macOS.
 
 - The toggle writes a LaunchAgent plist to `~/Library/LaunchAgents/io.github.tombadash.mouser.plist`
 - The setting is designed for the packaged `.app`, but it also works in a source checkout by launching the current Python interpreter directly
-- If **Start minimized** is enabled in Mouser, the app still launches tray-first after login because that preference is read from config at startup
+- If **Start minimized** is enabled in Mouser Multi-Action, the app still launches tray-first after login because that preference is read from config at startup
 - Turning **Start at login** back off removes that LaunchAgent plist again
 
 ## Accessibility for the Packaged App
@@ -131,7 +131,7 @@ If you switch from Terminal-based startup to `Mouser.app`, re-grant Accessibilit
 2. Remove old Terminal / Python entries if needed
 3. Add **Mouser.app**
 4. Ensure it is enabled
-5. Restart Mouser
+5. Restart Mouser Multi-Action
 
 ## Debugging
 

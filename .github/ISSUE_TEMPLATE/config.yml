@@ -3,5 +3,5 @@ contact_links:
   - name: Contributing a new device
     url: https://github.com/pour-soi/Mouser-Multi-Action/blob/main/CONTRIBUTING_DEVICES.md
     about: >
-      Step-by-step guide for adding your Logitech mouse to Mouser, including
+      Step-by-step guide for adding your Logitech mouse to Mouser Multi-Action, including
       how to get and submit a device info dump.

@@ -1,5 +1,5 @@
 ﻿name: Bug Report
-description: Report a bug or unexpected behavior in Mouser
+description: Report a bug or unexpected behavior in Mouser Multi-Action
 title: "[Bug] "
 labels: ["bug"]
 body:
@@ -12,20 +12,20 @@ body:
   - type: input
     id: mouser-version
     attributes:
-      label: Mouser version
+      label: Mouser Multi-Action version
       description: >
-        Which version of Mouser are you using? Check the release you downloaded
+        Which version of Mouser Multi-Action are you using? Check the release you downloaded
         from the [releases page](https://github.com/pour-soi/Mouser-Multi-Action/releases),
         the version shown inside the app, or the exact asset filename you ran.
         If you are running from source or a self-built package, say that here too.
-      placeholder: "e.g. v3.5.3, source checkout, or self-built from main"
+      placeholder: "e.g. v0.1.0, source checkout, or self-built from main"
     validations:
       required: true
 
   - type: dropdown
     id: install-method
     attributes:
-      label: How are you running Mouser?
+      label: How are you running Mouser Multi-Action?
       options:
         - Official GitHub release asset
         - Run from source (`python main_qml.py`)
@@ -43,7 +43,7 @@ body:
         if you built it yourself. This is critical when a source checkout works
         but a packaged build does not.
       placeholder: >
-        e.g. Mouser-macOS-intel.zip, Windows zip from v3.5.3, or main @ abc1234
+        e.g. Mouser-Multi-Action-v0.1.0-Windows.zip or main @ abc1234
     validations:
       required: false
 
@@ -90,7 +90,7 @@ body:
     attributes:
       label: Logitech Options+ status
       description: >
-        Logitech Options+ conflicts with Mouser over HID++ access and can cause
+        Logitech Options+ conflicts with Mouser Multi-Action over HID++ access and can cause
         crashes or unexpected behavior. Please confirm it is not running.
       options:
         - label: I have confirmed that Logitech Options+ is **not** running
@@ -101,7 +101,7 @@ body:
     attributes:
       label: What happened?
       description: Describe the bug clearly. What did you do, and what went wrong?
-      placeholder: "When I click the gesture button, Mouser..."
+      placeholder: "When I click the gesture button, Mouser Multi-Action..."
     validations:
       required: true
 
@@ -122,7 +122,7 @@ body:
         Step-by-step instructions to trigger the bug. The more detail, the
         easier it is to track down.
       placeholder: |
-        1. Open Mouser
+        1. Open Mouser Multi-Action
         2. Go to Mouse page
         3. Assign "Copy" to the gesture button
         4. Press the gesture button in Notepad
@@ -150,7 +150,7 @@ body:
       description: >
         Logs help a lot when diagnosing issues. Paste the relevant portion of
         your log file, including the startup lines if possible. The startup
-        lines identify the Mouser version, commit, and whether it was launched
+        lines identify the Mouser Multi-Action version, commit, and whether it was launched
         from a packaged app or a source checkout.
 
 

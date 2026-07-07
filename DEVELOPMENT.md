@@ -1,6 +1,6 @@
 # Development Guide
 
-This document contains the technical details a developer needs to navigate Mouser. The user-facing tour lives in [README.md](README.md); this guide covers how the codebase is wired together, how the platform-specific hooks behave, and how to build / debug locally.
+This document contains the technical details a developer needs to navigate Mouser Multi-Action. The user-facing tour lives in [README.md](README.md); this guide covers how the codebase is wired together, how the platform-specific hooks behave, and how to build / debug locally.
 
 ## Contents
 
@@ -32,7 +32,7 @@ source .venv/bin/activate
 python -m pip install -r requirements.txt
 ```
 
-On macOS, `requirements.txt` installs PyObjC (`objc`, Quartz, and AppKit bindings), which Mouser needs for CGEventTap, app detection, and key simulation.
+On macOS, `requirements.txt` installs PyObjC (`objc`, Quartz, and AppKit bindings), which Mouser Multi-Action needs for CGEventTap, app detection, and key simulation.
 
 Run the test suite from the activated environment:
 
@@ -42,7 +42,7 @@ python -m unittest discover -s tests
 
 ## Entry Point: `main_qml.py`
 
-`main_qml.py` is the primary launch script for Mouser, bringing together the core processing logic (Engine) and the graphical user interface (QML Backend). It replaces an older `tkinter`-based interface.
+`main_qml.py` is the primary launch script for Mouser Multi-Action, bringing together the core processing logic (Engine) and the graphical user interface (QML Backend). It replaces an older `tkinter`-based interface.
 
 ### What the Code is Responsible For
 
@@ -70,7 +70,7 @@ python -m unittest discover -s tests
 4. **Execution Flow:**
    - `qml_engine.load(...)` parses and renders `Main.qml`.
    - A deferral (`QTimer.singleShot(0, ...)`) is queued to start the `Engine` asynchronously.
-   - If `--start-hidden` is present, the window is kept hidden and Mouser starts as a tray / menu-bar app first.
+   - If `--start-hidden` is present, the window is kept hidden and Mouser Multi-Action starts as a tray / menu-bar app first.
    - Execution hands over to `app.exec()`, blocking the main thread to run the Qt UI event loop.
    - `engine.stop()` gracefully shuts down background threads when the Qt event loop terminates.
 
@@ -112,7 +112,7 @@ The arrows match the runtime call graph: the OS-level mouse hook feeds events in
 
 ### Mouse hook
 
-Mouser exposes a single `MouseHook` façade in [`core/mouse_hook.py`](core/mouse_hook.py) and dispatches to a per-platform implementation:
+Mouser Multi-Action exposes a single `MouseHook` façade in [`core/mouse_hook.py`](core/mouse_hook.py) and dispatches to a per-platform implementation:
 
 - **Windows** — [`core/mouse_hook_windows.py`](core/mouse_hook_windows.py): `SetWindowsHookExW` with `WH_MOUSE_LL` on a dedicated background thread, plus Raw Input for extra mouse data.
 - **macOS** — [`core/mouse_hook_macos.py`](core/mouse_hook_macos.py): `CGEventTap` for interception and Quartz events for key simulation. The callback is wrapped with `@_autoreleased` to recycle Foundation objects every event (closing a ~1.4 GB leak that appeared under load) and the tap auto re-enables itself when the system disables it on timeout.
@@ -128,22 +128,22 @@ All paths feed the same internal event model and intercept:
 - `WM_MOUSEHWHEEL` — horizontal scroll
 - `WM_MOUSEWHEEL` — vertical scroll (for inversion)
 
-Intercepted events are either **blocked** (hook returns `1`) and replaced with an action, or **passed through** to the foreground application. Synthetic events Mouser injects itself are tagged so the hook ignores them on the way back in (Windows uses an event marker; macOS uses `kCGEventSourceUserData`).
+Intercepted events are either **blocked** (hook returns `1`) and replaced with an action, or **passed through** to the foreground application. Synthetic events Mouser Multi-Action injects itself are tagged so the hook ignores them on the way back in (Windows uses an event marker; macOS uses `kCGEventSourceUserData`).
 
 ### Device catalog & layout registry
 
-- [`core/logi_device_catalog.py`](core/logi_device_catalog.py) holds Mouser's curated per-device Logitech specs, image assets, and hotspot coordinates for dedicated control surfaces.
+- [`core/logi_device_catalog.py`](core/logi_device_catalog.py) holds Mouser Multi-Action's curated per-device Logitech specs, image assets, and hotspot coordinates for dedicated control surfaces.
 - [`core/logi_devices.py`](core/logi_devices.py) resolves known product IDs and model aliases into a `ConnectedDeviceInfo` record with display name, DPI range, preferred gesture CIDs, supported buttons, and default UI layout key.
 - [`core/device_layouts.py`](core/device_layouts.py) stores built-in family layouts plus catalog layouts, layout notes, and whether a layout is interactive or only a generic fallback. `_FAMILY_FALLBACKS` maps per-model keys to family layout keys until a dedicated overlay exists.
 - [`ui/backend.py`](ui/backend.py) combines auto-detected device info with any persisted per-device layout override and exposes the effective layout to QML.
 
 ### Gesture button detection
 
-Logitech gesture / thumb buttons do not always appear as standard mouse events. Mouser uses a layered detector inside [`core/hid_gesture.py`](core/hid_gesture.py):
+Logitech gesture / thumb buttons do not always appear as standard mouse events. Mouser Multi-Action uses a layered detector inside [`core/hid_gesture.py`](core/hid_gesture.py):
 
 1. **HID++ 2.0 (primary)** — opens the Logitech HID collection, discovers `REPROG_CONTROLS_V4` (feature `0x1B04`), ranks gesture CID candidates from the device registry plus control-capability heuristics, and diverts the best candidate. When supported, RawXY movement data is also enabled.
 2. **Raw Input (Windows fallback)** — registers for raw mouse input and detects extra button bits beyond the standard 5.
-3. **Gesture tap / swipe dispatch** — a clean press/release emits `gesture_click`; once movement crosses the configured threshold, Mouser emits directional swipe actions instead.
+3. **Gesture tap / swipe dispatch** — a clean press/release emits `gesture_click`; once movement crosses the configured threshold, Mouser Multi-Action emits directional swipe actions instead.
 
 The same module owns the SmartShift integration. It prefers the enhanced feature `0x2111` (`FEAT_SMART_SHIFT_ENHANCED`) when available and falls back to `0x2110`, exposing both an enable flag and a sensitivity threshold; pending settings are re-applied on every reconnect (including wake-from-sleep).
 
@@ -161,7 +161,7 @@ The same module owns the SmartShift integration. It prefers the enhanced feature
 
 ### Device reconnection
 
-Mouser handles mouse power-off / on cycles automatically:
+Mouser Multi-Action handles mouse power-off / on cycles automatically:
 
 - **HID++ layer** — `HidGestureListener` detects device disconnection (read errors) and enters a reconnect loop, retrying every 2–5 seconds until the device returns. Pending SmartShift / scroll-mode settings are replayed on reconnect.
 - **Hook layer** — `MouseHook` listens for `WM_DEVICECHANGE` (Windows) and platform equivalents elsewhere, reinstalling the low-level hook when devices are added or removed.
@@ -193,7 +193,7 @@ Two pages accessible from a slim sidebar in [`ui/qml/Main.qml`](ui/qml/Main.qml)
 
 - **DPI slider** — 200 to the device max with quick presets (400, 800, 1000, 1600, 2400, 4000, 6000, 8000). Reads the current DPI from the device on startup.
 - **Scroll inversion** — independent toggles for vertical and horizontal scroll direction.
-- **Ignore trackpad (macOS)** — keep trackpad and Magic Mouse continuous scroll out of Mouser mappings. Disable only if you intentionally want Mouser to handle them.
+- **Ignore trackpad (macOS)** — keep trackpad and Magic Mouse continuous scroll out of Mouser Multi-Action mappings. Disable only if you intentionally want Mouser Multi-Action to handle them.
 - **Smart Shift** — toggle ratchet ↔ free-spin (HID++ `0x2111`) plus a sensitivity threshold; status syncs every 15 s and on every reconnect.
 - **Startup controls** — **Start at login** (Windows + macOS) and **Start minimized** (all platforms).
 
@@ -340,4 +340,4 @@ $s.Save()
 - **Startup timing:** `_t0`–`_t8` markers in `main_qml.py` log per-phase startup costs (env setup, PySide6 imports, core imports). Watch for regressions when adding heavy imports.
 - **HID transport override:** `--hid-backend=iokit|hidapi|auto` lets you isolate transport-specific bugs (e.g. Bolt receivers, BLE quirks).
 - **Logs:** `~/Library/Logs/Mouser/mouser.log`, `%APPDATA%\Mouser\logs\mouser.log`, or `$XDG_STATE_HOME/Mouser/logs/mouser.log`. Stdout is redirected through the rotating file handler; stderr is preserved so logging-handler errors don't recurse.
-- **Linux permissions:** [`core/linux_permissions.py`](core/linux_permissions.py) emits a `LinuxPermissionReport` describing which `/dev/hidraw*`, `/dev/input/event*`, and `/dev/uinput` nodes are blocked. Mouser surfaces this via the UI banner and the log.
+- **Linux permissions:** [`core/linux_permissions.py`](core/linux_permissions.py) emits a `LinuxPermissionReport` describing which `/dev/hidraw*`, `/dev/input/event*`, and `/dev/uinput` nodes are blocked. Mouser Multi-Action surfaces this via the UI banner and the log.

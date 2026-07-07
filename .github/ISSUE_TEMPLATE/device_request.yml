@@ -1,12 +1,12 @@
 ﻿name: Device Support Request
-description: Request support for a Logitech mouse not yet supported by Mouser
+description: Request support for a Logitech mouse not yet supported by Mouser Multi-Action
 title: "[Device] "
 labels: ["device-request"]
 body:
   - type: markdown
     attributes:
       value: |
-        Want Mouser to support your Logitech mouse? The device info dump is the
+        Want Mouser Multi-Action to support your Logitech mouse? The device info dump is the
         single most useful thing you can provide.
 
         **Before opening this issue**, check
@@ -29,7 +29,7 @@ body:
     attributes:
       label: Product ID (if known)
       description: >
-        The USB/Bluetooth Product ID (PID). If Mouser showed something like
+        The USB/Bluetooth Product ID (PID). If Mouser Multi-Action showed something like
         "Logitech PID 0xB0XX", paste that value. You can also find it in the
         device info JSON under `product_id`.
       placeholder: "e.g. 0xB0XX"
@@ -51,15 +51,15 @@ body:
   - type: dropdown
     id: mouser-detection
     attributes:
-      label: Does Mouser detect the device at all?
+      label: Does Mouser Multi-Action detect the device at all?
       description: >
-        When you connect the mouse and open Mouser, does the UI show a device
+        When you connect the mouse and open Mouser Multi-Action, does the UI show a device
         name or "Not Connected"?
       options:
         - "Yes, it shows the correct model name"
         - "Yes, but it shows a generic name (e.g. 'Logitech PID 0xXXXX')"
-        - "No, Mouser says 'Not Connected'"
-        - "I have not tried connecting it to Mouser yet"
+        - "No, Mouser Multi-Action says 'Not Connected'"
+        - "I have not tried connecting it to Mouser Multi-Action yet"
     validations:
       required: true
 
@@ -69,7 +69,7 @@ body:
       label: Device info JSON
       description: >
         This is the most important piece of information for adding device
-        support. Even if Mouser does not fully support your mouse, it may still
+        support. Even if Mouser Multi-Action does not fully support your mouse, it may still
         detect and probe it.
 
 
@@ -77,14 +77,14 @@ body:
 
         1. Connect your Logitech mouse via Bluetooth or USB receiver
 
-        2. Open Mouser and go to the **Mouse** page
+        2. Open Mouser Multi-Action and go to the **Mouse** page
 
         3. Click **Copy device info** (the clipboard button next to "Help us support your mouse")
 
         4. Paste the JSON below
 
 
-        If Mouser does not detect your device at all, skip this field and
+        If Mouser Multi-Action does not detect your device at all, skip this field and
         mention that in the description.
       render: json
       placeholder: "Paste the JSON from 'Copy device info' here"
@@ -96,7 +96,7 @@ body:
     attributes:
       label: Physical buttons on your mouse
       description: >
-        Describe the buttons your mouse has and which ones you would like Mouser
+        Describe the buttons your mouse has and which ones you would like Mouser Multi-Action
         to support. Photos of the mouse are very welcome!
       placeholder: |
         My mouse has:
@@ -112,7 +112,7 @@ body:
   - type: textarea
     id: desired-features
     attributes:
-      label: What features would you like Mouser to support for this device?
+      label: What features would you like Mouser Multi-Action to support for this device?
       description: >
         Beyond basic detection, what do you want? Button remapping, gesture
         swipes, DPI control, Smart Shift, per-app profiles, an interactive

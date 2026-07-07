@@ -1,12 +1,12 @@
 name: Feature Request
-description: Suggest a new feature or improvement for Mouser
+description: Suggest a new feature or improvement for Mouser Multi-Action
 title: "[Feature] "
 labels: ["enhancement"]
 body:
   - type: markdown
     attributes:
       value: |
-        Have an idea for Mouser? We would love to hear it! Please describe what
+        Have an idea for Mouser Multi-Action? We would love to hear it! Please describe what
         you would like and why it would be useful.
 
   - type: textarea
@@ -16,7 +16,7 @@ body:
       description: >
         Describe the feature or improvement you would like. Be as specific as
         you can about what it should do.
-      placeholder: "I would like Mouser to..."
+      placeholder: "I would like Mouser Multi-Action to..."
     validations:
       required: true
 
@@ -35,7 +35,7 @@ body:
     id: area
     attributes:
       label: Area of the app
-      description: Which part of Mouser does this relate to?
+      description: Which part of Mouser Multi-Action does this relate to?
       options:
         - Button remapping / actions
         - Gesture button / swipe actions
