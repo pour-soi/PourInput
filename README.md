@@ -1,57 +1,69 @@
 # Mouser Multi-Action
 
-Mouser Multi-Action is a customized open-source fork of [TomBadash/Mouser](https://github.com/TomBadash/Mouser). It extends the original Mouser project with a generic Multi-Action Button framework so supported mouse buttons can have separate Click and Long Press actions.
+**One Button. Two Actions.**
 
-Repository name: `Mouser-Multi-Action`
+[![CI](https://github.com/pour-soi/Mouser-Multi-Action/actions/workflows/ci.yml/badge.svg)](https://github.com/pour-soi/Mouser-Multi-Action/actions/workflows/ci.yml)
+[![Latest Release](https://img.shields.io/github/v/release/pour-soi/Mouser-Multi-Action?sort=semver)](https://github.com/pour-soi/Mouser-Multi-Action/releases)
+[![License](https://img.shields.io/github/license/pour-soi/Mouser-Multi-Action)](LICENSE)
+[![Python 3.12](https://img.shields.io/badge/python-3.12-blue)](requirements.txt)
 
-Maintainer: `pour-soi`
+Mouser Multi-Action is an open-source fork of [TomBadash/Mouser](https://github.com/TomBadash/Mouser) that adds a generic Multi-Action Button framework for Logitech HID++ mice.
 
-Current release: v0.1.0
+Supported mouse buttons can have independent **Click Action** and **Long Press Action** mappings. For example, one button can take a screenshot when clicked and switch scroll mode when held.
+
+Current release: `v0.1.0`
+
+Repository: `pour-soi/Mouser-Multi-Action`
+
+## Why Mouser Multi-Action?
+
+Logitech mice often expose useful extra controls, but not every workflow fits a single action per button. Mouser Multi-Action solves that by making each supported button behave like two configurable controls:
+
+- **Click** for the fast action you use constantly.
+- **Long Press** for the secondary action you still want nearby.
+
+Compared with the original Mouser project, this fork focuses on reusable multi-action button handling instead of one-off button-specific timing logic. Compared with Logitech Options+, this project is open source, scriptable, reviewable, and easier to inspect when debugging HID++ behavior. It does not replace every Options+ feature; it is a focused tool for configurable button remapping.
 
 ## Features
 
-- Generic Multi-Action Button framework
-- One reusable dispatcher for Click and Long Press behavior
-- Default long-press threshold: 300 ms
-- Mode Shift Click and Long Press mappings
-- Back Button Click and Long Press mappings
-- Forward Button Click and Long Press mappings
-- Config migration for existing Mouser Multi-Action profiles
-- UI fields for Click Action and Long Press Action
-- HID++ Mode Shift diversion synchronization inherited from the customized Mouser Multi-Action work in this fork
+- Generic Multi-Action Button framework.
+- One reusable dispatcher for supported buttons.
+- Independent Click and Long Press mappings.
+- Default Long Press threshold of 300 ms.
+- Back, Forward, and Mode Shift support in the first release.
+- Configuration migration for existing profiles.
+- UI fields for Click Action and Long Press Action.
+- HID++ diversion synchronization for Mode Shift remapping.
+- Windows release packaging with versioned release artifacts.
 
 ## Screenshots
 
 Screenshots will be added in a future release.
 
-Suggested placeholders:
+Suggested screenshots:
 
-- Mouse page with Mode Shift selected
-- Back Button with Click and Long Press configured
-- Forward Button with Click and Long Press configured
-- About dialog showing version and commit
+- Mouse page with a supported button selected.
+- Click Action and Long Press Action fields.
+- Mode Shift configured with screenshot on Click and scroll mode on Long Press.
+- About dialog showing version and commit metadata.
 
 ## Installation
 
-1. Download `Mouser-Multi-Action-v0.1.0-Windows.zip` from the release.
-2. Extract the zip.
-3. Open `Mouser-Multi-Action-v0.1.0/Mouser.exe`.
-4. Configure Click Action and Long Press Action for Mode Shift, Back, or Forward.
+1. Download `Mouser-Multi-Action-v0.1.0-Windows.zip` from the [latest release](https://github.com/pour-soi/Mouser-Multi-Action/releases/latest).
+2. Extract the zip file.
+3. Run `Mouser-Multi-Action-v0.1.0/Mouser.exe`.
+4. Quit any other Mouser or Mouser Multi-Action build before launching this one.
 
-On Windows, if another Mouser Multi-Action build is already running, quit it from the tray before launching this build.
+The packaged Windows app includes the runtime files it needs. You do not need to install Python to use a release build.
 
-## How To Use
+## Usage
 
-Open the Mouse page and select a supported button:
+Open the Mouse page and select a supported button.
 
-- Mode Shift
-- Back Button
-- Forward Button
+Each supported button can show:
 
-Each supported button shows:
-
-- Click Action
-- Long Press Action
+- **Click Action**
+- **Long Press Action**
 
 Examples:
 
@@ -59,42 +71,68 @@ Examples:
 - Forward: Click -> Browser Forward, Long Press -> Paste
 - Mode Shift: Click -> Screenshot Region -> Clipboard, Long Press -> Switch Scroll Mode
 
-A press shorter than 300 ms dispatches the Click Action. A press held for at least 300 ms dispatches the Long Press Action when released.
+A press shorter than 300 ms runs the Click Action. A press held for at least 300 ms runs the Long Press Action when released.
 
-If a button has no Long Press Action configured, Mouser Multi-Action keeps the original behavior for that button.
+If no Long Press Action is configured, the button keeps the same behavior it had before the Multi-Action framework was added.
 
-## How To Build
+## Supported Devices
+
+Mouser Multi-Action targets Logitech HID++ mice that the app can detect and control.
+
+Multi-Action support is currently enabled for:
+
+- Mode Shift
+- Back Button
+- Forward Button
+
+Device support depends on what the mouse exposes through HID++. Some controls must be reprogrammable and divertable before Mouser Multi-Action can intercept them. If your mouse is detected but a button is missing, open a device support request and include the device info JSON from the Mouse page.
+
+## Building From Source
 
 Requirements:
 
-- Windows
 - Python 3.12
-- Project dependencies from `requirements.txt`
-- PyInstaller
+- Dependencies from `requirements.txt`
+- PyInstaller for packaged builds
 
-From the repository root:
+Create an environment and install dependencies:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+```
+
+Run the app from source:
+
+```powershell
+.\.venv\Scripts\python.exe main_qml.py
+```
+
+Run the test suite:
+
+```powershell
+.\.venv\Scripts\python.exe -m unittest discover -s tests
+```
+
+Build the Windows app:
 
 ```powershell
 .\.venv\Scripts\python.exe -m PyInstaller Mouser.spec --noconfirm
 ```
 
-The raw build output is written to:
+Raw build output is written to `dist/Mouser/`.
 
-```text
-dist/Mouser/
-```
+## Packaging
 
-## How To Package
-
-Use the release script:
+Create a versioned Windows release package:
 
 ```powershell
 .\scripts\create_release.ps1 -Version v0.1.0
 ```
 
-If no version is specified, the script reads the latest versioned Windows zip in `release/` and increments the patch version.
+If no version is specified, the packaging script reads the latest versioned Windows zip in `release/` and increments the patch version.
 
-The release output is:
+Release output:
 
 ```text
 release/
@@ -103,7 +141,7 @@ release/
     CHANGELOG.md
 ```
 
-The zip contains:
+Zip layout:
 
 ```text
 Mouser-Multi-Action-v0.1.0/
@@ -115,83 +153,64 @@ Mouser-Multi-Action-v0.1.0/
     all required runtime files
 ```
 
-The script removes only temporary build output before packaging. It does not remove `.git`, source code, release history, README, changelog, settings, logs, or versioned release zips.
-
-## GitHub Publishing
-
-Publish this project as:
-
-```text
-pour-soi/Mouser-Multi-Action
-```
-
-Suggested release flow:
-
-1. Commit the source changes.
-2. Create and push the tag `v0.1.0`.
-3. Create a GitHub Release named `Mouser Multi-Action v0.1.0`.
-4. Upload `release/Mouser-Multi-Action-v0.1.0-Windows.zip`.
-5. Use `release/RELEASE_NOTES-v0.1.0.md` as the release body.
-
-## Versioning
-
-This project uses Semantic Versioning:
-
-```text
-Major.Minor.Patch
-```
-
-Examples:
-
-- v0.1.0
-- v0.1.1
-- v0.2.0
-- v1.0.0
-
-If no version is provided to the release script, the patch version is incremented automatically.
+The release script removes only temporary build output before packaging. It preserves `.git`, source code, release history, settings, logs, and previous versioned releases.
 
 ## Roadmap
 
 ### v0.2.0
 
-- Double Click support
-- Custom long-press timeout
+- Double Click support.
+- Custom Long Press timeout.
 
 ### v0.3.0
 
-- Per-button timeout
-- Export/Import configuration
+- Per-button timeout.
+- Export and import configuration.
 
 ### v0.4.0
 
-- Macro support
-- Sequential actions
+- Macro support.
+- Sequential actions.
 
 ### v1.0.0
 
-- Stable release
+- Stable release.
+
+## Known Issues
+
+- Double Click is planned but not implemented yet.
+- Long Press timeout is fixed at 300 ms and is not configurable in the UI yet.
+- Timeout is global, not per button.
+- Macro support and sequential actions are not implemented yet.
+- Logitech Options+ can conflict with Mouser Multi-Action because both tools may need HID++ access.
+- Device support depends on each mouse exposing compatible HID++ controls.
 
 ## Contributing
 
-Future buttons should be added through the generic multi-action configuration instead of adding new button-specific timer logic.
+Contributions are welcome. Good first contributions include documentation polish, tests, device support data, and focused bug fixes.
 
-To add another multi-action button:
+Before opening a pull request:
 
-1. Add the button key to `MULTI_ACTION_BUTTONS` in `core/config.py`.
-2. Ensure the button has down/up events in `BUTTON_TO_EVENTS`.
-3. Add a default `<button>_long` mapping.
-4. Confirm the backend exposes the button through `supportsMultiAction`.
-5. Add focused engine and UI/backend tests.
+1. Keep behavior changes small and well tested.
+2. Run `python -m unittest discover -s tests`.
+3. Include device info JSON when changing mouse support.
+4. Update documentation when changing user-visible behavior.
 
-## Original Project
+To add another Multi-Action button in the future:
 
-This project is based on:
+1. Add the button key to the Multi-Action button configuration.
+2. Ensure the button has down and up events.
+3. Add a default Long Press mapping.
+4. Expose the button through the backend capability data.
+5. Add focused engine, config, backend, and UI tests.
 
-- [TomBadash/Mouser](https://github.com/TomBadash/Mouser)
+See [CONTRIBUTING.md](CONTRIBUTING.md), [CONTRIBUTING_DEVICES.md](CONTRIBUTING_DEVICES.md), and [DEVELOPMENT.md](DEVELOPMENT.md) for more detail.
 
-Maintainer:
+## Acknowledgements
 
-- `pour-soi`
+Mouser Multi-Action is based on [TomBadash/Mouser](https://github.com/TomBadash/Mouser). The original project made the foundation for this fork possible.
+
+Maintainer: `pour-soi`
 
 ## License
 

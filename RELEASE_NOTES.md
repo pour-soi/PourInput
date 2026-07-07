@@ -10,7 +10,9 @@ Maintainer: `pour-soi`
 
 ## Summary
 
-Mouser Multi-Action v0.1.0 is the first release of this customized fork of TomBadash/Mouser. It adds a generic Multi-Action Button framework that lets supported buttons use separate Click and Long Press actions.
+Mouser Multi-Action v0.1.0 is the first release of this customized fork of TomBadash/Mouser.
+
+It adds a generic Multi-Action Button framework so supported mouse buttons can use separate Click and Long Press actions. The goal is simple: one physical button can now cover a primary action and a secondary action without adding button-specific timing code for every new control.
 
 ## New Features
 
@@ -62,9 +64,10 @@ Mouser Multi-Action v0.1.0 is the first release of this customized fork of TomBa
 ## Known Limitations
 
 - Double Click is planned but not implemented yet.
-- Long-press timeout defaults to 300 ms and is not editable in the UI yet.
+- Long Press timeout defaults to 300 ms and is not editable in the UI yet.
 - Timeout is global, not per button.
 - Macro support and sequential actions are not implemented yet.
+- Device support depends on each mouse exposing compatible HID++ controls.
 
 ## How To Test
 

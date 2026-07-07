@@ -4,6 +4,16 @@ All notable changes to Mouser Multi-Action are documented here.
 
 This project uses Semantic Versioning.
 
+## Unreleased
+
+### Documentation
+
+- Reworked the README for a public open-source release.
+- Added clearer project positioning, installation, usage, build, packaging, roadmap, known issue, and contribution guidance.
+- Added repository community documents and GitHub pull request guidance.
+- Updated issue templates to use Mouser Multi-Action naming consistently.
+- Replaced stale upstream release links in the Chinese README.
+
 ## v0.1.0 - 2026-07-06
 
 ### Added
