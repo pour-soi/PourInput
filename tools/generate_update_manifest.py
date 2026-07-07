@@ -7,6 +7,11 @@ import argparse
 from datetime import datetime, timedelta, timezone
 import json
 from pathlib import Path
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from core.update_installer import (
     APP_ID,
