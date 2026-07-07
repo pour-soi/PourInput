@@ -38,14 +38,23 @@ Compared with the original Mouser project, this fork focuses on reusable multi-a
 
 ## Screenshots
 
-Screenshots will be added in a future release.
+### Main Interface
 
-Suggested screenshots:
+Shows the main MX Master 3 configuration interface.
 
-- Mouse page with a supported button selected.
-- Click Action and Long Press Action fields.
-- Mode Shift configured with screenshot on Click and scroll mode on Long Press.
-- About dialog showing version and commit metadata.
+![Main Interface](assets/screenshot-main.png)
+
+### Action Selection
+
+Shows the available actions that can be assigned to a button.
+
+![Action Selection](assets/screenshot-actions.png)
+
+### About
+
+Shows version, maintainer, and build information.
+
+![About](assets/screenshot-about.png)
 
 ## Installation
 
