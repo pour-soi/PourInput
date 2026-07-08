@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="images/logo.png" alt="PourInput logo" width="96">
+</p>
+
 # PourInput
 
 **One Button. Two Actions.**
@@ -36,17 +40,17 @@ Compared with the original Mouser project, this fork focuses on reusable multi-a
 
 ## Screenshots
 
-### Main Interface
+### Main Window
 
 Configure the active device, profiles, and supported button mappings from the main mouse view.
 
-![Main Interface](assets/screenshot-main.png)
+![Main Window](assets/screenshot-main.png)
 
-### Action Selection
+### Multi-Action Configuration
 
 Choose the action assigned to a supported Click or Long Press slot.
 
-![Action Selection](assets/screenshot-actions.png)
+![Multi-Action Configuration](assets/screenshot-actions.png)
 
 ### About
 
@@ -86,19 +90,17 @@ If no Long Press Action is configured, the button keeps the same behavior it had
 
 PourInput targets Logitech HID++ mice that the app can detect and control. Support depends on what each mouse exposes through HID++ and the operating system. Some controls must be reprogrammable and divertable before PourInput can intercept them.
 
-Currently cataloged devices include:
-
-- Logitech MX Master 4
-- Logitech MX Master 3S
-- Logitech MX Master 3
-- Logitech MX Master 2S
-- Logitech MX Master
-- Logitech MX Anywhere 3S
-- Logitech MX Anywhere 3
-- Logitech MX Anywhere 2S
-- Logitech MX Vertical
-- Logitech Signature M650 / M650 L
-- Logitech G502, G502 HERO, G502 LIGHTSPEED, and G502 X family
+| Device | Support |
+|--------|---------|
+| MX Master 3 | ✅ Supported for cataloged Multi-Action controls |
+| MX Master 3S | ✅ Supported for cataloged Multi-Action controls |
+| MX Anywhere 3 | ✅ Supported for cataloged controls |
+| MX Vertical | ⚠️ Partial; layout and available controls differ |
+| MX Master 4 / 2S / original MX Master | Depends on available HID++ features |
+| MX Anywhere 3S / 2S | Depends on available HID++ features |
+| Signature M650 / M650 L | Partial; no Mode Shift or horizontal scroll controls |
+| G502 family | Partial; remapped at the OS level where available |
+| Others | Depends on available HID++ features |
 
 Multi-Action support is currently focused on Mode Shift, Back, and Forward where those controls are exposed. Other buttons may still be available as standard mouse events, and device-specific capabilities such as DPI, SmartShift, battery reporting, gesture controls, and horizontal scroll vary by model.
 
@@ -172,33 +174,33 @@ PourInput-v1.0.0/
 
 The release script removes only temporary build output before packaging. It preserves `.git`, source code, release history, settings, logs, and previous versioned releases.
 
+## Known Limitations
+
+- Windows is the only official release target for v1.0.0.
+- PourInput is intended for Logitech HID++ devices.
+- Some features depend on device firmware and exposed HID++ capabilities.
+- macOS support is planned but not officially available.
+- Double Click is planned but not implemented yet.
+- Long Press timeout is fixed at 300 ms and is not configurable in the UI yet.
+- Macro support and sequential actions are not implemented yet.
+
 ## Roadmap
 
-### Current
+### Current (v1.0.0)
 
-- PourInput v1.0.0
-- Generic Multi-Action framework
-- Independent Click / Long Press actions
-- Improved Mode Shift handling
+- Multi-Action framework
+- Click / Long Press actions
+- Mode Shift improvements
+- Independent PourInput branding
 
 ### Planned
 
 - Enhanced Easy-Switch
-- Additional button actions
-- More Logitech device support
+- More customizable button actions
 - Better device detection
 - Configuration import/export
 - macOS experimental support
 - Flow-inspired multi-device features (long-term)
-
-## Known Issues
-
-- Double Click is planned but not implemented yet.
-- Long Press timeout is fixed at 300 ms and is not configurable in the UI yet.
-- Timeout is global, not per button.
-- Macro support and sequential actions are not implemented yet.
-- Logitech Options+ can conflict with PourInput because both tools may need HID++ access.
-- Device support depends on each mouse exposing compatible HID++ controls.
 
 ## Contributing
 

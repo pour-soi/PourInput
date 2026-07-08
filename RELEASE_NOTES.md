@@ -34,6 +34,7 @@ This release also finalizes the PourInput application identity, Windows executab
 - Clearer README sections for features, installation, screenshots, supported devices, roadmap, and credits.
 - Supported-device notes now call out the currently cataloged Logitech families and the HID++ requirements behind button remapping.
 - Credits now explicitly acknowledge the original Mouser project and its contributors.
+- Repository presentation now includes logo placement, release badges, ordered screenshots, cautious device support tables, and clearer known limitations.
 
 ## Bug Fixes
 
@@ -59,6 +60,7 @@ This release also finalizes the PourInput application identity, Windows executab
 - `tests/test_engine.py`
 - `tests/test_smart_shift.py`
 - `README.md`
+- `README_CN.md`
 - `CHANGELOG.md`
 - `RELEASE_NOTES.md`
 - `scripts/create_release.ps1`
@@ -76,6 +78,8 @@ This release also finalizes the PourInput application identity, Windows executab
 - Long Press timeout defaults to 300 ms and is not editable in the UI yet.
 - Timeout is global, not per button.
 - Macro support and sequential actions are not implemented yet.
+- Windows is the only official release target for v1.0.0.
+- macOS support is planned but not officially available.
 - Device support depends on each mouse exposing compatible HID++ controls.
 
 ## How To Test
