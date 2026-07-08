@@ -745,14 +745,15 @@ class Engine:
             if hg and hg.connected_device is not None:
                 if now - _last_battery >= _battery_poll_interval:
                     _last_battery = now
-                    level = hg.read_battery()
-                    if stop_event.is_set():
-                        return
-                    if level is not None and self._battery_read_cb:
-                        try:
-                            self._battery_read_cb(level)
-                        except Exception:
-                            pass
+                    if self._device_supports_battery_status(hg.connected_device):
+                        level = hg.read_battery()
+                        if stop_event.is_set():
+                            return
+                        if level is not None and self._battery_read_cb:
+                            try:
+                                self._battery_read_cb(level)
+                            except Exception:
+                                pass
 
                 if (
                     not self._replay_inflight
@@ -776,6 +777,23 @@ class Engine:
 
             if stop_event.wait(5):
                 return
+
+    @staticmethod
+    def _device_supports_battery_status(device):
+        capabilities = getattr(device, "capabilities", None)
+        if capabilities is None:
+            return True
+        if not hasattr(capabilities, "battery_status"):
+            return True
+        if capabilities.battery_status:
+            return True
+        inventory = getattr(device, "capability_inventory", None)
+        if inventory is None:
+            return True
+        return not (
+            bool(getattr(inventory, "raw_features", ()))
+            or bool(getattr(inventory, "has_reprog_controls", False))
+        )
 
     def set_battery_callback(self, cb):
         """Register ``cb(level: int)`` invoked when battery level is read (0-100)."""

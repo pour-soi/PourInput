@@ -605,6 +605,70 @@ class EngineReplayPhaseOneTests(unittest.TestCase):
         engine.hook._hid_gesture.read_battery.assert_called_once_with()
         engine.hook._hid_gesture.read_smart_shift.assert_not_called()
 
+    def test_battery_poll_reads_when_capability_reports_battery(self):
+        engine = self._make_engine()
+        stop_event = Mock()
+        stop_event.is_set.return_value = False
+        stop_event.wait.return_value = True
+        engine.hook._hid_gesture = SimpleNamespace(
+            connected_device=SimpleNamespace(
+                name="MX Master 3S",
+                capabilities=SimpleNamespace(battery_status=True),
+            ),
+            smart_shift_supported=False,
+            read_battery=Mock(return_value=88),
+            read_smart_shift=Mock(),
+        )
+        battery_levels = []
+        engine.set_battery_callback(battery_levels.append)
+
+        engine._battery_poll_loop(stop_event)
+
+        engine.hook._hid_gesture.read_battery.assert_called_once_with()
+        self.assertEqual(battery_levels, [88])
+
+    def test_battery_poll_skips_when_capability_reports_no_battery(self):
+        engine = self._make_engine()
+        stop_event = Mock()
+        stop_event.is_set.return_value = False
+        stop_event.wait.return_value = True
+        engine.hook._hid_gesture = SimpleNamespace(
+            connected_device=SimpleNamespace(
+                name="Mystery Logitech Mouse",
+                capabilities=SimpleNamespace(battery_status=False),
+                capability_inventory=SimpleNamespace(
+                    raw_features=("REPROG_CONTROLS_V4",),
+                    has_reprog_controls=True,
+                ),
+            ),
+            smart_shift_supported=False,
+            read_battery=Mock(return_value=None),
+            read_smart_shift=Mock(),
+        )
+
+        engine._battery_poll_loop(stop_event)
+
+        engine.hook._hid_gesture.read_battery.assert_not_called()
+
+    def test_battery_poll_preserves_fallback_when_capability_is_unknown(self):
+        engine = self._make_engine()
+        stop_event = Mock()
+        stop_event.is_set.return_value = False
+        stop_event.wait.return_value = True
+        engine.hook._hid_gesture = SimpleNamespace(
+            connected_device=SimpleNamespace(
+                name="Sparse Runtime Device",
+                capabilities=SimpleNamespace(battery_status=False),
+            ),
+            smart_shift_supported=False,
+            read_battery=Mock(return_value=None),
+            read_smart_shift=Mock(),
+        )
+
+        engine._battery_poll_loop(stop_event)
+
+        engine.hook._hid_gesture.read_battery.assert_called_once_with()
+
 
 if __name__ == "__main__":
     unittest.main()
