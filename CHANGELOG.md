@@ -6,8 +6,11 @@ This project uses Semantic Versioning.
 
 ## Unreleased
 
+## v1.1.0 - 2026-07-08
+
 ### Changed
 
+- Added the capability-based device support architecture so runtime HID++ evidence can enable or limit device features more safely.
 - Documented the capability-based device support architecture, including HID++-detected feature enablement and the distinction between tested and experimental devices.
 
 ### Documentation

@@ -200,6 +200,7 @@ The release script removes only temporary build output before packaging. It pres
 - Multi-Action framework
 - Click / Long Press actions
 - Mode Shift improvements
+- Capability-based device support
 - Independent PourInput branding
 
 ### Planned

@@ -137,6 +137,7 @@ release/
 - Multi-Action 框架
 - Click / Long Press 动作
 - Mode Shift 改进
+- 基于能力的设备支持
 - 独立 PourInput 品牌
 
 ### 计划
