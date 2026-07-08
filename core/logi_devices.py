@@ -353,6 +353,40 @@ class DeviceCapabilityInventory:
 
 
 @dataclass(frozen=True)
+class DeviceCapabilities:
+    """High-level feature summary for future capability-based decisions.
+
+    This intentionally sits alongside the existing model/button logic.  Nothing
+    consumes it for behavior yet.
+    """
+
+    reprogrammable_buttons: tuple[str, ...] = DEFAULT_BUTTON_LAYOUT
+    gesture_button: bool = False
+    mode_shift: bool = False
+    smart_shift: bool = False
+    adjustable_dpi: bool = False
+    battery_status: bool = False
+    horizontal_scroll: bool = False
+    thumb_wheel: bool = False
+    host_switching: bool = False
+    onboard_profiles: bool = False
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "reprogrammable_buttons": list(self.reprogrammable_buttons),
+            "gesture_button": self.gesture_button,
+            "mode_shift": self.mode_shift,
+            "smart_shift": self.smart_shift,
+            "adjustable_dpi": self.adjustable_dpi,
+            "battery_status": self.battery_status,
+            "horizontal_scroll": self.horizontal_scroll,
+            "thumb_wheel": self.thumb_wheel,
+            "host_switching": self.host_switching,
+            "onboard_profiles": self.onboard_profiles,
+        }
+
+
+@dataclass(frozen=True)
 class ConnectedDeviceInfo:
     key: str
     display_name: str
@@ -367,6 +401,7 @@ class ConnectedDeviceInfo:
     dpi_min: int = DEFAULT_DPI_MIN
     dpi_max: int = DEFAULT_DPI_MAX
     capability_inventory: DeviceCapabilityInventory = DeviceCapabilityInventory()
+    capabilities: DeviceCapabilities = DeviceCapabilities()
 
 
 def _spec_with_family_button_defaults(spec: dict) -> dict:
@@ -749,6 +784,60 @@ def build_device_capability_inventory(
     )
 
 
+def _has_button(buttons: tuple[str, ...], *keys: str) -> bool:
+    return any(key in buttons for key in keys)
+
+
+def _has_wheel_feature(
+    inventory: DeviceCapabilityInventory,
+    feature_id: int,
+) -> bool:
+    return any(
+        feature.feature_id == feature_id and feature.present
+        for feature in inventory.wheel_features
+    )
+
+
+def build_device_capabilities(
+    *,
+    supported_buttons: tuple[str, ...],
+    inventory: DeviceCapabilityInventory,
+    spec: LogiDeviceSpec | None = None,
+) -> DeviceCapabilities:
+    """Build a non-authoritative capability summary from current data sources."""
+    has_runtime_controls = inventory.has_reprog_controls
+    gesture_button = (
+        inventory.gesture_click
+        if has_runtime_controls
+        else _has_button(supported_buttons, *_GESTURE_BUTTON_KEYS)
+    )
+    mode_shift = (
+        inventory.mode_shift
+        if has_runtime_controls
+        else _has_button(supported_buttons, "mode_shift")
+    )
+    horizontal_scroll = bool(inventory.hscroll_cids) or _has_button(
+        supported_buttons,
+        "hscroll_left",
+        "hscroll_right",
+    )
+
+    return DeviceCapabilities(
+        reprogrammable_buttons=tuple(supported_buttons),
+        gesture_button=gesture_button,
+        mode_shift=mode_shift,
+        smart_shift=inventory.smart_shift,
+        adjustable_dpi=inventory.adjustable_dpi,
+        battery_status=inventory.battery,
+        horizontal_scroll=horizontal_scroll,
+        thumb_wheel=_has_wheel_feature(inventory, 0x2150),
+        host_switching=False,
+        onboard_profiles=bool(
+            spec is not None and str(spec.key).startswith("g502")
+        ),
+    )
+
+
 def derive_supported_buttons_from_reprog_controls(
     static_buttons: tuple[str, ...],
     controls,
@@ -824,6 +913,7 @@ def build_connected_device_info(
     )
     if spec:
         resolved_gesture_cids = tuple(gesture_cids or spec.gesture_cids)
+        supported_buttons = inventory.supported_buttons(spec.supported_buttons)
         return ConnectedDeviceInfo(
             key=spec.key,
             display_name=spec.display_name,
@@ -833,11 +923,16 @@ def build_connected_device_info(
             source=source,
             ui_layout=spec.ui_layout,
             image_asset=spec.image_asset,
-            supported_buttons=inventory.supported_buttons(spec.supported_buttons),
+            supported_buttons=supported_buttons,
             gesture_cids=resolved_gesture_cids,
             dpi_min=spec.dpi_min,
             dpi_max=spec.dpi_max,
             capability_inventory=inventory,
+            capabilities=build_device_capabilities(
+                supported_buttons=supported_buttons,
+                inventory=inventory,
+                spec=spec,
+            ),
         )
 
     # Fallback for unrecognized devices (e.g., USB Receiver PID 0xC52B which
@@ -859,6 +954,11 @@ def build_connected_device_info(
         supported_buttons=GENERIC_BUTTONS,
         gesture_cids=tuple(gesture_cids or DEFAULT_GESTURE_CIDS),
         capability_inventory=inventory,
+        capabilities=build_device_capabilities(
+            supported_buttons=GENERIC_BUTTONS,
+            inventory=inventory,
+            spec=None,
+        ),
     )
 
 

@@ -423,6 +423,61 @@ class RuntimeSupportedButtonTests(unittest.TestCase):
             [{"cid": "0x01A0", "name": "haptic"}],
         )
 
+    def test_mx_master_3_exposes_capability_summary(self):
+        info = build_connected_device_info(
+            product_id=0xB023,
+            product_name="MX Master 3",
+            reprog_controls=[
+                self._control(0x0052, flags=0x0130),
+                self._control(0x0053, flags=0x0130),
+                self._control(0x0056, flags=0x0130),
+                self._control(0x005B, flags=0x0130),
+                self._control(0x005D, flags=0x0130),
+                self._control(0x00C3, flags=0x0130),
+                self._control(0x00C4, flags=0x0130),
+            ],
+            gesture_cids=(0x00C3,),
+            active_gesture_cid=0x00C3,
+            gesture_rawxy_enabled=True,
+            discovered_features=(
+                "REPROG_V4 (0x1B04)",
+                "ADJUSTABLE_DPI (0x2201)",
+                "SMART_SHIFT_ENHANCED (0x2111)",
+                "THUMB_WHEEL (0x2150)",
+                "BATTERY (0x1004)",
+            ),
+        )
+
+        capabilities = info.capabilities
+        self.assertEqual(capabilities.reprogrammable_buttons, MX_MASTER_BUTTONS)
+        self.assertTrue(capabilities.gesture_button)
+        self.assertTrue(capabilities.mode_shift)
+        self.assertTrue(capabilities.smart_shift)
+        self.assertTrue(capabilities.adjustable_dpi)
+        self.assertTrue(capabilities.battery_status)
+        self.assertTrue(capabilities.horizontal_scroll)
+        self.assertTrue(capabilities.thumb_wheel)
+        self.assertFalse(capabilities.host_switching)
+        self.assertFalse(capabilities.onboard_profiles)
+
+    def test_generic_fallback_exposes_only_generic_capabilities(self):
+        info = build_connected_device_info(
+            product_id=0xB999,
+            product_name="Mystery Logitech Mouse",
+        )
+
+        capabilities = info.capabilities
+        self.assertEqual(capabilities.reprogrammable_buttons, GENERIC_BUTTONS)
+        self.assertFalse(capabilities.gesture_button)
+        self.assertFalse(capabilities.mode_shift)
+        self.assertFalse(capabilities.smart_shift)
+        self.assertFalse(capabilities.adjustable_dpi)
+        self.assertFalse(capabilities.battery_status)
+        self.assertFalse(capabilities.horizontal_scroll)
+        self.assertFalse(capabilities.thumb_wheel)
+        self.assertFalse(capabilities.host_switching)
+        self.assertFalse(capabilities.onboard_profiles)
+
     def test_reprog_control_filter_removes_missing_gesture_group(self):
         buttons = derive_supported_buttons_from_reprog_controls(
             MX_MASTER_BUTTONS,
