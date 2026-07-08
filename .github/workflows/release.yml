@@ -4,16 +4,22 @@ on:
   push:
     tags: ["v*"]
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Release tag to publish assets for, for example v1.1.0"
+        required: true
+        type: string
 
 permissions:
   contents: write
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
-  POURINPUT_VERSION: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}
+  RELEASE_TAG: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || github.event.inputs.release_tag }}
+  POURINPUT_VERSION: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || github.event.inputs.release_tag }}
   POURINPUT_GIT_COMMIT: ${{ github.sha }}
   POURINPUT_GIT_DIRTY: "false"
-  WINDOWS_ARCHIVE_NAME: ${{ startsWith(github.ref, 'refs/tags/') && format('PourInput-{0}-Windows.zip', github.ref_name) || 'PourInput-Windows-dev.zip' }}
+  WINDOWS_ARCHIVE_NAME: ${{ format('PourInput-{0}-Windows.zip', startsWith(github.ref, 'refs/tags/') && github.ref_name || github.event.inputs.release_tag) }}
 
 jobs:
   build-windows:
@@ -221,7 +227,7 @@ jobs:
           path: PourInput-Linux.zip
 
   release:
-    if: startsWith(github.ref, 'refs/tags/')
+    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
     needs: [build-windows, build-macos, build-linux]
     runs-on: ubuntu-latest
     steps:
@@ -242,42 +248,42 @@ jobs:
           cp PourInput-Linux/PourInput-Linux.zip update-assets/
           python tools/generate_update_manifest.py \
             --repo "${{ github.repository }}" \
-            --tag "${{ github.ref_name }}" \
+            --tag "${{ env.RELEASE_TAG }}" \
             --commit "${{ github.sha }}" \
             --asset-dir update-assets \
-            --output "pourinput-${{ github.ref_name }}-update.json"
+            --output "pourinput-${{ env.RELEASE_TAG }}-update.json"
 
       - uses: actions/upload-artifact@v7
         with:
           name: PourInput-Update-Metadata
-          path: pourinput-${{ github.ref_name }}-update.json
+          path: pourinput-${{ env.RELEASE_TAG }}-update.json
 
       - name: Create or update GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if gh release view "${{ github.ref_name }}" --repo "${{ github.repository }}" > /dev/null 2>&1; then
+          if gh release view "${{ env.RELEASE_TAG }}" --repo "${{ github.repository }}" > /dev/null 2>&1; then
             # Release already exists — just upload the assets
-            gh release delete-asset "${{ github.ref_name }}" \
+            gh release delete-asset "${{ env.RELEASE_TAG }}" \
               "PourInput-Windows.zip" \
               --repo "${{ github.repository }}" \
               --yes || true
-            gh release upload "${{ github.ref_name }}" \
+            gh release upload "${{ env.RELEASE_TAG }}" \
               --repo "${{ github.repository }}" \
               --clobber \
               "PourInput-Windows/${{ env.WINDOWS_ARCHIVE_NAME }}" \
               PourInput-macOS/PourInput-macOS.zip \
               PourInput-macOS-intel/PourInput-macOS-intel.zip \
               PourInput-Linux/PourInput-Linux.zip \
-              pourinput-${{ github.ref_name }}-update.json
+              pourinput-${{ env.RELEASE_TAG }}-update.json
           else
-            gh release create "${{ github.ref_name }}" \
+            gh release create "${{ env.RELEASE_TAG }}" \
               --repo "${{ github.repository }}" \
-              --title "PourInput ${{ github.ref_name }}" \
+              --title "PourInput ${{ env.RELEASE_TAG }}" \
               --generate-notes \
               "PourInput-Windows/${{ env.WINDOWS_ARCHIVE_NAME }}" \
               PourInput-macOS/PourInput-macOS.zip \
               PourInput-macOS-intel/PourInput-macOS-intel.zip \
               PourInput-Linux/PourInput-Linux.zip \
-              pourinput-${{ github.ref_name }}-update.json
+              pourinput-${{ env.RELEASE_TAG }}-update.json
           fi
