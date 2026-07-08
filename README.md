@@ -34,6 +34,7 @@ Compared with the original Mouser project, this fork focuses on reusable multi-a
 - **Extended button customization** — assign independent Click and Long Press actions to supported buttons, including **Mode Shift**, **Back**, and **Forward**.
 - Improved **Mode Shift** handling — more reliable event detection and HID++ synchronization.
 - Application-specific profiles — automatically switch button mappings for different applications.
+- Capability-based device support — features such as DPI, SmartShift, battery reporting, gestures, and extra buttons are enabled from detected HID++ capabilities where available.
 - Pointer, scrolling, and SmartShift controls — configure supported Logitech device features.
 - Built-in screenshot actions — capture the full screen or a selected region to the clipboard or a file.
 - Portable Windows release — no Python installation required.
@@ -88,21 +89,29 @@ If no Long Press Action is configured, the button keeps the same behavior it had
 
 ## Supported Devices
 
-PourInput targets Logitech HID++ mice that the app can detect and control. Support depends on what each mouse exposes through HID++ and the operating system. Some controls must be reprogrammable and divertable before PourInput can intercept them.
+PourInput now uses a capability-based device support model. It still keeps cataloged layouts and known device metadata, but runtime behavior is increasingly driven by the HID++ features and controls the app can detect from the connected mouse. Where available, detected HID++ capabilities enable or limit features such as reprogrammable buttons, gesture controls, SmartShift, adjustable DPI, battery reporting, horizontal scroll, and device-specific controls.
 
-| Device | Support |
-|--------|---------|
-| MX Master 3 | ✅ Supported for cataloged Multi-Action controls |
-| MX Master 3S | ✅ Supported for cataloged Multi-Action controls |
-| MX Anywhere 3 | ✅ Supported for cataloged controls |
-| MX Vertical | ⚠️ Partial; layout and available controls differ |
-| MX Master 4 / 2S / original MX Master | Depends on available HID++ features |
-| MX Anywhere 3S / 2S | Depends on available HID++ features |
-| Signature M650 / M650 L | Partial; no Mode Shift or horizontal scroll controls |
-| G502 family | Partial; remapped at the OS level where available |
-| Others | Depends on available HID++ features |
+Some controls must be both reprogrammable and divertable before PourInput can intercept them. If capability information is missing or incomplete, PourInput falls back conservatively to the existing catalog and generic button behavior rather than assuming full support.
 
-Multi-Action support is currently focused on Mode Shift, Back, and Forward where those controls are exposed. Other buttons may still be available as standard mouse events, and device-specific capabilities such as DPI, SmartShift, battery reporting, gesture controls, and horizontal scroll vary by model.
+### Tested Devices
+
+| Device | Status |
+|--------|--------|
+| MX Master 3 | Tested for cataloged Multi-Action controls and HID++ capability detection |
+
+### Experimental / Potentially Compatible
+
+These devices are not claimed as officially supported unless they have been tested with PourInput. They may work when they expose matching HID++ capabilities.
+
+| Device | Notes |
+|--------|-------|
+| MX Master 3S | Expected to share many MX Master capabilities; needs user/device testing |
+| M720 Triathlon | Potentially compatible where required HID++ controls are exposed |
+| MX Anywhere series | Potentially compatible where required HID++ controls are exposed |
+| MX Master 4 / 2S / original MX Master | Potentially compatible where required HID++ controls are exposed |
+| Other Logitech HID++ devices | Potentially compatible when they expose matching reprogrammable, divertable controls |
+
+Multi-Action support is currently focused on Mode Shift, Back, and Forward where those controls are exposed. Other buttons may still be available as standard mouse events, and device-specific capabilities such as DPI, SmartShift, battery reporting, gesture controls, and horizontal scroll vary by device and firmware.
 
 If your mouse is detected but a button is missing, open a device support request and include the device info JSON from the Mouse page.
 

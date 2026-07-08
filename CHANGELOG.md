@@ -6,6 +6,10 @@ This project uses Semantic Versioning.
 
 ## Unreleased
 
+### Changed
+
+- Documented the capability-based device support architecture, including HID++-detected feature enablement and the distinction between tested and experimental devices.
+
 ### Documentation
 
 - Polished the README for the first official PourInput release.
