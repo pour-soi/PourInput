@@ -1,4 +1,5 @@
 import unittest
+from types import SimpleNamespace
 
 from core.device_layouts import get_device_layout
 from core.logi_devices import (
@@ -12,6 +13,7 @@ from core.logi_devices import (
     clamp_dpi,
     derive_supported_buttons_from_reprog_controls,
     get_buttons_for_layout,
+    get_reprogrammable_buttons,
     iter_known_devices,
     resolve_device,
 )
@@ -502,6 +504,14 @@ class RuntimeSupportedButtonTests(unittest.TestCase):
                 self.assertTrue(info.capabilities.gesture_button)
                 self.assertIn("gesture", info.supported_buttons)
 
+    def test_mx_master_devices_keep_capability_button_list(self):
+        for product_id in (0xB023, 0xB034, 0xB042):
+            with self.subTest(product_id=f"0x{product_id:04X}"):
+                info = build_connected_device_info(product_id=product_id)
+
+                self.assertEqual(info.capabilities.reprogrammable_buttons, MX_MASTER_BUTTONS)
+                self.assertEqual(get_reprogrammable_buttons(info), MX_MASTER_BUTTONS)
+
     def test_generic_fallback_exposes_only_generic_capabilities(self):
         info = build_connected_device_info(
             product_id=0xB999,
@@ -519,6 +529,15 @@ class RuntimeSupportedButtonTests(unittest.TestCase):
         self.assertFalse(capabilities.thumb_wheel)
         self.assertFalse(capabilities.host_switching)
         self.assertFalse(capabilities.onboard_profiles)
+        self.assertEqual(get_reprogrammable_buttons(info), GENERIC_BUTTONS)
+
+    def test_reprogrammable_buttons_preserve_fallback_when_capability_is_uncertain(self):
+        device = SimpleNamespace(
+            supported_buttons=MX_MASTER_BUTTONS,
+            capabilities=SimpleNamespace(reprogrammable_buttons=GENERIC_BUTTONS),
+        )
+
+        self.assertEqual(get_reprogrammable_buttons(device), MX_MASTER_BUTTONS)
 
     def test_reprog_control_filter_removes_missing_gesture_group(self):
         buttons = derive_supported_buttons_from_reprog_controls(

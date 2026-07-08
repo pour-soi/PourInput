@@ -234,6 +234,26 @@ class EngineHorizontalScrollTests(unittest.TestCase):
         self.assertTrue(engine.hook._gesture_config["enabled"])
         self.assertIn("gesture_swipe_left", engine.hook.registered_events)
 
+    def test_button_capabilities_drive_multi_action_registration(self):
+        engine = self._make_engine()
+        engine.cfg["profiles"]["default"]["mappings"]["xbutton1_long"] = "copy"
+        engine.hook.connected_device = SimpleNamespace(
+            supported_buttons=("middle",),
+            capabilities=SimpleNamespace(
+                reprogrammable_buttons=("middle", "mode_shift", "xbutton1"),
+            ),
+            capability_inventory=SimpleNamespace(has_reprog_controls=True),
+        )
+
+        with patch("core.engine.load_config", return_value=engine.cfg):
+            engine.reload_mappings()
+
+        self.assertTrue(engine.hook.divert_mode_shift)
+        self.assertIn(MouseEvent.MODE_SHIFT_DOWN, engine.hook.registered_events)
+        self.assertIn(MouseEvent.MODE_SHIFT_UP, engine.hook.registered_events)
+        self.assertIn(MouseEvent.XBUTTON1_DOWN, engine.hook.registered_events)
+        self.assertIn(MouseEvent.XBUTTON1_UP, engine.hook.registered_events)
+
     def test_reload_mappings_syncs_live_hid_extra_diverts(self):
         engine = self._make_engine()
         initial_calls = engine.hook.sync_hid_extra_diverts_calls

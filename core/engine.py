@@ -24,7 +24,7 @@ from core.linux_permissions import (
     linux_permission_report,
     linux_permission_status_message,
 )
-from core.logi_devices import clamp_dpi
+from core.logi_devices import clamp_dpi, get_reprogrammable_buttons
 
 HSCROLL_ACTION_COOLDOWN_S = 0.35
 HSCROLL_VOLUME_COOLDOWN_S = 0.06
@@ -128,7 +128,7 @@ class Engine:
         # at least one profile maps it to an action.  When no device is
         # connected yet, assume the button exists (safe: if the device
         # turns out not to have it, the divert simply has no effect).
-        device_buttons = getattr(device, "supported_buttons", None)
+        device_buttons = get_reprogrammable_buttons(device)
         has_mode_shift = device_buttons is None or "mode_shift" in device_buttons
         self.hook.divert_mode_shift = (
             has_mode_shift

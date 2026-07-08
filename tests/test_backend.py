@@ -733,6 +733,35 @@ class BackendDeviceLayoutTests(unittest.TestCase):
         self.assertEqual(xbutton1["longActionId"], "none")
         self.assertEqual(xbutton1["longActionLabel"], "Do Nothing (Pass-through)")
 
+    def test_connected_device_capability_buttons_filter_mapping_list(self):
+        device = SimpleNamespace(
+            key="mystery_logitech",
+            display_name="Mystery Logitech Mouse",
+            dpi_min=200,
+            dpi_max=8000,
+            ui_layout="generic_mouse",
+            supported_buttons=("middle", "gesture", "mode_shift"),
+            capabilities=SimpleNamespace(
+                reprogrammable_buttons=("middle", "xbutton1", "xbutton2"),
+            ),
+            capability_inventory=SimpleNamespace(has_reprog_controls=True),
+        )
+
+        with (
+            patch("ui.backend.load_config", return_value=copy.deepcopy(DEFAULT_CONFIG)),
+            patch("ui.backend.save_config"),
+            patch("ui.backend.supports_login_startup", return_value=False),
+        ):
+            backend = Backend(engine=_FakeEngine(device_connected=True, connected_device=device))
+
+        button_keys = [button["key"] for button in backend.buttons]
+        self.assertEqual(button_keys, ["middle", "xbutton1", "xbutton2"])
+        for button in backend.buttons:
+            self.assertEqual(
+                button["supportsMultiAction"],
+                button["key"] in ("xbutton1", "xbutton2"),
+            )
+
     def test_disconnect_clears_stale_linux_device_identity_and_layout(self):
         device = SimpleNamespace(
             key="mx_master_3",

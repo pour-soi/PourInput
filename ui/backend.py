@@ -37,6 +37,7 @@ from core.logi_devices import (
     build_evdev_connected_device_info,
     clamp_dpi,
     get_buttons_for_layout,
+    get_reprogrammable_buttons,
 )
 from core.key_simulator import (
     ACTIONS,
@@ -1891,7 +1892,7 @@ class Backend(QObject):
         if override_key:
             eff = get_buttons_for_layout(override_key)
         else:
-            eff = getattr(device, "supported_buttons", None)
+            eff = get_reprogrammable_buttons(device)
         old_eff = self._effective_supported_buttons
         self._effective_supported_buttons = eff
 

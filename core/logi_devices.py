@@ -471,6 +471,24 @@ def clamp_dpi(value, device=None) -> int:
     return max(dpi_min, min(dpi_max, dpi))
 
 
+def get_reprogrammable_buttons(device):
+    """Return capability-derived buttons, falling back to existing device data."""
+    supported_buttons = getattr(device, "supported_buttons", None)
+    capabilities = getattr(device, "capabilities", None)
+    buttons = getattr(capabilities, "reprogrammable_buttons", None)
+    if not buttons:
+        return supported_buttons
+
+    buttons = tuple(buttons)
+    if supported_buttons is None or tuple(supported_buttons) == buttons:
+        return buttons
+
+    inventory = getattr(device, "capability_inventory", None)
+    if bool(getattr(inventory, "has_reprog_controls", False)):
+        return buttons
+    return supported_buttons
+
+
 def resolve_device(product_id=None, product_name=None) -> LogiDeviceSpec | None:
     for device in KNOWN_LOGI_DEVICES:
         if device.matches(product_id=product_id, product_name=product_name):
