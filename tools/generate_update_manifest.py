@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate Mouser update metadata from release assets."""
+"""Generate PourInput update metadata from release assets."""
 
 from __future__ import annotations
 
@@ -23,11 +23,11 @@ from core.update_installer import (
 
 
 _ASSET_PLATFORM_KEYS = {
-    "Mouser-Windows.zip": "windows-x64",
-    "Mouser-macOS.zip": "macos-arm64",
-    "Mouser-macOS-intel.zip": "macos-x86_64",
-    "Mouser-Linux.zip": "linux-x64",
-    "Mouser-Windows-arm64.zip": "windows-arm64",
+    "PourInput-Windows.zip": "windows-x64",
+    "PourInput-macOS.zip": "macos-arm64",
+    "PourInput-macOS-intel.zip": "macos-x86_64",
+    "PourInput-Linux.zip": "linux-x64",
+    "PourInput-Windows-arm64.zip": "windows-arm64",
 }
 
 
@@ -50,7 +50,7 @@ def build_payload(args) -> dict:
             "sha256": sha256_file(path),
         }
     if not assets:
-        raise SystemExit(f"No known Mouser assets found in {asset_dir}")
+        raise SystemExit(f"No known PourInput assets found in {asset_dir}")
     expires_at = (
         datetime.now(timezone.utc) + timedelta(days=int(args.expires_days))
     ).replace(microsecond=0)

@@ -49,7 +49,7 @@ class ValidateMasterTests(unittest.TestCase):
     def _make_tempdir(self) -> str:
         import tempfile
 
-        path = tempfile.mkdtemp(prefix="mouser-icon-test-")
+        path = tempfile.mkdtemp(prefix="pourinput-icon-test-")
         self.addCleanup(shutil.rmtree, path, ignore_errors=True)
         return path
 
@@ -137,7 +137,7 @@ class BuildIcoTests(unittest.TestCase):
     def setUp(self) -> None:
         import tempfile
 
-        path = tempfile.mkdtemp(prefix="mouser-icon-test-")
+        path = tempfile.mkdtemp(prefix="pourinput-icon-test-")
         self.addCleanup(shutil.rmtree, path, ignore_errors=True)
         self.tmp = Path(path)
 
@@ -185,7 +185,7 @@ class BuildLinuxIconsTests(unittest.TestCase):
     def setUp(self) -> None:
         import tempfile
 
-        path = tempfile.mkdtemp(prefix="mouser-icon-test-")
+        path = tempfile.mkdtemp(prefix="pourinput-icon-test-")
         self.addCleanup(shutil.rmtree, path, ignore_errors=True)
         self.tmp = Path(path)
 

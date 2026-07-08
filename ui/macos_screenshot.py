@@ -1,4 +1,4 @@
-"""macOS screenshot actions with optional Mouser-owned file delivery."""
+"""macOS screenshot actions with optional pourinput-owned file delivery."""
 from __future__ import annotations
 
 import ctypes
@@ -411,7 +411,7 @@ def _ordered_screens(app: QGuiApplication):
 
 def _temporary_png_path() -> Path:
     handle = tempfile.NamedTemporaryFile(
-        prefix="mouser-screenshot-display-",
+        prefix="pourinput-screenshot-display-",
         suffix=".png",
         delete=False,
     )

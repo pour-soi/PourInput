@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+import posixpath
 import select
 import shutil
 import subprocess
@@ -164,7 +165,7 @@ def _capture_for_action(backend, action_id: str) -> Image.Image:
 
 
 class KWinScreenshotBackend:
-    needs_mouser_region_selection = True
+    needs_POURINPUT_region_selection = True
 
     def __init__(
         self,
@@ -331,7 +332,7 @@ class KWinScreenshotClient:
 
 
 class SpectacleScreenshotBackend:
-    needs_mouser_region_selection = False
+    needs_POURINPUT_region_selection = False
 
     def __init__(
         self,
@@ -366,7 +367,10 @@ class SpectacleScreenshotBackend:
         if action_id not in SCREENSHOT_ACTIONS:
             raise ValueError(f"unknown screenshot action: {action_id}")
         mode = "-r" if action_id in SCREENSHOT_REGION_ACTIONS else "-f"
-        return [self.executable, "-n", "-b", mode, "-o", str(output_path)]
+        output = str(output_path)
+        if output.startswith("\\"):
+            output = posixpath.join("/", *[part for part in output.split("\\") if part])
+        return [self.executable, "-n", "-b", mode, "-o", output]
 
     def timeout_for_action(self, action_id: str) -> int:
         if action_id in SCREENSHOT_REGION_ACTIONS:
@@ -406,7 +410,7 @@ class SpectacleScreenshotBackend:
     def _new_temp_path(self) -> Path:
         temp_dir = None if self._temp_dir is None else str(self._temp_dir)
         handle = tempfile.NamedTemporaryFile(
-            prefix="mouser-screenshot-",
+            prefix="pourinput-screenshot-",
             suffix=".png",
             dir=temp_dir,
             delete=False,
@@ -444,7 +448,7 @@ class SpectacleScreenshotBackend:
 
 
 class PortalScreenshotBackend:
-    needs_mouser_region_selection = False
+    needs_POURINPUT_region_selection = False
 
     def __init__(
         self,
@@ -513,7 +517,7 @@ class PortalScreenshotClient(QObject):
             raise BackendUnavailable(
                 "Screenshot backend unavailable: D-Bus session bus is not connected"
             )
-        self._token_factory = token_factory or (lambda: f"mouser_{uuid.uuid4().hex}")
+        self._token_factory = token_factory or (lambda: f"POURINPUT_{uuid.uuid4().hex}")
         self._response_code: int | None = None
         self._response_results = None
         self._response_loop: QEventLoop | None = None
@@ -584,7 +588,7 @@ class PortalScreenshotClient(QObject):
         if self._response_code is None:
             raise ScreenshotError(
                 "Screenshot failed: desktop portal did not respond. "
-                "Open the Mouser window once and retry if this is the first "
+                "Open the PourInput window once and retry if this is the first "
                 "screenshot permission request."
             )
         if self._response_code == 1:
@@ -669,7 +673,7 @@ class LinuxScreenshotController(QObject):
 
                 if (
                     action_id in SCREENSHOT_REGION_ACTIONS
-                    and getattr(backend, "needs_mouser_region_selection", False)
+                    and getattr(backend, "needs_POURINPUT_region_selection", False)
                 ):
                     self._regionSelectionReady.emit(action_id, backend, "")
                     return
@@ -928,7 +932,7 @@ def _raise_kwin_reply_error(reply) -> None:
         raise ScreenshotCancelled()
     if name == KWIN_NOT_AUTHORIZED or "authorized" in text.lower():
         raise BackendUnavailable(
-            "KWin ScreenShot2 is not authorized. Launch Mouser from its installed "
+            "KWin ScreenShot2 is not authorized. Launch PourInput from its installed "
             "desktop entry or use the portal/Spectacle fallback."
         )
     raise ScreenshotError(f"Screenshot failed: {text}")

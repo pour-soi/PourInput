@@ -2,6 +2,7 @@
 
 import os
 import plistlib
+import posixpath
 import shutil
 import subprocess
 import sys
@@ -9,21 +10,25 @@ import tempfile
 
 # Windows
 RUN_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
-RUN_VALUE_NAME = "Mouser Multi-Action"
+RUN_VALUE_NAME = "PourInput"
 
 # macOS
-MACOS_LAUNCH_AGENT_LABEL = "io.github.tombadash.mouser"
+MACOS_LAUNCH_AGENT_LABEL = "io.github.pour_soi.pourinput"
 MACOS_PLIST_NAME = f"{MACOS_LAUNCH_AGENT_LABEL}.plist"
 
 # Linux
-LINUX_APP_ID = "io.github.tombadash.mouser"
-LINUX_DESKTOP_ENTRY_NAME = "io.github.tombadash.mouser.desktop"
+LINUX_APP_ID = "io.github.pour_soi.pourinput"
+LINUX_DESKTOP_ENTRY_NAME = "io.github.pour_soi.pourinput.desktop"
 LINUX_DESKTOP_TEMPLATE_NAME = f"{LINUX_DESKTOP_ENTRY_NAME}.in"
 LINUX_AUTOSTART_DELAY_SECONDS = 15
 LINUX_ICON_NAME = LINUX_APP_ID
 LINUX_ICON_FILENAME = f"{LINUX_ICON_NAME}.png"
 LINUX_ICON_SIZES = (16, 24, 32, 48, 64, 128, 256, 512)
-APP_DISPLAY_NAME = "Mouser Multi-Action"
+APP_DISPLAY_NAME = "PourInput"
+
+
+def _platform_pathmod():
+    return posixpath if sys.platform in ("darwin", "linux") else os.path
 
 
 def supports_login_startup():
@@ -57,10 +62,11 @@ def _program_arguments():
 
 
 def _runtime_root_dir() -> str:
+    pathmod = _platform_pathmod()
     if getattr(sys, "frozen", False):
-        return os.path.dirname(os.path.abspath(sys.executable))
+        return pathmod.dirname(os.path.abspath(sys.executable))
     script_path = os.path.abspath(sys.argv[0]) if sys.argv else os.path.abspath(__file__)
-    return os.path.dirname(script_path)
+    return pathmod.dirname(script_path)
 
 
 def _source_checkout_python() -> str | None:
@@ -68,7 +74,7 @@ def _source_checkout_python() -> str | None:
     if sys.platform == "win32":
         candidate = os.path.join(root_dir, ".venv", "Scripts", "python.exe")
     else:
-        candidate = os.path.join(root_dir, ".venv", "bin", "python")
+        candidate = posixpath.join(root_dir, ".venv", "bin", "python")
     if os.path.isfile(candidate) and os.access(candidate, os.X_OK):
         return candidate
     return None
@@ -247,7 +253,7 @@ def _linux_icon_name_or_path() -> str:
 
 
 def sync_linux_icon_theme() -> bool:
-    """Best-effort sync of Mouser's hicolor icons into the user's icon theme."""
+    """Best-effort sync of PourInput's hicolor icons into the user's icon theme."""
     return _sync_linux_icon_theme()
 
 
@@ -351,7 +357,7 @@ def _apply_windows(enabled: bool) -> None:
 
 def _macos_plist_path() -> str:
     return os.path.expanduser(
-        os.path.join("~/Library/LaunchAgents", MACOS_PLIST_NAME)
+        posixpath.join("~/Library/LaunchAgents", MACOS_PLIST_NAME)
     )
 
 

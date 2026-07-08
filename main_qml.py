@@ -1,5 +1,5 @@
 """
-Mouser -- QML Entry Point
+PourInput -- QML Entry Point
 ==============================
 Launches the Qt Quick / QML UI with PySide6.
 Replaces the old tkinter-based main.py.
@@ -11,6 +11,7 @@ _t0 = _time.perf_counter()          # ◄ startup clock
 
 import sys
 import os
+import posixpath
 import signal
 import hashlib
 import getpass
@@ -36,6 +37,14 @@ def _resolve_root_dir():
 
 
 ROOT = _resolve_root_dir()
+
+
+def _join_like(base: str, *parts: str) -> str:
+    if "/" in str(base) and "\\" not in str(base):
+        return posixpath.join(str(base), *parts)
+    return os.path.join(str(base), *parts)
+
+
 sys.path.insert(0, ROOT)
 
 from core.log_setup import setup_logging
@@ -86,8 +95,8 @@ def _print_startup_times():
     print(f"[Startup] Total imports:    {(_t4-_t0)*1000:7.1f} ms")
 
 
-LINUX_DESKTOP_FILE_BASENAME = "io.github.tombadash.mouser"
-WINDOWS_APP_USER_MODEL_ID = "pour-soi.Mouser-Multi-Action"
+LINUX_DESKTOP_FILE_BASENAME = "io.github.pour_soi.pourinput"
+WINDOWS_APP_USER_MODEL_ID = "pour-soi.PourInput"
 
 
 def _parse_cli_args(argv):
@@ -127,7 +136,7 @@ _SINGLE_INSTANCE_ACTIVATE_MSG = b"show"
 def _single_instance_server_name() -> str:
     raw = f"{getpass.getuser()}\0{sys.platform}"
     digest = hashlib.sha256(raw.encode("utf-8", errors="replace")).hexdigest()[:16]
-    return f"mouser_instance_{digest}"
+    return f"POURINPUT_instance_{digest}"
 
 
 def _try_activate_existing_instance(server_name: str, timeout_ms: int = 500) -> bool:
@@ -158,7 +167,7 @@ def _single_instance_acquire(app: QApplication, server_name: str):
     if server.listen(server_name):
         return server, None
     if server.serverError() != QAbstractSocket.SocketError.AddressInUseError:
-        print(f"[Mouser] single-instance server: {server.errorString()}")
+        print(f"[PourInput] single-instance server: {server.errorString()}")
         return None, 1
     for _ in range(3):
         time.sleep(0.05)
@@ -168,7 +177,7 @@ def _single_instance_acquire(app: QApplication, server_name: str):
         server.close()
         if server.listen(server_name):
             return server, None
-    print("[Mouser] Could not claim single-instance lock or reach running instance.")
+    print("[PourInput] Could not claim single-instance lock or reach running instance.")
     return None, 1
 
 
@@ -184,12 +193,12 @@ def _app_icon() -> QIcon:
         icon_path = linux_runtime_icon_path()
     elif sys.platform == "win32":
         icon_name = "logo.ico"
-        icon_path = os.path.join(ROOT, "images", icon_name)
+        icon_path = _join_like(ROOT, "images", icon_name)
     else:
         icon_name = "logo_icon.png"
         icon_path = os.path.join(ROOT, "images", icon_name)
     if not os.path.isfile(icon_path):
-        print(f"[Mouser] App icon missing: {icon_path}")
+        print(f"[PourInput] App icon missing: {icon_path}")
         return QIcon()
     return QIcon(icon_path)
 
@@ -249,11 +258,11 @@ def _configure_windows_app_user_model_id() -> None:
         result = int(set_app_id(WINDOWS_APP_USER_MODEL_ID))
         if result != 0:
             print(
-                "[Mouser] Failed to set Windows AppUserModelID: "
+                "[PourInput] Failed to set Windows AppUserModelID: "
                 f"0x{result & 0xFFFFFFFF:08X}"
             )
     except Exception as exc:
-        print(f"[Mouser] Failed to set Windows AppUserModelID: {exc}")
+        print(f"[PourInput] Failed to set Windows AppUserModelID: {exc}")
 
 
 def _configure_linux_desktop_file_name(app: QGuiApplication) -> None:
@@ -262,40 +271,41 @@ def _configure_linux_desktop_file_name(app: QGuiApplication) -> None:
     try:
         app.setDesktopFileName(LINUX_DESKTOP_FILE_BASENAME)
     except Exception as exc:
-        print(f"[Mouser] Failed to set Linux desktop file name: {exc}")
+        print(f"[PourInput] Failed to set Linux desktop file name: {exc}")
 
 
-_MACOS_RELAUNCH_GUARD = "MOUSER_MACOS_RELAUNCHED"
+_MACOS_RELAUNCH_GUARD = "POURINPUT_MACOS_RELAUNCHED"
 
 
 def _macos_named_executable_path() -> str:
-    """Return a stable path for the `Mouser`-named launcher symlink.
+    """Return a stable path for the `PourInput`-named launcher symlink.
 
     When ``sys.executable`` is in a virtualenv, place the symlink next to
     the venv's python shim so `pyvenv.cfg` discovery still resolves
     site-packages after the re-exec. Otherwise fall back to a path inside
     the project tree so it stays stable across reboots.
     """
-    exec_dir = os.path.dirname(sys.executable)
-    pyvenv_cfg = os.path.join(os.path.dirname(exec_dir), "pyvenv.cfg")
+    pathmod = posixpath if "/" in sys.executable and "\\" not in sys.executable else os.path
+    exec_dir = pathmod.dirname(sys.executable)
+    pyvenv_cfg = pathmod.join(pathmod.dirname(exec_dir), "pyvenv.cfg")
     if os.path.isfile(pyvenv_cfg):
-        return os.path.join(exec_dir, "Mouser")
-    return os.path.join(ROOT, "build", "macos", "bin", "Mouser")
+        return pathmod.join(exec_dir, "PourInput")
+    return _join_like(ROOT, "build", "macos", "bin", "PourInput")
 
 
-def _maybe_relaunch_with_mouser_process_name() -> None:
-    """Re-exec the interpreter through a `Mouser`-named symlink.
+def _maybe_relaunch_with_POURINPUT_process_name() -> None:
+    """Re-exec the interpreter through a `PourInput`-named symlink.
 
     macOS reads the user-visible process name from the Mach-O image
     header at execve() time. For a bundle-less launch (``python
     main_qml.py``) that means the Dock tile, Cmd+Tab caption, Force
     Quit, and Activity Monitor all read "python", and there is no
     in-process API to rename the image afterwards. Re-execing through
-    a symlink whose basename is `Mouser` is the only reliable fix.
+    a symlink whose basename is `PourInput` is the only reliable fix.
 
     Returns immediately on non-macOS, on PyInstaller-frozen bundles
     (already correctly named), when the env-var guard shows we already
-    relaunched, when the basename already starts with "mouser", or
+    relaunched, when the basename already starts with "PourInput", or
     when the symlink can't be staged.
     """
     if sys.platform != "darwin":
@@ -306,13 +316,13 @@ def _maybe_relaunch_with_mouser_process_name() -> None:
         return
     source_executable = sys.executable
     if not source_executable or not os.path.isfile(source_executable):
-        print("[Mouser] sys.executable missing or not a file; skipping relaunch")
+        print("[PourInput] sys.executable missing or not a file; skipping relaunch")
         return
     # Important: link the venv shim (`sys.executable`), NOT the underlying
     # interpreter (`os.path.realpath(sys.executable)`). The shim is what
     # holds the venv's identity; the real interpreter has no venv context.
     current_basename = os.path.basename(source_executable)
-    if current_basename.lower().startswith("mouser"):
+    if current_basename.lower().startswith("pourinput"):
         return
     target = _macos_named_executable_path()
     target_dir = os.path.dirname(target)
@@ -342,12 +352,12 @@ def _maybe_relaunch_with_mouser_process_name() -> None:
                 pass
             raise
     except OSError as exc:
-        print(f"[Mouser] Could not stage Mouser-named launcher: {exc}")
+        print(f"[PourInput] Could not stage pourinput-named launcher: {exc}")
         return
     os.environ[_MACOS_RELAUNCH_GUARD] = "1"
     new_argv = [target, *sys.argv]
     print(
-        f"[Mouser] Re-execing through {target} so the Dock shows 'Mouser' "
+        f"[PourInput] Re-execing through {target} so the Dock shows 'PourInput' "
         f"instead of '{current_basename}'"
     )
     try:
@@ -355,7 +365,7 @@ def _maybe_relaunch_with_mouser_process_name() -> None:
     except OSError as exc:
         # If exec fails for any reason, fall back to in-place launch so
         # the user still gets a working app, just with the wrong label.
-        print(f"[Mouser] Re-exec failed: {exc}; continuing with current process")
+        print(f"[PourInput] Re-exec failed: {exc}; continuing with current process")
         os.environ.pop(_MACOS_RELAUNCH_GUARD, None)
 
 
@@ -373,11 +383,11 @@ def _rename_macos_bundle_for_dock():
         info = bundle.localizedInfoDictionary() or bundle.infoDictionary()
         if info is None:
             return
-        info["CFBundleName"] = "Mouser"
-        info["CFBundleDisplayName"] = "Mouser"
-        info.setdefault("CFBundleExecutable", "Mouser")
+        info["CFBundleName"] = "PourInput"
+        info["CFBundleDisplayName"] = "PourInput"
+        info.setdefault("CFBundleExecutable", "PourInput")
     except Exception as exc:
-        print(f"[Mouser] Could not pre-rename bundle for Dock: {exc}")
+        print(f"[PourInput] Could not pre-rename bundle for Dock: {exc}")
 
 
 # Cached AppKit module + Dock-icon NSImage + last-applied activation policy.
@@ -531,7 +541,7 @@ if _MacOSNSObject is not None:
             try:
                 _dispatch_macos_status_item_click(getattr(self, "_py_handlers", {}))
             except Exception as exc:  # noqa: BLE001
-                print(f"[Mouser] status-item click handler raised: {exc}")
+                print(f"[PourInput] status-item click handler raised: {exc}")
 else:
     _MacOSStatusItemTarget = None
 
@@ -561,7 +571,7 @@ class _MacOSQuitToTrayFilter(QObject):
                 event.ignore()
             return True
         except Exception as exc:  # noqa: BLE001
-            print(f"[Mouser] Failed to hide on macOS quit event: {exc}")
+            print(f"[PourInput] Failed to hide on macOS quit event: {exc}")
             return False
 
 
@@ -584,7 +594,7 @@ def _macos_appkit():
     try:
         import AppKit
     except Exception as exc:
-        print(f"[Mouser] Failed to import AppKit: {exc}")
+        print(f"[PourInput] Failed to import AppKit: {exc}")
         return None
     _MACOS_APPKIT = AppKit
     return AppKit
@@ -593,12 +603,12 @@ def _macos_appkit():
 def _configure_macos_app_mode():
     """Initial activation policy at launch time. Stays Accessory (menu-bar
     only) until the window opens, at which point we promote to Regular so
-    Mouser becomes a real Cmd+Tab-able foreground app."""
+    PourInput becomes a real Cmd+Tab-able foreground app."""
     _set_macos_activation_policy(regular=False)
 
 
 def _install_macos_dock_icon():
-    """Replace the Dock / Cmd+Tab / Mission Control icon with Mouser's
+    """Replace the Dock / Cmd+Tab / Mission Control icon with PourInput's
     logo. Qt's ``app.setWindowIcon()`` only covers the title bar on
     macOS, so without this override a bare ``python main_qml.py`` shows
     the generic Python launcher icon. The decoded NSImage is cached at
@@ -614,15 +624,15 @@ def _install_macos_dock_icon():
     if _MACOS_DOCK_ICON_NSIMAGE is None:
         icon_path = os.path.join(ROOT, "images", "logo_icon.png")
         if not os.path.isfile(icon_path):
-            print(f"[Mouser] Could not load Dock icon from {icon_path}")
+            print(f"[PourInput] Could not load Dock icon from {icon_path}")
             return
         try:
             ns_image = appkit.NSImage.alloc().initWithContentsOfFile_(icon_path)
         except Exception as exc:
-            print(f"[Mouser] Failed to decode Dock icon {icon_path}: {exc}")
+            print(f"[PourInput] Failed to decode Dock icon {icon_path}: {exc}")
             return
         if ns_image is None:
-            print(f"[Mouser] Could not load Dock icon from {icon_path}")
+            print(f"[PourInput] Could not load Dock icon from {icon_path}")
             return
         # NSImage may flag the image as "template" (auto-tinted to the
         # system colors, which strips our gradient and renders the
@@ -632,14 +642,14 @@ def _install_macos_dock_icon():
             ns_image.setTemplate_(False)
         size = ns_image.size()
         print(
-            f"[Mouser] Dock icon loaded {icon_path} "
+            f"[PourInput] Dock icon loaded {icon_path} "
             f"size={size.width:.0f}x{size.height:.0f}"
         )
         _MACOS_DOCK_ICON_NSIMAGE = ns_image
     try:
         appkit.NSApp.setApplicationIconImage_(_MACOS_DOCK_ICON_NSIMAGE)
     except Exception as exc:
-        print(f"[Mouser] Failed to apply macOS Dock icon: {exc}")
+        print(f"[PourInput] Failed to apply macOS Dock icon: {exc}")
 
 
 def _schedule_macos_dock_icon_refresh() -> None:
@@ -656,7 +666,7 @@ def _set_macos_activation_policy(regular: bool) -> None:
     """Toggle between the Regular (foreground, Dock + Cmd+Tab) and
     Accessory (menu-bar only) policies. On a Regular promotion AppKit
     creates the Dock tile lazily and seeds the icon from the running
-    executable's bundle, so this also re-applies the Mouser Dock icon
+    executable's bundle, so this also re-applies the PourInput Dock icon
     after the flip. Skips the AppKit round-trip when the requested
     state already matches the last-applied one, which keeps rapid
     ``visibilityChanged`` storms cheap.
@@ -678,7 +688,7 @@ def _set_macos_activation_policy(regular: bool) -> None:
         )
         appkit.NSApp.setActivationPolicy_(policy)
     except Exception as exc:
-        print(f"[Mouser] Failed to set macOS activation policy: {exc}")
+        print(f"[PourInput] Failed to set macOS activation policy: {exc}")
         return
     _MACOS_ACTIVATION_POLICY_REGULAR = regular
     if regular:
@@ -693,7 +703,7 @@ def _activate_macos_window():
         import AppKit
         AppKit.NSApp.activateIgnoringOtherApps_(True)
     except Exception as exc:
-        print(f"[Mouser] Failed to activate macOS window: {exc}")
+        print(f"[PourInput] Failed to activate macOS window: {exc}")
 
 
 def _install_native_macos_status_item(qmenu, on_left_click):
@@ -719,18 +729,18 @@ def _install_native_macos_status_item(qmenu, on_left_click):
     if appkit is None:
         return None
     if _MacOSStatusItemTarget is None:
-        print("[Mouser] Foundation.NSObject unavailable; using Qt tray icon")
+        print("[PourInput] Foundation.NSObject unavailable; using Qt tray icon")
         return None
     try:
         from PySide6.QtGui import QCursor
         from PySide6.QtCore import QPoint
     except Exception as exc:
-        print(f"[Mouser] Native status-item bootstrap failed: {exc}")
+        print(f"[PourInput] Native status-item bootstrap failed: {exc}")
         return None
 
     icon_svg = os.path.join(ROOT, "images", "icons", "mouse-simple.svg")
     if not os.path.isfile(icon_svg):
-        print(f"[Mouser] mouse-simple.svg not found at {icon_svg}")
+        print(f"[PourInput] mouse-simple.svg not found at {icon_svg}")
         return None
 
     # Render the SVG into a 22 px square NSImage. 22 is the macOS-
@@ -739,12 +749,12 @@ def _install_native_macos_status_item(qmenu, on_left_click):
     # edges on both retina and non-retina displays.
     icon_png = _render_svg_pixmap(icon_svg, _qcolor_white(), 22)
     if icon_png.isNull():
-        print("[Mouser] could not render mouse-simple.svg for status item")
+        print("[PourInput] could not render mouse-simple.svg for status item")
         return None
     icon_bytes = _qpixmap_to_png_bytes(icon_png)
     ns_image = appkit.NSImage.alloc().initWithData_(icon_bytes)
     if ns_image is None or ns_image.isValid() is False:
-        print("[Mouser] NSImage failed to decode status-item PNG")
+        print("[PourInput] NSImage failed to decode status-item PNG")
         return None
     ns_image.setTemplate_(True)
     ns_image.setSize_(appkit.NSMakeSize(22, 22))
@@ -755,11 +765,11 @@ def _install_native_macos_status_item(qmenu, on_left_click):
     status_item = status_bar.statusItemWithLength_(-1.0)
     button = status_item.button()
     if button is None:
-        print("[Mouser] NSStatusItem has no button; bailing")
+        print("[PourInput] NSStatusItem has no button; bailing")
         status_bar.removeStatusItem_(status_item)
         return None
     button.setImage_(ns_image)
-    button.setToolTip_("Mouser")
+    button.setToolTip_("PourInput")
 
     # Attach the existing QMenu as the right-click / control-click
     # menu via a tiny NSMenu shim that pops the Qt menu at the
@@ -775,7 +785,7 @@ def _install_native_macos_status_item(qmenu, on_left_click):
         try:
             qmenu.popup(cursor_pos)
         except Exception as exc:  # noqa: BLE001
-            print(f"[Mouser] failed to popup tray menu: {exc}")
+            print(f"[PourInput] failed to popup tray menu: {exc}")
 
     target = _MacOSStatusItemTarget.alloc().init()
     target.setPyHandlers_(
@@ -791,7 +801,7 @@ def _install_native_macos_status_item(qmenu, on_left_click):
         )
         button.sendActionOn_(click_mask)
     except Exception as exc:
-        print(f"[Mouser] Could not configure status-item click mask: {exc}")
+        print(f"[PourInput] Could not configure status-item click mask: {exc}")
         status_bar.removeStatusItem_(status_item)
         return None
 
@@ -950,10 +960,10 @@ def _check_accessibility(locale_mgr: "LocaleManager") -> bool:
     try:
         trusted = is_process_trusted(prompt=True)
     except Exception as exc:
-        print(f"[Mouser] Accessibility check failed: {exc}")
+        print(f"[PourInput] Accessibility check failed: {exc}")
         return False
     if not trusted:
-        print("[Mouser] Accessibility permission not granted")
+        print("[PourInput] Accessibility permission not granted")
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Icon.Warning)
         msg.setWindowTitle(locale_mgr.tr("accessibility.title"))
@@ -972,11 +982,11 @@ def _runtime_launch_path() -> str:
 
 def _schedule_engine_start(engine, *, accessibility_granted: bool) -> bool:
     if not accessibility_granted:
-        print("[Mouser] Engine not started -- Accessibility permission is required")
+        print("[PourInput] Engine not started -- Accessibility permission is required")
         return False
     QTimer.singleShot(0, lambda: (
         engine.start(),
-        print("[Mouser] Engine started -- remapping is active"),
+        print("[PourInput] Engine started -- remapping is active"),
     ))
     return True
 
@@ -984,7 +994,7 @@ def _schedule_engine_start(engine, *, accessibility_granted: bool) -> bool:
 def _schedule_tray_minimized_notice(tray, locale_mgr) -> None:
     def _tray_minimized_notice():
         tray.showMessage(
-            "Mouser",
+            "PourInput",
             locale_mgr.tr("tray.tray_message"),
             QSystemTrayIcon.MessageIcon.Information,
             5000,
@@ -994,17 +1004,17 @@ def _schedule_tray_minimized_notice(tray, locale_mgr) -> None:
 
 
 def main():
-    # Re-exec through a `Mouser`-named symlink BEFORE anything Qt or
+    # Re-exec through a `PourInput`-named symlink BEFORE anything Qt or
     # AppKit related runs. Necessary because macOS reads the Dock label /
     # Cmd+Tab caption from the executable basename at process creation;
     # there is no in-process API to rename a Mach-O image after the fact.
     # No-op when already relaunched, on non-macOS platforms, or when the
     # symlink can't be created.
-    _maybe_relaunch_with_mouser_process_name()
+    _maybe_relaunch_with_POURINPUT_process_name()
 
     _print_startup_times()
     _t5 = _time.perf_counter()
-    if len(sys.argv) >= 3 and sys.argv[1] == "--mouser-apply-update":
+    if len(sys.argv) >= 3 and sys.argv[1] == "--pourinput-apply-update":
         from core.update_installer import apply_windows_update_from_state
 
         raise SystemExit(apply_windows_update_from_state(sys.argv[2]))
@@ -1023,7 +1033,7 @@ def main():
 
     # Also: also mutate the bundle's display name keys so
     # surfaces that read from `[NSBundle mainBundle]` (application menu
-    # first item, Force Quit, notification banners) say "Mouser" too.
+    # first item, Force Quit, notification banners) say "PourInput" too.
     _rename_macos_bundle_for_dock()
     _configure_windows_app_user_model_id()
 
@@ -1041,9 +1051,9 @@ def main():
     _install_macos_dock_icon()
     ui_state = UiState(app)
 
-    print(f"[Mouser] Version: {APP_VERSION} ({APP_BUILD_MODE})")
-    print(f"[Mouser] Commit: {APP_COMMIT_DISPLAY}")
-    print(f"[Mouser] Launch path: {_runtime_launch_path()}")
+    print(f"[PourInput] Version: {APP_VERSION} ({APP_BUILD_MODE})")
+    print(f"[PourInput] Commit: {APP_COMMIT_DISPLAY}")
+    print(f"[PourInput] Launch path: {_runtime_launch_path()}")
 
     # ── Locale Manager ─────────────────────────────────────────
     initial_lang = cfg_settings.get("language", "en")
@@ -1088,7 +1098,7 @@ def main():
             path_factory=backend.next_screenshot_file_path,
             parent=app,
         )
-        app._mouser_screenshot_controller = screenshot_controller
+        app._POURINPUT_screenshot_controller = screenshot_controller
         set_screenshot_action_handler(screenshot_controller.request_action)
     elif sys.platform == "linux":
         from core.key_simulator import set_screenshot_action_handler
@@ -1099,7 +1109,7 @@ def main():
             path_factory=backend.next_screenshot_file_path,
             parent=app,
         )
-        app._mouser_screenshot_controller = screenshot_controller
+        app._POURINPUT_screenshot_controller = screenshot_controller
         set_screenshot_action_handler(screenshot_controller.request_action)
     elif sys.platform == "darwin":
         from core.key_simulator import (
@@ -1115,7 +1125,7 @@ def main():
             fallback_action=execute_screenshot_shortcut,
             parent=app,
         )
-        app._mouser_screenshot_controller = screenshot_controller
+        app._POURINPUT_screenshot_controller = screenshot_controller
         set_screenshot_action_handler(screenshot_controller.request_action)
 
     # ── QML Engine ─────────────────────────────────────────────
@@ -1140,7 +1150,7 @@ def main():
     _t8 = _time.perf_counter()
 
     if not qml_engine.rootObjects():
-        print("[Mouser] FATAL: Failed to load QML")
+        print("[PourInput] FATAL: Failed to load QML")
         sys.exit(1)
 
     root_window = qml_engine.rootObjects()[0]
@@ -1296,7 +1306,7 @@ def main():
             saved_cfg.setdefault("settings", {})["language"] = locale_mgr.language
             save_config(saved_cfg)
         except Exception as exc:
-            print(f"[Mouser] Failed to save language preference: {exc}")
+            print(f"[PourInput] Failed to save language preference: {exc}")
 
     locale_mgr.languageChanged.connect(_update_tray_texts)
     locale_mgr.languageChanged.connect(_save_language)
@@ -1337,7 +1347,7 @@ def main():
         sys.exit(app.exec())
     finally:
         engine.stop()
-        print("[Mouser] Shut down cleanly")
+        print("[PourInput] Shut down cleanly")
 
 
 if __name__ == "__main__":

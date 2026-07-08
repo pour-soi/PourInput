@@ -1,8 +1,8 @@
 # -*- mode: python ; coding: utf-8 -*-
 """
-PyInstaller spec file for Mouser
-Produces a single-directory portable build in  dist/Mouser/
-Run:  pyinstaller Mouser.spec
+PyInstaller spec file for PourInput
+Produces a single-directory portable build in  dist/PourInput/
+Run:  pyinstaller PourInput.spec
 """
 
 import os
@@ -15,10 +15,10 @@ import PySide6
 block_cipher = None
 ROOT = os.path.abspath(".")
 PYSIDE6_DIR = os.path.dirname(PySide6.__file__)
-BUILD_INFO_PATH = os.path.join(ROOT, "build", "mouser_build_info.json")
-VERSION_INFO_PATH = os.path.join(ROOT, "build", "mouser_version_info.txt")
-APP_NAME = "Mouser Multi-Action"
-APP_EXECUTABLE_NAME = "Mouser.exe"
+BUILD_INFO_PATH = os.path.join(ROOT, "build", "POURINPUT_build_info.json")
+VERSION_INFO_PATH = os.path.join(ROOT, "build", "POURINPUT_version_info.txt")
+APP_NAME = "PourInput"
+APP_EXECUTABLE_NAME = "PourInput.exe"
 APP_MAINTAINER = "pour-soi"
 ORIGINAL_PROJECT = "TomBadash/Mouser"
 
@@ -78,11 +78,11 @@ def _git_dirty():
 
 def _write_build_info(version: str) -> str:
     commit = (
-        os.environ.get("MOUSER_GIT_COMMIT", "").strip()
+        os.environ.get("POURINPUT_GIT_COMMIT", "").strip()
         or _run_git(["rev-parse", "HEAD"])
         or _read_git_head()
     )
-    dirty_env = os.environ.get("MOUSER_GIT_DIRTY")
+    dirty_env = os.environ.get("POURINPUT_GIT_DIRTY")
     if dirty_env:
         dirty = dirty_env.strip().lower() in {"1", "true", "yes", "on"}
     else:
@@ -139,7 +139,7 @@ VSVersionInfo(
           StringStruct('CompanyName', '{APP_MAINTAINER}'),
           StringStruct('FileDescription', '{APP_NAME}'),
           StringStruct('FileVersion', '{file_version_text}'),
-          StringStruct('InternalName', 'Mouser Multi-Action'),
+          StringStruct('InternalName', 'PourInput'),
           StringStruct('Maintainer', '{APP_MAINTAINER}'),
           StringStruct('OriginalFilename', '{APP_EXECUTABLE_NAME}'),
           StringStruct('OriginalProject', '{ORIGINAL_PROJECT}'),
@@ -314,7 +314,7 @@ exe = EXE(
     a.scripts,
     [],                     # not one-file (faster startup, easier debugging)
     exclude_binaries=True,
-    name="Mouser",
+    name="PourInput",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -333,14 +333,14 @@ coll = COLLECT(
     strip=False,
     upx=False,              # UPX OFF — faster cold start
     upx_exclude=[],
-    name="Mouser",
+    name="PourInput",
 )
 
 # ── Post-build cleanup: remove Qt QML/plugin dirs we don't need ──────────
 # PyInstaller's hooks copy the entire PySide6 QML tree; we only need
 # QtQuick/Controls + Material, QtQml, QtQuick/Layouts, QtQuick/Templates,
 # QtQuick/Window.  Everything else is dead weight that slows startup.
-_dist = os.path.join("dist", "Mouser", "_internal", "PySide6")
+_dist = os.path.join("dist", "PourInput", "_internal", "PySide6")
 
 # QML dirs to KEEP (everything else under qml/ is deleted)
 _keep_qml = {
@@ -393,17 +393,17 @@ def _cleanup():
         shutil.rmtree(trans, ignore_errors=True)
         print("  [cleanup] removed translations/")
 
-print("[Mouser] Post-build cleanup...")
+print("[PourInput] Post-build cleanup...")
 _cleanup()
-print("[Mouser] Cleanup done.")
+print("[PourInput] Cleanup done.")
 
 # ── macOS App Bundle ───────────────────────────────────────────────────
 if sys.platform == 'darwin':
     app = BUNDLE(
         coll,
-        name='Mouser.app',
+        name='PourInput.app',
         icon='images/AppIcon.icns',
-        bundle_identifier='com.mouser.app',
+        bundle_identifier='com.PourInput.app',
         info_plist={
             'CFBundleShortVersionString': APP_VERSION,
             'CFBundleVersion': APP_VERSION,

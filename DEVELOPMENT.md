@@ -1,6 +1,6 @@
 # Development Guide
 
-This document contains the technical details a developer needs to navigate Mouser Multi-Action. The user-facing tour lives in [README.md](README.md); this guide covers how the codebase is wired together, how the platform-specific hooks behave, and how to build / debug locally.
+This document contains the technical details a developer needs to navigate PourInput. The user-facing tour lives in [README.md](README.md); this guide covers how the codebase is wired together, how the platform-specific hooks behave, and how to build / debug locally.
 
 ## Contents
 
@@ -32,7 +32,7 @@ source .venv/bin/activate
 python -m pip install -r requirements.txt
 ```
 
-On macOS, `requirements.txt` installs PyObjC (`objc`, Quartz, and AppKit bindings), which Mouser Multi-Action needs for CGEventTap, app detection, and key simulation.
+On macOS, `requirements.txt` installs PyObjC (`objc`, Quartz, and AppKit bindings), which PourInput needs for CGEventTap, app detection, and key simulation.
 
 Run the test suite from the activated environment:
 
@@ -42,7 +42,7 @@ python -m unittest discover -s tests
 
 ## Entry Point: `main_qml.py`
 
-`main_qml.py` is the primary launch script for Mouser Multi-Action, bringing together the core processing logic (Engine) and the graphical user interface (QML Backend). It replaces an older `tkinter`-based interface.
+`main_qml.py` is the primary launch script for PourInput, bringing together the core processing logic (Engine) and the graphical user interface (QML Backend). It replaces an older `tkinter`-based interface.
 
 ### What the Code is Responsible For
 
@@ -70,7 +70,7 @@ python -m unittest discover -s tests
 4. **Execution Flow:**
    - `qml_engine.load(...)` parses and renders `Main.qml`.
    - A deferral (`QTimer.singleShot(0, ...)`) is queued to start the `Engine` asynchronously.
-   - If `--start-hidden` is present, the window is kept hidden and Mouser Multi-Action starts as a tray / menu-bar app first.
+   - If `--start-hidden` is present, the window is kept hidden and PourInput starts as a tray / menu-bar app first.
    - Execution hands over to `app.exec()`, blocking the main thread to run the Qt UI event loop.
    - `engine.stop()` gracefully shuts down background threads when the Qt event loop terminates.
 
@@ -112,7 +112,7 @@ The arrows match the runtime call graph: the OS-level mouse hook feeds events in
 
 ### Mouse hook
 
-Mouser Multi-Action exposes a single `MouseHook` façade in [`core/mouse_hook.py`](core/mouse_hook.py) and dispatches to a per-platform implementation:
+PourInput exposes a single `MouseHook` façade in [`core/mouse_hook.py`](core/mouse_hook.py) and dispatches to a per-platform implementation:
 
 - **Windows** — [`core/mouse_hook_windows.py`](core/mouse_hook_windows.py): `SetWindowsHookExW` with `WH_MOUSE_LL` on a dedicated background thread, plus Raw Input for extra mouse data.
 - **macOS** — [`core/mouse_hook_macos.py`](core/mouse_hook_macos.py): `CGEventTap` for interception and Quartz events for key simulation. The callback is wrapped with `@_autoreleased` to recycle Foundation objects every event (closing a ~1.4 GB leak that appeared under load) and the tap auto re-enables itself when the system disables it on timeout.
@@ -128,22 +128,22 @@ All paths feed the same internal event model and intercept:
 - `WM_MOUSEHWHEEL` — horizontal scroll
 - `WM_MOUSEWHEEL` — vertical scroll (for inversion)
 
-Intercepted events are either **blocked** (hook returns `1`) and replaced with an action, or **passed through** to the foreground application. Synthetic events Mouser Multi-Action injects itself are tagged so the hook ignores them on the way back in (Windows uses an event marker; macOS uses `kCGEventSourceUserData`).
+Intercepted events are either **blocked** (hook returns `1`) and replaced with an action, or **passed through** to the foreground application. Synthetic events PourInput injects itself are tagged so the hook ignores them on the way back in (Windows uses an event marker; macOS uses `kCGEventSourceUserData`).
 
 ### Device catalog & layout registry
 
-- [`core/logi_device_catalog.py`](core/logi_device_catalog.py) holds Mouser Multi-Action's curated per-device Logitech specs, image assets, and hotspot coordinates for dedicated control surfaces.
+- [`core/logi_device_catalog.py`](core/logi_device_catalog.py) holds PourInput's curated per-device Logitech specs, image assets, and hotspot coordinates for dedicated control surfaces.
 - [`core/logi_devices.py`](core/logi_devices.py) resolves known product IDs and model aliases into a `ConnectedDeviceInfo` record with display name, DPI range, preferred gesture CIDs, supported buttons, and default UI layout key.
 - [`core/device_layouts.py`](core/device_layouts.py) stores built-in family layouts plus catalog layouts, layout notes, and whether a layout is interactive or only a generic fallback. `_FAMILY_FALLBACKS` maps per-model keys to family layout keys until a dedicated overlay exists.
 - [`ui/backend.py`](ui/backend.py) combines auto-detected device info with any persisted per-device layout override and exposes the effective layout to QML.
 
 ### Gesture button detection
 
-Logitech gesture / thumb buttons do not always appear as standard mouse events. Mouser Multi-Action uses a layered detector inside [`core/hid_gesture.py`](core/hid_gesture.py):
+Logitech gesture / thumb buttons do not always appear as standard mouse events. PourInput uses a layered detector inside [`core/hid_gesture.py`](core/hid_gesture.py):
 
 1. **HID++ 2.0 (primary)** — opens the Logitech HID collection, discovers `REPROG_CONTROLS_V4` (feature `0x1B04`), ranks gesture CID candidates from the device registry plus control-capability heuristics, and diverts the best candidate. When supported, RawXY movement data is also enabled.
 2. **Raw Input (Windows fallback)** — registers for raw mouse input and detects extra button bits beyond the standard 5.
-3. **Gesture tap / swipe dispatch** — a clean press/release emits `gesture_click`; once movement crosses the configured threshold, Mouser Multi-Action emits directional swipe actions instead.
+3. **Gesture tap / swipe dispatch** — a clean press/release emits `gesture_click`; once movement crosses the configured threshold, PourInput emits directional swipe actions instead.
 
 The same module owns the SmartShift integration. It prefers the enhanced feature `0x2111` (`FEAT_SMART_SHIFT_ENHANCED`) when available and falls back to `0x2110`, exposing both an enable flag and a sensitivity threshold; pending settings are re-applied on every reconnect (including wake-from-sleep).
 
@@ -161,7 +161,7 @@ The same module owns the SmartShift integration. It prefers the enhanced feature
 
 ### Device reconnection
 
-Mouser Multi-Action handles mouse power-off / on cycles automatically:
+PourInput handles mouse power-off / on cycles automatically:
 
 - **HID++ layer** — `HidGestureListener` detects device disconnection (read errors) and enters a reconnect loop, retrying every 2–5 seconds until the device returns. Pending SmartShift / scroll-mode settings are replayed on reconnect.
 - **Hook layer** — `MouseHook` listens for `WM_DEVICECHANGE` (Windows) and platform equivalents elsewhere, reinstalling the low-level hook when devices are added or removed.
@@ -169,7 +169,7 @@ Mouser Multi-Action handles mouse power-off / on cycles automatically:
 
 ### Configuration
 
-All settings live in `config.json` under the platform config dir (`%APPDATA%\Mouser`, `~/Library/Application Support/Mouser`, `~/.config/Mouser`). The schema supports:
+All settings live in `config.json` under the platform config dir (`%APPDATA%\\PourInput`, `~/Library/Application Support/PourInput`, `~/.config/PourInput`). The schema supports:
 
 - Multiple named profiles with per-profile button mappings, including gesture tap + swipe actions
 - Per-profile app associations (list of `.exe` / bundle / process names)
@@ -177,7 +177,7 @@ All settings live in `config.json` under the platform config dir (`%APPDATA%\Mou
 - Per-device layout override selections for unsupported devices
 - Automatic migration from older config versions (current version `9`)
 
-Logs are written via [`core/log_setup.py`](core/log_setup.py) to a 5 × 5 MB rotating file in `~/Library/Logs/Mouser`, `%APPDATA%\Mouser\logs`, or `$XDG_STATE_HOME/Mouser/logs`. The setup is idempotent and safe to call multiple times — `main_qml.py` invokes it before any Qt or core import so startup output is captured from the very first line.
+Logs are written via [`core/log_setup.py`](core/log_setup.py) to a 5 × 5 MB rotating file in `~/Library/Logs/PourInput`, `%APPDATA%\\PourInput\logs`, or `$XDG_STATE_HOME/PourInput/logs`. The setup is idempotent and safe to call multiple times — `main_qml.py` invokes it before any Qt or core import so startup output is captured from the very first line.
 
 ## UI overview
 
@@ -193,7 +193,7 @@ Two pages accessible from a slim sidebar in [`ui/qml/Main.qml`](ui/qml/Main.qml)
 
 - **DPI slider** — 200 to the device max with quick presets (400, 800, 1000, 1600, 2400, 4000, 6000, 8000). Reads the current DPI from the device on startup.
 - **Scroll inversion** — independent toggles for vertical and horizontal scroll direction.
-- **Ignore trackpad (macOS)** — keep trackpad and Magic Mouse continuous scroll out of Mouser Multi-Action mappings. Disable only if you intentionally want Mouser Multi-Action to handle them.
+- **Ignore trackpad (macOS)** — keep trackpad and Magic Mouse continuous scroll out of PourInput mappings. Disable only if you intentionally want PourInput to handle them.
 - **Smart Shift** — toggle ratchet ↔ free-spin (HID++ `0x2111`) plus a sensitivity threshold; status syncs every 15 s and on every reconnect.
 - **Startup controls** — **Start at login** (Windows + macOS) and **Start minimized** (all platforms).
 
@@ -202,13 +202,13 @@ The window itself is resizable: default 1060 × 700 with a 920 × 620 minimum (`
 ## Project structure
 
 ```
-mouser/
+PourInput/
 ├── main_qml.py                  # Application entry point (PySide6 + QML)
-├── Mouser.bat                   # Quick-launch batch file
-├── Mouser.spec / Mouser-mac.spec / Mouser-linux.spec  # PyInstaller specs
+├── PourInput.bat                   # Quick-launch batch file
+├── PourInput.spec / PourInput-mac.spec / PourInput-linux.spec  # PyInstaller specs
 ├── build.bat                    # Windows build (installs deps, verifies hidapi, packages)
 ├── build_macos_app.sh           # macOS bundle build + icon/signing flow
-├── packaging/linux/             # 69-mouser-logitech.rules + install-linux-permissions.sh
+├── packaging/linux/             # 69-pourinput-logitech.rules + install-linux-permissions.sh
 ├── .github/workflows/
 │   ├── ci.yml                   # CI checks (compile, tests, QML lint)
 │   └── release.yml              # Automated release builds (Windows / macOS arm64+intel / Linux)
@@ -282,10 +282,10 @@ build.bat --clean         # nuke build/ and dist/ before rebuilding
 
 # Manual path
 pip install -r requirements.txt pyinstaller
-pyinstaller Mouser.spec --noconfirm
+pyinstaller PourInput.spec --noconfirm
 ```
 
-`build.bat` fails early if `hidapi` is not importable, which prevents shipping a build that cannot detect Logitech devices. Output: `dist\Mouser\` — zip the folder for distribution.
+`build.bat` fails early if `hidapi` is not importable, which prevents shipping a build that cannot detect Logitech devices. Output: `dist\PourInput\` — zip the folder for distribution.
 
 ### macOS
 
@@ -294,43 +294,43 @@ pip install -r requirements.txt pyinstaller
 ./build_macos_app.sh
 ```
 
-The script reuses `images/AppIcon.icns` when present, otherwise generates one from `images/logo_icon.png`, then runs PyInstaller with `Mouser-mac.spec`. Output: `dist/Mouser.app`. The bundle runs as `LSUIElement`.
+The script reuses `images/AppIcon.icns` when present, otherwise generates one from `images/logo_icon.png`, then runs PyInstaller with `PourInput-mac.spec`. Output: `dist/PourInput.app`. The bundle runs as `LSUIElement`.
 
-Signing is driven by `MOUSER_SIGN_IDENTITY`:
+Signing is driven by `POURINPUT_SIGN_IDENTITY`:
 
 - Unset: the bundle is ad-hoc signed (`codesign --sign -`). The bundle's code identity can change on rebuild, so macOS may ask for Accessibility permission again. Fine for one-off builds.
-- Set to a codesigning identity SHA-1 (list with `security find-identity -v -p codesigning`): the script signs nested `.dylib` / `.so` / `.framework` files depth-first with `--options runtime`, then signs the outer bundle with the hardened-runtime exceptions at `build_resources/Mouser.entitlements` (`allow-jit`, `allow-unsigned-executable-memory`, `disable-library-validation`), then runs `codesign --verify --deep --strict --verbose=2` and aborts the build if verification fails. This local developer signing path can reduce macOS Accessibility permission churn across repeated builds when the source, resolved Python interpreter, dependency versions, architecture, signing identity, entitlements, and timestamp policy stay the same.
+- Set to a codesigning identity SHA-1 (list with `security find-identity -v -p codesigning`): the script signs nested `.dylib` / `.so` / `.framework` files depth-first with `--options runtime`, then signs the outer bundle with the hardened-runtime exceptions at `build_resources/PourInput.entitlements` (`allow-jit`, `allow-unsigned-executable-memory`, `disable-library-validation`), then runs `codesign --verify --deep --strict --verbose=2` and aborts the build if verification fails. This local developer signing path can reduce macOS Accessibility permission churn across repeated builds when the source, resolved Python interpreter, dependency versions, architecture, signing identity, entitlements, and timestamp policy stay the same.
 
-The script picks the Python interpreter in this order: `MOUSER_PYTHON` env override → active `$VIRTUAL_ENV/bin/python3` or `bin/python` → `./.venv/bin/python3` or `bin/python` → `python3` or `python` on `PATH`. It fails fast with an explicit error if the selected interpreter is missing PyInstaller, so a half-set-up environment can't silently produce a different bundle layout. pyenv, uv, Conda, asdf, Poetry, and similar tools are supported through the active virtualenv, normal `PATH`, or `MOUSER_PYTHON`; the script does not call those tools directly. pyenv users should initialize shims in the shell so `python3` resolves through pyenv, or set `MOUSER_PYTHON` explicitly.
+The script picks the Python interpreter in this order: `POURINPUT_PYTHON` env override → active `$VIRTUAL_ENV/bin/python3` or `bin/python` → `./.venv/bin/python3` or `bin/python` → `python3` or `python` on `PATH`. It fails fast with an explicit error if the selected interpreter is missing PyInstaller, so a half-set-up environment can't silently produce a different bundle layout. pyenv, uv, Conda, asdf, Poetry, and similar tools are supported through the active virtualenv, normal `PATH`, or `POURINPUT_PYTHON`; the script does not call those tools directly. pyenv users should initialize shims in the shell so `python3` resolves through pyenv, or set `POURINPUT_PYTHON` explicitly.
 
 `PYTHONHASHSEED=0` is pinned for the PyInstaller invocation so set iteration during the analysis stage produces byte-identical `base_library.zip` output across rebuilds (otherwise the outer `cdhash` drifts even with a stable signing identity).
 
-The `MOUSER_SIGN_IDENTITY` path is not a notarized release-signing workflow. Public macOS release zips remain ad-hoc signed until a separate Developer ID Application signing, secure timestamp, notarization, stapling, and Gatekeeper assessment workflow exists.
+The `POURINPUT_SIGN_IDENTITY` path is not a notarized release-signing workflow. Public macOS release zips remain ad-hoc signed until a separate Developer ID Application signing, secure timestamp, notarization, stapling, and Gatekeeper assessment workflow exists.
 
 - Build on the architecture you want to ship. `arm64` Python → Apple Silicon, `x86_64` Python → Intel.
 - Set `PYINSTALLER_TARGET_ARCH=arm64|x86_64|universal2` to override (when your Python supports the target).
-- Release CI publishes both `Mouser-macOS.zip` and `Mouser-macOS-intel.zip`.
+- Release CI publishes both `PourInput-macOS.zip` and `PourInput-macOS-intel.zip`.
 
 ### Linux
 
 ```bash
 sudo apt-get install libhidapi-dev
 pip install pyinstaller
-pyinstaller Mouser-linux.spec --noconfirm
+pyinstaller PourInput-linux.spec --noconfirm
 ```
 
-Output: `dist/Mouser/`. The release pipeline additionally bundles the Linux permission helper files and hicolor app-icon ladder, runs `ldd` on the resulting binary to flag missing libraries, and performs an offscreen smoke test (`QT_QPA_PLATFORM=offscreen`).
+Output: `dist/PourInput/`. The release pipeline additionally bundles the Linux permission helper files and hicolor app-icon ladder, runs `ldd` on the resulting binary to flag missing libraries, and performs an offscreen smoke test (`QT_QPA_PLATFORM=offscreen`).
 
 ## Desktop shortcut (Windows)
 
-Create a `Mouser.lnk` shortcut that launches via `pythonw.exe` if you want to run from source without a console window:
+Create a `PourInput.lnk` shortcut that launches via `pythonw.exe` if you want to run from source without a console window:
 
 ```powershell
-$s = (New-Object -ComObject WScript.Shell).CreateShortcut("$([Environment]::GetFolderPath('Desktop'))\Mouser.lnk")
-$s.TargetPath = "C:\path\to\mouser\.venv\Scripts\pythonw.exe"
+$s = (New-Object -ComObject WScript.Shell).CreateShortcut("$([Environment]::GetFolderPath('Desktop'))\PourInput.lnk")
+$s.TargetPath = "C:\path\to\PourInput\.venv\Scripts\pythonw.exe"
 $s.Arguments = "main_qml.py"
-$s.WorkingDirectory = "C:\path\to\mouser"
-$s.IconLocation = "C:\path\to\mouser\images\logo.ico, 0"
+$s.WorkingDirectory = "C:\path\to\PourInput"
+$s.IconLocation = "C:\path\to\PourInput\images\logo.ico, 0"
 $s.Save()
 ```
 
@@ -339,5 +339,5 @@ $s.Save()
 - **Thread dump:** `kill -USR1 $(pgrep -f main_qml.py)` triggers `_dump_threads` and prints all stack traces to the terminal — useful for cross-thread freezes without an attached debugger.
 - **Startup timing:** `_t0`–`_t8` markers in `main_qml.py` log per-phase startup costs (env setup, PySide6 imports, core imports). Watch for regressions when adding heavy imports.
 - **HID transport override:** `--hid-backend=iokit|hidapi|auto` lets you isolate transport-specific bugs (e.g. Bolt receivers, BLE quirks).
-- **Logs:** `~/Library/Logs/Mouser/mouser.log`, `%APPDATA%\Mouser\logs\mouser.log`, or `$XDG_STATE_HOME/Mouser/logs/mouser.log`. Stdout is redirected through the rotating file handler; stderr is preserved so logging-handler errors don't recurse.
-- **Linux permissions:** [`core/linux_permissions.py`](core/linux_permissions.py) emits a `LinuxPermissionReport` describing which `/dev/hidraw*`, `/dev/input/event*`, and `/dev/uinput` nodes are blocked. Mouser Multi-Action surfaces this via the UI banner and the log.
+- **Logs:** `~/Library/Logs/PourInput/PourInput.log`, `%APPDATA%\\PourInput\logs\PourInput.log`, or `$XDG_STATE_HOME/PourInput/logs/PourInput.log`. Stdout is redirected through the rotating file handler; stderr is preserved so logging-handler errors don't recurse.
+- **Linux permissions:** [`core/linux_permissions.py`](core/linux_permissions.py) emits a `LinuxPermissionReport` describing which `/dev/hidraw*`, `/dev/input/event*`, and `/dev/uinput` nodes are blocked. PourInput surfaces this via the UI banner and the log.

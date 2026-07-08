@@ -1,19 +1,19 @@
 @echo off
 :: ──────────────────────────────────────────────────────────────
-:: build.bat — Build a portable Mouser distribution
+:: build.bat — Build a portable PourInput distribution
 ::
-:: Produces:  dist\Mouser\Mouser.exe   (+ supporting files)
+:: Produces:  dist\PourInput\PourInput.exe   (+ supporting files)
 :: Zip that folder and distribute — no Python install required.
 ::
 :: Usage:  build.bat           — incremental (fast, reuses cache)
 ::         build.bat --clean   — full clean rebuild
 :: ──────────────────────────────────────────────────────────────
-title Mouser — Build
+title PourInput — Build
 cd /d "%~dp0"
 set "START_TIME=%TIME%"
 
 echo.
-echo ===  Mouser Portable Build  ===
+echo ===  PourInput Portable Build  ===
 echo.
 
 :: ── 1. Activate venv if present ──────────────────────────────
@@ -45,24 +45,24 @@ if %errorlevel% neq 0 (
 
 :: ── 3. Clean previous build ──────────────────────────────────
 :: Always clean dist (output); only clean build cache with --clean
-if exist "dist\Mouser" (
-    echo [*] Removing previous dist\Mouser...
-    rmdir /s /q "dist\Mouser"
+if exist "dist\PourInput" (
+    echo [*] Removing previous dist\PourInput...
+    rmdir /s /q "dist\PourInput"
 )
 if /i "%~1"=="--clean" (
-    if exist "build\Mouser" (
+    if exist "build\PourInput" (
         echo [*] Full clean: removing build cache...
-        rmdir /s /q "build\Mouser"
+        rmdir /s /q "build\PourInput"
     )
 ) else (
-    if exist "build\Mouser" (
+    if exist "build\PourInput" (
         echo [*] Incremental build — reusing analysis cache
     )
 )
 
 :: ── 4. Run PyInstaller ───────────────────────────────────────
 echo [*] Building with PyInstaller...
-pyinstaller Mouser.spec --noconfirm
+pyinstaller PourInput.spec --noconfirm
 
 if %errorlevel% neq 0 (
     echo.
@@ -77,10 +77,10 @@ if %errorlevel% neq 0 (
 set "END_TIME=%TIME%"
 echo.
 echo ===  Build complete!  ===
-echo Output: dist\Mouser\Mouser.exe
+echo Output: dist\PourInput\PourInput.exe
 echo Started:  %START_TIME%
 echo Finished: %END_TIME%
 echo.
-echo To distribute: zip the  dist\Mouser  folder.
+echo To distribute: zip the  dist\PourInput  folder.
 echo.
 pause

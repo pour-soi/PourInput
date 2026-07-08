@@ -5,6 +5,7 @@ Exposes properties, signals, and slots for two-way data binding.
 
 import os
 import json
+import posixpath
 import re
 import shutil
 import sys
@@ -190,7 +191,7 @@ def _open_url(url: str) -> bool:
 
 
 def _update_install_enabled() -> bool:
-    value = os.environ.get("MOUSER_ENABLE_UPDATE_INSTALL", "")
+    value = os.environ.get("POURINPUT_ENABLE_UPDATE_INSTALL", "")
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
@@ -662,8 +663,11 @@ class Backend(QObject):
     @Property(str, notify=deviceLayoutChanged)
     def deviceImageSource(self):
         asset = self._device_layout.get("image_asset", "mouse.png")
-        path = os.path.join(self._root_dir, "images", asset)
-        return QUrl.fromLocalFile(os.path.abspath(path)).toString()
+        if "/" in str(self._root_dir) and "\\" not in str(self._root_dir):
+            path = posixpath.join(str(self._root_dir), "images", asset)
+        else:
+            path = os.path.abspath(os.path.join(self._root_dir, "images", asset))
+        return QUrl.fromLocalFile(path).toString()
 
     @Property(int, notify=deviceLayoutChanged)
     def deviceImageWidth(self):
@@ -853,7 +857,7 @@ class Backend(QObject):
         thread = threading.Thread(
             target=self._runUpdateCheck,
             args=(bool(manual), self._update_state),
-            name="MouserUpdateCheck",
+            name="PourInputUpdateCheck",
             daemon=True,
         )
         thread.start()
@@ -1214,7 +1218,7 @@ class Backend(QObject):
         self._setUpdateInstallState("checking")
         thread = threading.Thread(
             target=self._runPrepareLatestUpdate,
-            name="MouserPrepareUpdate",
+            name="PourInputPrepareUpdate",
             daemon=True,
         )
         thread.start()

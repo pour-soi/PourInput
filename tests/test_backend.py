@@ -112,10 +112,10 @@ class BackendDeviceLayoutTests(unittest.TestCase):
         self.assertFalse(backend.hasInteractiveDeviceLayout)
 
     def test_device_image_source_uses_encoded_file_url(self):
-        backend = self._make_backend(root_dir="/tmp/Mouser Build")
+        backend = self._make_backend(root_dir="/tmp/PourInput Build")
 
         expected = QUrl.fromLocalFile(
-            "/tmp/Mouser Build/images/icons/mouse-simple.svg"
+            "/tmp/PourInput Build/images/icons/mouse-simple.svg"
         ).toString()
 
         self.assertEqual(backend.deviceImageSource, expected)
@@ -198,17 +198,17 @@ class BackendDeviceLayoutTests(unittest.TestCase):
             assets={
                 "macos-arm64": UpdateAsset(
                     "macos-arm64",
-                    "Mouser-macOS.zip",
-                    "https://example.test/Mouser-macOS.zip",
+                    "PourInput-macOS.zip",
+                    "https://example.test/PourInput-macOS.zip",
                     1,
                     "a" * 64,
                 )
             },
         )
         runtime = RuntimeLocation(
-            executable=Path("/Applications/Mouser.app/Contents/MacOS/Mouser"),
-            install_root=Path("/Applications/Mouser.app"),
-            app_data_dir=Path("/tmp/mouser"),
+            executable=Path("/Applications/PourInput.app/Contents/MacOS/PourInput"),
+            install_root=Path("/Applications/PourInput.app"),
+            app_data_dir=Path("/tmp/PourInput"),
             frozen=True,
             platform_key="macos-arm64",
             update_supported=False,
@@ -223,7 +223,7 @@ class BackendDeviceLayoutTests(unittest.TestCase):
 
         fetch_manifest.assert_called_once_with(
             "v3.7.0",
-            repo="pour-soi/Mouser-Multi-Action",
+            repo="pour-soi/PourInput",
             highest_trusted_build=30699,
         )
         self.assertEqual(backend.updateInstallStatus, "manual_fallback")
@@ -255,17 +255,17 @@ class BackendDeviceLayoutTests(unittest.TestCase):
             assets={
                 "windows-x64": UpdateAsset(
                     "windows-x64",
-                    "Mouser-Windows.zip",
-                    "https://example.test/Mouser-Windows.zip",
+                    "PourInput-Windows.zip",
+                    "https://example.test/PourInput-Windows.zip",
                     1,
                     "a" * 64,
                 )
             },
         )
         runtime = RuntimeLocation(
-            executable=Path("C:/Mouser/Mouser.exe"),
-            install_root=Path("C:/Mouser"),
-            app_data_dir=Path("C:/Users/test/AppData/Local/Mouser"),
+            executable=Path("C:/PourInput/PourInput.exe"),
+            install_root=Path("C:/PourInput"),
+            app_data_dir=Path("C:/Users/test/AppData/Local/PourInput"),
             frozen=True,
             platform_key="windows-x64",
             update_supported=True,
@@ -310,17 +310,17 @@ class BackendDeviceLayoutTests(unittest.TestCase):
             assets={
                 "windows-x64": UpdateAsset(
                     "windows-x64",
-                    "Mouser-Windows.zip",
-                    "https://example.test/Mouser-Windows.zip",
+                    "PourInput-Windows.zip",
+                    "https://example.test/PourInput-Windows.zip",
                     1,
                     "a" * 64,
                 )
             },
         )
         runtime = RuntimeLocation(
-            executable=Path("C:/Program Files/Mouser/Mouser.exe"),
-            install_root=Path("C:/Program Files/Mouser"),
-            app_data_dir=Path("C:/Users/test/AppData/Local/Mouser"),
+            executable=Path("C:/Program Files/PourInput/PourInput.exe"),
+            install_root=Path("C:/Program Files/PourInput"),
+            app_data_dir=Path("C:/Users/test/AppData/Local/PourInput"),
             frozen=True,
             platform_key="windows-x64",
             update_supported=False,
@@ -328,7 +328,7 @@ class BackendDeviceLayoutTests(unittest.TestCase):
         )
 
         with (
-            patch.dict("os.environ", {"MOUSER_ENABLE_UPDATE_INSTALL": "1"}),
+            patch.dict("os.environ", {"POURINPUT_ENABLE_UPDATE_INSTALL": "1"}),
             patch("ui.backend.fetch_update_manifest_for_release", return_value=manifest),
             patch("ui.backend.locate_runtime", return_value=runtime),
             patch("ui.backend.prepare_downloaded_asset") as prepare_asset,
@@ -353,7 +353,7 @@ class BackendDeviceLayoutTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            install = root / "Mouser"
+            install = root / "PourInput"
             install.mkdir()
             backend = self._make_backend()
             backend._latest_update_version = "3.7.0"
@@ -370,33 +370,33 @@ class BackendDeviceLayoutTests(unittest.TestCase):
                 assets={
                     "windows-x64": UpdateAsset(
                         "windows-x64",
-                        "Mouser-Windows.zip",
-                        "https://example.test/Mouser-Windows.zip",
+                        "PourInput-Windows.zip",
+                        "https://example.test/PourInput-Windows.zip",
                         1,
                         "a" * 64,
                     )
                 },
             )
             runtime = RuntimeLocation(
-                executable=install / "Mouser.exe",
+                executable=install / "PourInput.exe",
                 install_root=install,
                 app_data_dir=root / "data",
                 frozen=True,
                 platform_key="windows-x64",
                 update_supported=True,
             )
-            archive = root / "Mouser-Windows.zip"
-            staged_app = root / ".Mouser.update-v3.7.0-1234" / "Mouser"
+            archive = root / "PourInput-Windows.zip"
+            staged_app = root / ".PourInput.update-v3.7.0-1234" / "PourInput"
             staged = StagedUpdate(
                 archive_path=archive,
                 stage_dir=staged_app.parent,
                 app_root=staged_app,
                 platform_key="windows-x64",
-                asset_name="Mouser-Windows.zip",
+                asset_name="PourInput-Windows.zip",
             )
 
             with (
-                patch.dict("os.environ", {"MOUSER_ENABLE_UPDATE_INSTALL": "1"}),
+                patch.dict("os.environ", {"POURINPUT_ENABLE_UPDATE_INSTALL": "1"}),
                 patch("ui.backend.fetch_update_manifest_for_release", return_value=manifest),
                 patch("ui.backend.locate_runtime", return_value=runtime),
                 patch("ui.backend.prepare_downloaded_asset", return_value=archive),
@@ -409,7 +409,7 @@ class BackendDeviceLayoutTests(unittest.TestCase):
             extract_zip.assert_called_once()
             stage_arg = extract_zip.call_args.args[1]
             self.assertEqual(stage_arg.parent, install.resolve().parent)
-            self.assertEqual(stage_arg.name, ".Mouser.update-v3.7.0-1234")
+            self.assertEqual(stage_arg.name, ".PourInput.update-v3.7.0-1234")
             self.assertEqual(backend.updateInstallStatus, "ready_to_install")
             self.assertTrue(backend.updateInstallCanInstall)
 
@@ -419,7 +419,7 @@ class BackendDeviceLayoutTests(unittest.TestCase):
         backend._update_install_can_install = True
 
         with (
-            patch.dict("os.environ", {"MOUSER_ENABLE_UPDATE_INSTALL": "1"}),
+            patch.dict("os.environ", {"POURINPUT_ENABLE_UPDATE_INSTALL": "1"}),
             patch("ui.backend.launch_windows_update_helper") as launch_helper,
             patch("ui.backend.QCoreApplication.quit") as quit_app,
         ):
@@ -436,7 +436,7 @@ class BackendDeviceLayoutTests(unittest.TestCase):
         backend._update_install_can_install = True
 
         with (
-            patch.dict("os.environ", {"MOUSER_ENABLE_UPDATE_INSTALL": "1"}),
+            patch.dict("os.environ", {"POURINPUT_ENABLE_UPDATE_INSTALL": "1"}),
             patch(
                 "ui.backend.launch_windows_update_helper",
                 side_effect=OSError("helper failed"),
@@ -467,7 +467,7 @@ class BackendDeviceLayoutTests(unittest.TestCase):
             backend = self._make_backend()
             backend._latest_update_version = "3.7.0"
             runtime = RuntimeLocation(
-                executable=data / "Mouser.exe",
+                executable=data / "PourInput.exe",
                 install_root=data,
                 app_data_dir=data,
                 frozen=True,
@@ -485,7 +485,7 @@ class BackendDeviceLayoutTests(unittest.TestCase):
             with patch("ui.backend.threading.Thread", side_effect=make_thread):
                 backend.prepareLatestUpdate()
 
-            self.assertEqual(captured["name"], "MouserPrepareUpdate")
+            self.assertEqual(captured["name"], "PourInputPrepareUpdate")
             self.assertTrue(captured["daemon"])
 
             backend.cancelUpdatePreparation()
@@ -520,17 +520,17 @@ class BackendDeviceLayoutTests(unittest.TestCase):
             assets={
                 "macos-arm64": UpdateAsset(
                     "macos-arm64",
-                    "Mouser-macOS.zip",
-                    "https://example.test/Mouser-macOS.zip",
+                    "PourInput-macOS.zip",
+                    "https://example.test/PourInput-macOS.zip",
                     1,
                     "a" * 64,
                 )
             },
         )
         runtime = RuntimeLocation(
-            executable=Path("/Applications/Mouser.app/Contents/MacOS/Mouser"),
-            install_root=Path("/Applications/Mouser.app"),
-            app_data_dir=Path("/tmp/mouser"),
+            executable=Path("/Applications/PourInput.app/Contents/MacOS/PourInput"),
+            install_root=Path("/Applications/PourInput.app"),
+            app_data_dir=Path("/tmp/PourInput"),
             frozen=True,
             platform_key="macos-arm64",
             update_supported=False,
@@ -561,7 +561,7 @@ class BackendDeviceLayoutTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            install = root / "Mouser"
+            install = root / "PourInput"
             install.mkdir()
             backend = self._make_backend()
             backend._latest_update_version = "3.7.0"
@@ -578,23 +578,23 @@ class BackendDeviceLayoutTests(unittest.TestCase):
                 assets={
                     "windows-x64": UpdateAsset(
                         "windows-x64",
-                        "Mouser-Windows.zip",
-                        "https://example.test/Mouser-Windows.zip",
+                        "PourInput-Windows.zip",
+                        "https://example.test/PourInput-Windows.zip",
                         1,
                         "a" * 64,
                     )
                 },
             )
             runtime = RuntimeLocation(
-                executable=install / "Mouser.exe",
+                executable=install / "PourInput.exe",
                 install_root=install,
                 app_data_dir=root / "data",
                 frozen=True,
                 platform_key="windows-x64",
                 update_supported=True,
             )
-            archive = root / "Mouser-Windows.zip"
-            stage_dir = root / ".Mouser.update-v3.7.0-1234"
+            archive = root / "PourInput-Windows.zip"
+            stage_dir = root / ".PourInput.update-v3.7.0-1234"
 
             def fail_extract(_archive, stage_arg, **_kwargs):
                 self.assertEqual(stage_arg, stage_dir)
@@ -603,7 +603,7 @@ class BackendDeviceLayoutTests(unittest.TestCase):
                 raise UpdateInstallError("bad_archive", "bad archive")
 
             with (
-                patch.dict("os.environ", {"MOUSER_ENABLE_UPDATE_INSTALL": "1"}),
+                patch.dict("os.environ", {"POURINPUT_ENABLE_UPDATE_INSTALL": "1"}),
                 patch("ui.backend.fetch_update_manifest_for_release", return_value=manifest),
                 patch("ui.backend.locate_runtime", return_value=runtime),
                 patch("ui.backend.prepare_downloaded_asset", return_value=archive),
@@ -630,7 +630,7 @@ class BackendDeviceLayoutTests(unittest.TestCase):
                 encoding="utf-8",
             )
             runtime = RuntimeLocation(
-                executable=data / "Mouser.exe",
+                executable=data / "PourInput.exe",
                 install_root=data,
                 app_data_dir=data,
                 frozen=True,
@@ -1359,7 +1359,7 @@ class BackendLoginStartupTests(unittest.TestCase):
         self.assertFalse(backend.startAtLogin)
         self.assertEqual(
             status_messages,
-            ["Start-at-login state is inconsistent; please restart Mouser Multi-Action to recover."],
+            ["Start-at-login state is inconsistent; please restart PourInput to recover."],
         )
 
     def test_set_start_minimized_does_not_call_apply_login_startup(self):

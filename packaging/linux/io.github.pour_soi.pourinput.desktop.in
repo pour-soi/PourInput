@@ -11,8 +11,8 @@ Terminal=false
 StartupNotify=false
 Categories=Settings;Utility;
 Keywords=mouse;logitech;buttons;remap;
-StartupWMClass=Mouser
-X-Mouser-Generated=true
-X-Mouser-SourcePath=@SOURCE_PATH@
+StartupWMClass=PourInput
+X-PourInput-Generated=true
+X-PourInput-SourcePath=@SOURCE_PATH@
 X-KDE-DBUS-Restricted-Interfaces=org.kde.KWin.ScreenShot2
 @AUTOSTART_LINES@

@@ -29,10 +29,10 @@ class MacOSBuildScriptTests(unittest.TestCase):
         (self.root / "images").mkdir()
         (self.root / "images" / "AppIcon.icns").write_text("icon", encoding="utf-8")
         (self.root / "build_resources").mkdir()
-        (self.root / "build_resources" / "Mouser.entitlements").write_text(
+        (self.root / "build_resources" / "PourInput.entitlements").write_text(
             "<plist/>", encoding="utf-8"
         )
-        (self.root / "Mouser-mac.spec").write_text("# fake spec", encoding="utf-8")
+        (self.root / "PourInput-mac.spec").write_text("# fake spec", encoding="utf-8")
 
         self._write_command("uname", "printf 'Darwin\\n'\n")
         self._write_codesign()
@@ -64,7 +64,7 @@ class MacOSBuildScriptTests(unittest.TestCase):
             name,
             textwrap.dedent(
                 f"""
-                printf 'manager\\t{name}\\n' >> "$MOUSER_TEST_LOG"
+                printf 'manager\\t{name}\\n' >> "$POURINPUT_TEST_LOG"
                 exit 47
                 """
             ),
@@ -81,10 +81,10 @@ class MacOSBuildScriptTests(unittest.TestCase):
             "codesign",
             textwrap.dedent(
                 """
-                printf 'codesign\\t%s\\n' "$*" >> "$MOUSER_TEST_LOG"
+                printf 'codesign\\t%s\\n' "$*" >> "$POURINPUT_TEST_LOG"
                 case "$*" in
                   *"--verify"*)
-                    if [ "${MOUSER_CODESIGN_VERIFY_FAIL:-0}" = "1" ]; then
+                    if [ "${POURINPUT_CODESIGN_VERIFY_FAIL:-0}" = "1" ]; then
                       exit 31
                     fi
                     ;;
@@ -100,7 +100,7 @@ class MacOSBuildScriptTests(unittest.TestCase):
             textwrap.dedent(
                 f"""
                 label={label!r}
-                printf 'python\\t%s\\t%s\\t%s\\n' "$label" "${{PYTHONHASHSEED:-}}" "$*" >> "$MOUSER_TEST_LOG"
+                printf 'python\\t%s\\t%s\\t%s\\n' "$label" "${{PYTHONHASHSEED:-}}" "$*" >> "$POURINPUT_TEST_LOG"
                 if [ "${{1:-}}" = "-c" ]; then
                   case "${{2:-}}" in
                     *"import PyInstaller; print"*)
@@ -108,7 +108,7 @@ class MacOSBuildScriptTests(unittest.TestCase):
                       exit 0
                       ;;
                     *"import PyInstaller"*)
-                      if [ "${{MOUSER_FAKE_NO_PYINSTALLER:-}}" = "$label" ]; then
+                      if [ "${{POURINPUT_FAKE_NO_PYINSTALLER:-}}" = "$label" ]; then
                         exit 13
                       fi
                       exit 0
@@ -124,8 +124,8 @@ class MacOSBuildScriptTests(unittest.TestCase):
                   esac
                 fi
                 if [ "${{1:-}}" = "-m" ] && [ "${{2:-}}" = "PyInstaller" ]; then
-                  printf 'pyinstaller\\t%s\\t%s\\t%s\\n' "$label" "${{PYTHONHASHSEED:-}}" "$*" >> "$MOUSER_TEST_LOG"
-                  app="$MOUSER_TEST_ROOT/dist/Mouser.app"
+                  printf 'pyinstaller\\t%s\\t%s\\t%s\\n' "$label" "${{PYTHONHASHSEED:-}}" "$*" >> "$POURINPUT_TEST_LOG"
+                  app="$POURINPUT_TEST_ROOT/dist/PourInput.app"
                   frameworks="$app/Contents/Frameworks"
                   mkdir -p "$frameworks/Outer.framework/Frameworks/Inner.framework"
                   touch "$frameworks/libRoot.dylib"
@@ -145,14 +145,14 @@ class MacOSBuildScriptTests(unittest.TestCase):
             env["PATH"] = f"{self.bin_dir}{os.pathsep}{self.tool_dir}"
         else:
             env["PATH"] = f"{self.bin_dir}{os.pathsep}{env.get('PATH', '')}"
-        env["MOUSER_TEST_LOG"] = str(self.log)
-        env["MOUSER_TEST_ROOT"] = str(self.root)
+        env["POURINPUT_TEST_LOG"] = str(self.log)
+        env["POURINPUT_TEST_ROOT"] = str(self.root)
         for key in (
-            "MOUSER_PYTHON",
-            "MOUSER_SIGN_IDENTITY",
-            "MOUSER_FAKE_NO_PYINSTALLER",
-            "MOUSER_CODESIGN_VERIFY_FAIL",
-            "MOUSER_PREFER_PYENV",
+            "POURINPUT_PYTHON",
+            "POURINPUT_SIGN_IDENTITY",
+            "POURINPUT_FAKE_NO_PYINSTALLER",
+            "POURINPUT_CODESIGN_VERIFY_FAIL",
+            "POURINPUT_PREFER_PYENV",
             "PYINSTALLER_TARGET_ARCH",
             "VIRTUAL_ENV",
         ):
@@ -191,23 +191,23 @@ class MacOSBuildScriptTests(unittest.TestCase):
             if line.startswith("codesign\t")
         ]
 
-    def test_mouser_python_wins_and_bad_override_fails(self):
+    def test_POURINPUT_python_wins_and_bad_override_fails(self):
         custom = self.root / "custom-python"
-        self._write_python(custom, "mouser-python")
+        self._write_python(custom, "pourinput-python")
         (self.root / ".venv" / "bin").mkdir(parents=True)
         self._write_python(self.root / ".venv" / "bin" / "python3", "repo-python3")
 
-        result = self._run_script(MOUSER_PYTHON=custom)
+        result = self._run_script(POURINPUT_PYTHON=custom)
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("source: MOUSER_PYTHON", result.stdout)
-        self.assertEqual(self._pyinstaller_labels(), ["mouser-python"])
+        self.assertIn("source: POURINPUT_PYTHON", result.stdout)
+        self.assertEqual(self._pyinstaller_labels(), ["pourinput-python"])
 
         self.log.unlink()
-        result = self._run_script(MOUSER_PYTHON=self.root / "missing-python")
+        result = self._run_script(POURINPUT_PYTHON=self.root / "missing-python")
 
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("MOUSER_PYTHON is set but is not executable", result.stderr)
+        self.assertIn("POURINPUT_PYTHON is set but is not executable", result.stderr)
         self.assertEqual(self._pyinstaller_labels(), [])
 
     def test_active_virtualenv_wins_over_repo_venv(self):
@@ -252,7 +252,7 @@ class MacOSBuildScriptTests(unittest.TestCase):
         repo_python = self.root / ".venv" / "bin" / "python3"
         self._write_python(repo_python, "repo-python3")
 
-        result = self._run_script(MOUSER_FAKE_NO_PYINSTALLER="repo-python3")
+        result = self._run_script(POURINPUT_FAKE_NO_PYINSTALLER="repo-python3")
 
         self.assertNotEqual(result.returncode, 0)
         self.assertIn(f"PyInstaller not installed in {repo_python}", result.stderr)
@@ -278,7 +278,7 @@ class MacOSBuildScriptTests(unittest.TestCase):
         self.assertIn("--force --deep --sign -", codesign[0])
 
     def test_identity_signing_order_and_verify_failure(self):
-        result = self._run_script(MOUSER_SIGN_IDENTITY="IDENTITY")
+        result = self._run_script(POURINPUT_SIGN_IDENTITY="IDENTITY")
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("Entitlements:", result.stdout)
@@ -313,8 +313,8 @@ class MacOSBuildScriptTests(unittest.TestCase):
 
         self.log.unlink()
         result = self._run_script(
-            MOUSER_SIGN_IDENTITY="IDENTITY",
-            MOUSER_CODESIGN_VERIFY_FAIL="1",
+            POURINPUT_SIGN_IDENTITY="IDENTITY",
+            POURINPUT_CODESIGN_VERIFY_FAIL="1",
         )
 
         self.assertNotEqual(result.returncode, 0)

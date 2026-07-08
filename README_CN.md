@@ -1,8 +1,8 @@
-# Mouser Multi-Action
+# PourInput
 
 **One Button. Two Actions.**
 
-Mouser Multi-Action 是 [TomBadash/Mouser](https://github.com/TomBadash/Mouser) 的开源分支，重点加入通用的 Multi-Action Button 框架。
+PourInput 是 [TomBadash/Mouser](https://github.com/TomBadash/Mouser) 的开源分支，重点加入通用的 Multi-Action Button 框架。
 
 支持的鼠标按键可以分别设置：
 
@@ -11,11 +11,11 @@ Mouser Multi-Action 是 [TomBadash/Mouser](https://github.com/TomBadash/Mouser) 
 
 当前版本：`v0.1.0`
 
-仓库：`pour-soi/Mouser-Multi-Action`
+仓库：`pour-soi/PourInput`
 
 ## 项目目标
 
-Mouser Multi-Action 让一个支持的鼠标按键承担两个独立动作。例如：
+PourInput 让一个支持的鼠标按键承担两个独立动作。例如：
 
 - Back：短按返回，长按复制
 - Forward：短按前进，长按粘贴
@@ -36,12 +36,12 @@ Mouser Multi-Action 让一个支持的鼠标按键承担两个独立动作。例
 
 ## 安装
 
-1. 打开 [最新 Release 页面](https://github.com/pour-soi/Mouser-Multi-Action/releases/latest)。
-2. 下载 `Mouser-Multi-Action-v0.1.0-Windows.zip`。
+1. 打开 [最新 Release 页面](https://github.com/pour-soi/PourInput/releases/latest)。
+2. 下载 `PourInput-v0.1.0-Windows.zip`。
 3. 解压 zip。
-4. 运行 `Mouser-Multi-Action-v0.1.0/Mouser.exe`。
+4. 运行 `PourInput-v0.1.0/PourInput.exe`。
 
-如果已经运行其他 Mouser 或 Mouser Multi-Action 构建，请先从系统托盘退出。
+如果已经运行其他 PourInput 或 PourInput 构建，请先从系统托盘退出。
 
 ## 使用
 
@@ -52,11 +52,11 @@ Mouser Multi-Action 让一个支持的鼠标按键承担两个独立动作。例
 
 短于 300 ms 的按压会执行 Click Action。按住至少 300 ms 后松开会执行 Long Press Action。
 
-如果没有配置 Long Press Action，该按键会保持当前 Mouser Multi-Action 的默认行为。
+如果没有配置 Long Press Action，该按键会保持当前 PourInput 的默认行为。
 
 ## 支持设备
 
-Mouser Multi-Action 面向本应用可以检测和控制的 Logitech HID++ 鼠标。
+PourInput 面向本应用可以检测和控制的 Logitech HID++ 鼠标。
 
 Multi-Action 当前启用的按键：
 
@@ -64,7 +64,7 @@ Multi-Action 当前启用的按键：
 - Back Button
 - Forward Button
 
-实际可用性取决于设备通过 HID++ 暴露的控制能力。某些按键需要是 reprogrammable 和 divertable，Mouser Multi-Action 才能拦截。
+实际可用性取决于设备通过 HID++ 暴露的控制能力。某些按键需要是 reprogrammable 和 divertable，PourInput 才能拦截。
 
 如果你的设备缺少按键支持，请在 GitHub issue 中附上 Mouse 页面复制出的 device info JSON。
 
@@ -85,7 +85,7 @@ python -m venv .venv
 构建 Windows 包：
 
 ```powershell
-.\.venv\Scripts\python.exe -m PyInstaller Mouser.spec --noconfirm
+.\.venv\Scripts\python.exe -m PyInstaller PourInput.spec --noconfirm
 ```
 
 ## 打包发布
@@ -98,7 +98,7 @@ python -m venv .venv
 
 ```text
 release/
-    Mouser-Multi-Action-v0.1.0-Windows.zip
+    PourInput-v0.1.0-Windows.zip
     RELEASE_NOTES-v0.1.0.md
     CHANGELOG.md
 ```
@@ -134,10 +134,10 @@ release/
 
 ## 致谢
 
-Mouser Multi-Action 基于 [TomBadash/Mouser](https://github.com/TomBadash/Mouser)。
+PourInput 基于 [TomBadash/Mouser](https://github.com/TomBadash/Mouser)。
 
 维护者：`pour-soi`
 
 ## License
 
-本项目保留原 Mouser 许可证。详见 [LICENSE](LICENSE)。
+本项目保留原 PourInput 许可证。详见 [LICENSE](LICENSE)。

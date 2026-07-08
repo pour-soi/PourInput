@@ -570,7 +570,7 @@ class MouseHook(BaseMouseHook):
 
     def _setup_raw_input(self):
         instance = GetModuleHandleW(None)
-        class_name = f"MouserRawInput_{id(self)}"
+        class_name = f"PourInputRawInput_{id(self)}"
         self._ri_wndproc_ref = WNDPROC_TYPE(self._ri_wndproc)
 
         window_class = WNDCLASSEXW()
@@ -583,7 +583,7 @@ class MouseHook(BaseMouseHook):
         self._ri_hwnd = CreateWindowExW(
             0,
             class_name,
-            "Mouser RI",
+            "PourInput RI",
             0,
             0,
             0,

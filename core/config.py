@@ -12,14 +12,14 @@ from urllib.parse import quote
 from core import app_catalog
 
 if sys.platform == "darwin":
-    CONFIG_DIR = os.path.join(os.path.expanduser("~"), "Library", "Application Support", "Mouser")
+    CONFIG_DIR = os.path.join(os.path.expanduser("~"), "Library", "Application Support", "PourInput")
 elif sys.platform == "linux":
     CONFIG_DIR = os.path.join(
         os.environ.get("XDG_CONFIG_HOME", os.path.join(os.path.expanduser("~"), ".config")),
-        "Mouser",
+        "PourInput",
     )
 else:
-    CONFIG_DIR = os.path.join(os.environ.get("APPDATA", os.path.expanduser("~")), "Mouser")
+    CONFIG_DIR = os.path.join(os.environ.get("APPDATA", os.path.expanduser("~")), "PourInput")
 CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
 
 # Which mouse events map to which friendly button names

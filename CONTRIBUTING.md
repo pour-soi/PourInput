@@ -1,6 +1,6 @@
-# Contributing to Mouser Multi-Action
+# Contributing to PourInput
 
-Thanks for helping improve Mouser Multi-Action. This project is a focused fork of Mouser that adds generic Multi-Action support for supported Logitech HID++ mouse buttons.
+Thanks for helping improve PourInput. This project is a focused fork of the original Mouser project that adds generic Multi-Action support for supported Logitech HID++ mouse buttons.
 
 ## What Makes a Good Contribution?
 
@@ -70,7 +70,7 @@ For new Logitech mice, start with [CONTRIBUTING_DEVICES.md](CONTRIBUTING_DEVICES
 
 ## Behavior Compatibility
 
-Mouser Multi-Action remaps physical input. Small changes can have large user-visible effects, so compatibility matters:
+PourInput remaps physical input. Small changes can have large user-visible effects, so compatibility matters:
 
 - Do not break Gesture behavior.
 - Do not break Horizontal Scroll.
@@ -87,7 +87,7 @@ Follow the style already used in the touched files. Keep comments short and usef
 This project uses Semantic Versioning. Release artifacts are versioned as:
 
 ```text
-Mouser-Multi-Action-vX.Y.Z-Windows.zip
+PourInput-vX.Y.Z-Windows.zip
 ```
 
 Do not overwrite previous release artifacts.

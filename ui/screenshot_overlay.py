@@ -113,7 +113,7 @@ class RegionSelectionOverlay(QWidget):
         self._current = self._event_global_pos(event)
         self.update()
 
-    def mouseReleaseEvent(self, event: QMouseEvent) -> None:
+    def PourInputeleaseEvent(self, event: QMouseEvent) -> None:
         if event.button() != Qt.MouseButton.LeftButton or self._start is None:
             return
         self._current = self._event_global_pos(event)

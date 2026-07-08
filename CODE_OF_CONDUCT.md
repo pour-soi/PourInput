@@ -1,6 +1,6 @@
 # Code of Conduct
 
-Mouser Multi-Action should be a welcoming project for users, testers, and contributors.
+PourInput should be a welcoming project for users, testers, and contributors.
 
 ## Expected Behavior
 

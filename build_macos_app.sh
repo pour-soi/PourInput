@@ -4,13 +4,13 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
 BUILD_DIR="$ROOT_DIR/build/macos"
-ICONSET_DIR="$BUILD_DIR/Mouser.iconset"
+ICONSET_DIR="$BUILD_DIR/PourInput.iconset"
 COMMITTED_ICON="$ROOT_DIR/images/AppIcon.icns"
-GENERATED_ICON="$BUILD_DIR/Mouser.icns"
+GENERATED_ICON="$BUILD_DIR/PourInput.icns"
 SOURCE_ICON="$ROOT_DIR/images/logo_icon.png"
-ENTITLEMENTS="$ROOT_DIR/build_resources/Mouser.entitlements"
+ENTITLEMENTS="$ROOT_DIR/build_resources/PourInput.entitlements"
 TARGET_ARCH="${PYINSTALLER_TARGET_ARCH:-}"
-SIGN_IDENTITY="${MOUSER_SIGN_IDENTITY:-}"
+SIGN_IDENTITY="${POURINPUT_SIGN_IDENTITY:-}"
 export PYINSTALLER_CONFIG_DIR="$BUILD_DIR/pyinstaller"
 PYTHON=""
 PYTHON_SOURCE=""
@@ -82,11 +82,11 @@ resolve_command() {
 resolve_python() {
   local candidate=""
 
-  if [[ -n "${MOUSER_PYTHON:-}" ]]; then
-    candidate="$(resolve_command "$MOUSER_PYTHON")" || \
-      fail "MOUSER_PYTHON is set but is not executable: $MOUSER_PYTHON"
+  if [[ -n "${POURINPUT_PYTHON:-}" ]]; then
+    candidate="$(resolve_command "$POURINPUT_PYTHON")" || \
+      fail "POURINPUT_PYTHON is set but is not executable: $POURINPUT_PYTHON"
     PYTHON="$candidate"
-    PYTHON_SOURCE="MOUSER_PYTHON"
+    PYTHON_SOURCE="POURINPUT_PYTHON"
     return
   fi
 
@@ -118,7 +118,7 @@ resolve_python() {
     return
   fi
 
-  fail "No Python interpreter found. Create .venv or set MOUSER_PYTHON."
+  fail "No Python interpreter found. Create .venv or set POURINPUT_PYTHON."
 }
 
 require_pyinstaller() {
@@ -148,12 +148,12 @@ log_python_provenance() {
 run_pyinstaller() {
   # PYTHONHASHSEED=0 pins set iteration so PyInstaller's base_library.zip
   # layout is byte-identical across rebuilds for the same toolchain inputs.
-  PYTHONHASHSEED=0 "$PYTHON" -m PyInstaller "$ROOT_DIR/Mouser-mac.spec" --noconfirm
+  PYTHONHASHSEED=0 "$PYTHON" -m PyInstaller "$ROOT_DIR/PourInput-mac.spec" --noconfirm
 }
 
 sign_ad_hoc() {
   echo "Signing mode: ad-hoc"
-  codesign --force --deep --sign - "$ROOT_DIR/dist/Mouser.app"
+  codesign --force --deep --sign - "$ROOT_DIR/dist/PourInput.app"
 }
 
 entitlements_sha256() {
@@ -161,7 +161,7 @@ entitlements_sha256() {
 }
 
 sign_nested_code() {
-  local frameworks_dir="$ROOT_DIR/dist/Mouser.app/Contents/Frameworks"
+  local frameworks_dir="$ROOT_DIR/dist/PourInput.app/Contents/Frameworks"
   [[ -d "$frameworks_dir" ]] || return 0
 
   while IFS= read -r -d '' nested; do
@@ -173,7 +173,7 @@ sign_nested_code() {
 }
 
 verify_bundle() {
-  codesign --verify --deep --strict --verbose=2 "$ROOT_DIR/dist/Mouser.app"
+  codesign --verify --deep --strict --verbose=2 "$ROOT_DIR/dist/PourInput.app"
 }
 
 sign_with_identity() {
@@ -188,7 +188,7 @@ sign_with_identity() {
   codesign --force --options runtime --timestamp=none \
     --entitlements "$ENTITLEMENTS" \
     --sign "$SIGN_IDENTITY" \
-    "$ROOT_DIR/dist/Mouser.app"
+    "$ROOT_DIR/dist/PourInput.app"
   verify_bundle
 }
 
@@ -211,4 +211,4 @@ log_python_provenance
 run_pyinstaller
 sign_app
 
-echo "Build complete: $ROOT_DIR/dist/Mouser.app"
+echo "Build complete: $ROOT_DIR/dist/PourInput.app"

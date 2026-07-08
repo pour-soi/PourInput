@@ -1,8 +1,8 @@
-# Mouser Multi-Action v0.1.0
+# PourInput v0.1.0
 
 Release date: 2026-07-06
 
-Repository: `pour-soi/Mouser-Multi-Action`
+Repository: `pour-soi/PourInput`
 
 Based on: `TomBadash/Mouser`
 
@@ -10,7 +10,7 @@ Maintainer: `pour-soi`
 
 ## Summary
 
-Mouser Multi-Action v0.1.0 is the first release of this customized fork of TomBadash/Mouser.
+PourInput v0.1.0 is the first release of this customized fork of TomBadash/Mouser.
 
 It adds a generic Multi-Action Button framework so supported mouse buttons can use separate Click and Long Press actions. The goal is simple: one physical button can now cover a primary action and a secondary action without adding button-specific timing code for every new control.
 
@@ -24,7 +24,7 @@ It adds a generic Multi-Action Button framework so supported mouse buttons can u
 - Config migration for long-press mappings
 - UI for Click Action and Long Press Action
 - Versioned Windows release packaging
-- Consistent Mouser Multi-Action naming and pour-soi maintainer metadata
+- Consistent PourInput naming and pour-soi maintainer metadata
 
 ## Bug Fixes
 
@@ -39,7 +39,7 @@ It adds a generic Multi-Action Button framework so supported mouse buttons can u
 - `core/updater.py`
 - `core/version.py`
 - `core/startup.py`
-- `Mouser.spec`
+- `PourInput.spec`
 - `main_qml.py`
 - `ui/backend.py`
 - `ui/qml/Main.qml`
@@ -71,7 +71,7 @@ It adds a generic Multi-Action Button framework so supported mouse buttons can u
 
 ## How To Test
 
-1. Launch `Mouser.exe`.
+1. Launch `PourInput.exe`.
 2. Open the Mouse page.
 3. Configure Back:
    - Click Action -> Browser Back

@@ -1,23 +1,23 @@
-# Mouser Multi-Action
+# PourInput
 
 **One Button. Two Actions.**
 
-[![CI](https://github.com/pour-soi/Mouser-Multi-Action/actions/workflows/ci.yml/badge.svg)](https://github.com/pour-soi/Mouser-Multi-Action/actions/workflows/ci.yml)
-[![Latest Release](https://img.shields.io/github/v/release/pour-soi/Mouser-Multi-Action?sort=semver)](https://github.com/pour-soi/Mouser-Multi-Action/releases)
-[![License](https://img.shields.io/github/license/pour-soi/Mouser-Multi-Action)](LICENSE)
+[![CI](https://github.com/pour-soi/PourInput/actions/workflows/ci.yml/badge.svg)](https://github.com/pour-soi/PourInput/actions/workflows/ci.yml)
+[![Latest Release](https://img.shields.io/github/v/release/pour-soi/PourInput?sort=semver)](https://github.com/pour-soi/PourInput/releases)
+[![License](https://img.shields.io/github/license/pour-soi/PourInput)](LICENSE)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-blue)](requirements.txt)
 
-Mouser Multi-Action is an open-source fork of [TomBadash/Mouser](https://github.com/TomBadash/Mouser) that adds a generic Multi-Action Button framework for Logitech HID++ mice.
+PourInput is an open-source fork of [TomBadash/Mouser](https://github.com/TomBadash/Mouser) that adds a generic Multi-Action Button framework for Logitech HID++ mice.
 
 Supported mouse buttons can have independent **Click Action** and **Long Press Action** mappings. For example, one button can take a screenshot when clicked and switch scroll mode when held.
 
 Current release: `v0.1.0`
 
-Repository: `pour-soi/Mouser-Multi-Action`
+Repository: `pour-soi/PourInput`
 
-## Why Mouser Multi-Action?
+## Why PourInput?
 
-Logitech mice often expose useful extra controls, but not every workflow fits a single action per button. Mouser Multi-Action solves that by making each supported button behave like two configurable controls:
+Logitech mice often expose useful extra controls, but not every workflow fits a single action per button. PourInput solves that by making each supported button behave like two configurable controls:
 
 - **Click** for the fast action you use constantly.
 - **Long Press** for the secondary action you still want nearby.
@@ -58,10 +58,10 @@ Shows version, maintainer, and build information.
 
 ## Installation
 
-1. Download `Mouser-Multi-Action-v0.1.0-Windows.zip` from the [latest release](https://github.com/pour-soi/Mouser-Multi-Action/releases/latest).
+1. Download `PourInput-v0.1.0-Windows.zip` from the [latest release](https://github.com/pour-soi/PourInput/releases/latest).
 2. Extract the zip file.
-3. Run `Mouser-Multi-Action-v0.1.0/Mouser.exe`.
-4. Quit any other Mouser or Mouser Multi-Action build before launching this one.
+3. Run `PourInput-v0.1.0/PourInput.exe`.
+4. Quit any other PourInput or PourInput build before launching this one.
 
 The packaged Windows app includes the runtime files it needs. You do not need to install Python to use a release build.
 
@@ -86,7 +86,7 @@ If no Long Press Action is configured, the button keeps the same behavior it had
 
 ## Supported Devices
 
-Mouser Multi-Action targets Logitech HID++ mice that the app can detect and control.
+PourInput targets Logitech HID++ mice that the app can detect and control.
 
 Multi-Action support is currently enabled for:
 
@@ -94,7 +94,7 @@ Multi-Action support is currently enabled for:
 - Back Button
 - Forward Button
 
-Device support depends on what the mouse exposes through HID++. Some controls must be reprogrammable and divertable before Mouser Multi-Action can intercept them. If your mouse is detected but a button is missing, open a device support request and include the device info JSON from the Mouse page.
+Device support depends on what the mouse exposes through HID++. Some controls must be reprogrammable and divertable before PourInput can intercept them. If your mouse is detected but a button is missing, open a device support request and include the device info JSON from the Mouse page.
 
 ## Building From Source
 
@@ -126,10 +126,10 @@ Run the test suite:
 Build the Windows app:
 
 ```powershell
-.\.venv\Scripts\python.exe -m PyInstaller Mouser.spec --noconfirm
+.\.venv\Scripts\python.exe -m PyInstaller PourInput.spec --noconfirm
 ```
 
-Raw build output is written to `dist/Mouser/`.
+Raw build output is written to `dist/PourInput/`.
 
 ## Packaging
 
@@ -145,7 +145,7 @@ Release output:
 
 ```text
 release/
-    Mouser-Multi-Action-v0.1.0-Windows.zip
+    PourInput-v0.1.0-Windows.zip
     RELEASE_NOTES-v0.1.0.md
     CHANGELOG.md
 ```
@@ -153,8 +153,8 @@ release/
 Zip layout:
 
 ```text
-Mouser-Multi-Action-v0.1.0/
-    Mouser.exe
+PourInput-v0.1.0/
+    PourInput.exe
     LICENSE
     README.md
     CHANGELOG.md
@@ -191,7 +191,7 @@ The release script removes only temporary build output before packaging. It pres
 - Long Press timeout is fixed at 300 ms and is not configurable in the UI yet.
 - Timeout is global, not per button.
 - Macro support and sequential actions are not implemented yet.
-- Logitech Options+ can conflict with Mouser Multi-Action because both tools may need HID++ access.
+- Logitech Options+ can conflict with PourInput because both tools may need HID++ access.
 - Device support depends on each mouse exposing compatible HID++ controls.
 
 ## Contributing
@@ -217,7 +217,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md), [CONTRIBUTING_DEVICES.md](CONTRIBUTING_D
 
 ## Acknowledgements
 
-Mouser Multi-Action is based on [TomBadash/Mouser](https://github.com/TomBadash/Mouser). The original project made the foundation for this fork possible.
+PourInput is based on [TomBadash/Mouser](https://github.com/TomBadash/Mouser). The original project made the foundation for this fork possible.
 
 Maintainer: `pour-soi`
 

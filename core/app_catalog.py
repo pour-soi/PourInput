@@ -11,6 +11,7 @@ Provides:
 from __future__ import annotations
 
 import os
+import ntpath
 import plistlib
 import shlex
 import shutil
@@ -544,7 +545,11 @@ def _expand_windows_path_hint(path_hint: str):
 def _path_if_usable(path: str):
     if not path:
         return ""
-    normalized = os.path.realpath(path) if sys.platform == "linux" else os.path.abspath(path)
+    has_windows_drive = bool(ntpath.splitdrive(path)[0])
+    if sys.platform == "linux" and not has_windows_drive:
+        normalized = os.path.realpath(path)
+    else:
+        normalized = os.path.abspath(path)
     return normalized if os.path.exists(normalized) else ""
 
 
@@ -741,6 +746,8 @@ def _iter_linux_desktop_files():
 def _extract_linux_exec_command(exec_value: str):
     if not exec_value:
         return ""
+    if ":\\" in exec_value:
+        exec_value = exec_value.replace("\\", "/")
     try:
         tokens = shlex.split(exec_value, posix=True)
     except ValueError:
@@ -772,7 +779,7 @@ def _resolve_linux_exec_path(exec_value: str, try_exec: str = ""):
         return ""
 
     expanded = os.path.expanduser(os.path.expandvars(command))
-    if os.path.isabs(expanded):
+    if posixpath.isabs(expanded) or ntpath.isabs(expanded):
         return _path_if_usable(expanded)
 
     resolved = shutil.which(expanded)
@@ -938,7 +945,10 @@ def _resolve_path_entry(path: str):
     if sys.platform == "darwin":
         normalized = posixpath.normpath(path) if os.path.isabs(path) else os.path.abspath(path)
     elif sys.platform == "linux":
-        normalized = os.path.realpath(path)
+        if ntpath.splitdrive(path)[0]:
+            normalized = os.path.abspath(path)
+        else:
+            normalized = os.path.realpath(path)
     else:
         normalized = os.path.abspath(path)
     path_exists = os.path.exists(normalized)

@@ -1,7 +1,7 @@
 """
 Small Logitech device catalog entries.
 
-These records are maintained device by device after the Mouser UI has been
+These records are maintained device by device after the PourInput UI has been
 checked locally. We keep the catalog small so supported devices stay easy to
 review and maintain.
 """

@@ -18,15 +18,15 @@ ROOT = Path(__file__).resolve().parents[1]
 _PREVIOUSLY_LEAKED_TEAM_ID = "MVDT65" + "NPA4"
 
 # Shell parameter expansion with a non-empty default, e.g.
-# ${MOUSER_TEAM_ID:-ABC123}, ${MOUSER_TEAM_ID-ABC123}, or ${MOUSER_TEAM_ID:=ABC123}.
+# ${POURINPUT_TEAM_ID:-ABC123}, ${POURINPUT_TEAM_ID-ABC123}, or ${POURINPUT_TEAM_ID:=ABC123}.
 _SHELL_DEFAULT = re.compile(
-    r"\$\{MOUSER_(?:TEAM_ID|SIGN_IDENTITY)(?::?[-=])[^}]+\}"
+    r"\$\{POURINPUT_(?:TEAM_ID|SIGN_IDENTITY)(?::?[-=])[^}]+\}"
 )
 
-# Python env lookup with a non-empty default, e.g. os.environ.get("MOUSER_TEAM_ID", "ABC"),
-# os.getenv("MOUSER_TEAM_ID", "ABC"), or env.get("MOUSER_TEAM_ID", "ABC").
+# Python env lookup with a non-empty default, e.g. os.environ.get("POURINPUT_TEAM_ID", "ABC"),
+# os.getenv("POURINPUT_TEAM_ID", "ABC"), or env.get("POURINPUT_TEAM_ID", "ABC").
 _PYTHON_DEFAULT = re.compile(
-    r"""(?:os\.getenv|(?:[A-Za-z_][A-Za-z0-9_]*\.)?environ\.get|[A-Za-z_][A-Za-z0-9_\.]*\.get)\(\s*["']MOUSER_(?:TEAM_ID|SIGN_IDENTITY)["']\s*,\s*["'][^"']+["']"""
+    r"""(?:os\.getenv|(?:[A-Za-z_][A-Za-z0-9_]*\.)?environ\.get|[A-Za-z_][A-Za-z0-9_\.]*\.get)\(\s*["']POURINPUT_(?:TEAM_ID|SIGN_IDENTITY)["']\s*,\s*["'][^"']+["']"""
 )
 
 # A literal SHA-1 codesigning identity (uppercase 40 hex chars).
@@ -88,20 +88,20 @@ class NoHardcodedSigningSecretsTests(unittest.TestCase):
     def test_no_shell_fallback_defaults_for_signing_vars(self):
         self._scan(
             lambda line: _SHELL_DEFAULT.search(line),
-            "Shell fallback default for MOUSER_TEAM_ID/MOUSER_SIGN_IDENTITY",
+            "Shell fallback default for POURINPUT_TEAM_ID/POURINPUT_SIGN_IDENTITY",
         )
 
     def test_no_python_fallback_defaults_for_signing_vars(self):
         self._scan(
             lambda line: _PYTHON_DEFAULT.search(line),
-            "Python fallback default for MOUSER_TEAM_ID/MOUSER_SIGN_IDENTITY",
+            "Python fallback default for POURINPUT_TEAM_ID/POURINPUT_SIGN_IDENTITY",
         )
 
     def test_shell_guard_covers_common_default_variants(self):
         examples = (
-            "${MOUSER_TEAM_ID:-ABC123}",
-            "${MOUSER_TEAM_ID-ABC123}",
-            "${MOUSER_SIGN_IDENTITY:=ABC123}",
+            "${POURINPUT_TEAM_ID:-ABC123}",
+            "${POURINPUT_TEAM_ID-ABC123}",
+            "${POURINPUT_SIGN_IDENTITY:=ABC123}",
         )
         for example in examples:
             with self.subTest(example=example):
@@ -109,9 +109,9 @@ class NoHardcodedSigningSecretsTests(unittest.TestCase):
 
     def test_python_guard_covers_common_default_variants(self):
         examples = (
-            'os.environ.get("MOUSER_TEAM_ID", "ABC123")',
-            'os.getenv("MOUSER_SIGN_IDENTITY", "ABC123")',
-            'env.get("MOUSER_TEAM_ID", "ABC123")',
+            'os.environ.get("POURINPUT_TEAM_ID", "ABC123")',
+            'os.getenv("POURINPUT_SIGN_IDENTITY", "ABC123")',
+            'env.get("POURINPUT_TEAM_ID", "ABC123")',
         )
         for example in examples:
             with self.subTest(example=example):
