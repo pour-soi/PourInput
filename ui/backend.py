@@ -1640,6 +1640,8 @@ class Backend(QObject):
     def _visible_button_keys(self, default_keys):
         if not self._generic_mouse_enabled():
             return set(self._effective_supported_buttons or default_keys)
+        if not self._mouse_connected:
+            return set(GENERIC_MOUSE_BUTTONS)
         buttons = set(self._effective_supported_buttons or ())
         buttons.difference_update({"xbutton1", "xbutton2"})
         buttons.update(GENERIC_MOUSE_BUTTONS)
