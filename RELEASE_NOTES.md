@@ -1,6 +1,6 @@
-# PourInput v1.1.0
+# PourInput v1.2.0 — Generic Mouse Mode & Chinese UI
 
-Release date: 2026-07-08
+Release date: 2026-07-09
 
 Repository: `pour-soi/PourInput`
 
@@ -10,46 +10,71 @@ Maintainer: `pour-soi`
 
 ## Summary
 
-PourInput v1.1.0 introduces the capability-based device support architecture.
+PourInput v1.2.0 adds Generic Mouse Mode for standard Windows mouse buttons and completes the English / Simplified Chinese application and documentation experience.
 
-The app now keeps the existing device catalog and layouts, but runtime support decisions increasingly use the HID++ features and controls detected from the connected mouse. This makes device handling safer for known devices and less MX Master-specific for unknown Logitech devices.
+Generic Mouse Mode is Windows-only, disabled by default, and enabled manually in Settings. It works without a connected supported Logitech mouse and supports Middle Button, Side Button 1, and Side Button 2 with separate Click Action and Long Press Action mappings.
+
+The application can now switch the visible UI between English and Simplified Chinese from Settings. English remains the default when no saved preference exists, and the selected language is saved and restored on the next launch.
 
 ## Highlights
 
-- Added a `DeviceCapabilities` model for runtime device features.
-- Added safer generic fallbacks for unknown or generic Logitech devices.
-- Battery support now consults detected battery capability where safe.
-- DPI support now consults adjustable-DPI capability where safe.
-- SmartShift support now consults SmartShift capability where safe.
-- Gesture support now consults gesture-button capability where safe.
-- Button support now consults capability-derived reprogrammable buttons where safe.
-- Existing catalog-based layouts and known-device defaults remain in place.
+- Added Generic Mouse Mode for standard Windows middle and side-button events.
+- Added Middle Button support.
+- Added Side Button 1 and Side Button 2 support.
+- Added Click + Long Press Multi-Action support for all three generic buttons.
+- Kept existing Logitech-specific controls available without duplicate middle-button or side-button entries.
+- Added English / Simplified Chinese application language switching.
+- Added persistent saved language preference.
+- Completed the Simplified Chinese application UI.
+- Replaced the corrupted Chinese README with complete Simplified Chinese documentation.
 
-## Device Support Notes
+## Generic Mouse Mode Notes
 
-- MX Master 3 remains the tested device.
-- This release does not add confirmed support for untested devices.
-- Experimental or potentially compatible devices, such as MX Master 3S, M720 Triathlon, MX Anywhere series, and other Logitech HID++ devices, may work only when they expose matching HID++ capabilities.
-- If capability information is missing, uncertain, or runtime discovery is incomplete, PourInput preserves conservative fallback behavior instead of hiding or enabling features aggressively.
+- Generic Mouse Mode is Windows-only.
+- It is disabled by default and enabled manually in Settings.
+- It does not require a connected supported Logitech mouse.
+- It supports Middle Button, Side Button 1, and Side Button 2.
+- All three supported buttons support Click Action and Long Press Action.
+- Multiple standard mice cannot currently have separate generic mappings because standard Windows mouse events are not distinguished by physical source device.
+- Left-button remapping, right-button remapping, scroll up/down remapping, and arbitrary extra mouse buttons are not supported by Generic Mouse Mode.
 
-## Compatibility
+## Language Notes
 
-No behavior change is intended for MX Master 3, MX Master 3S, or MX Master 4 catalog paths.
+- Supported languages are English and Simplified Chinese.
+- English remains the default when no saved preference exists.
+- The selected language is saved and restored on the next launch.
+- Language switching changes visible UI labels without changing internal action IDs, button keys, mappings, or profile data.
+- Existing user mappings remain compatible.
 
-Unknown Logitech devices should now fall back to generic buttons and generic behavior more safely instead of inheriting MX Master-specific assumptions.
+## Release Policy
+
+Windows remains the only official release target for v1.2.0.
+
+The public GitHub Release should contain only:
+
+- `PourInput-v1.2.0-Windows.zip`
+- `pourinput-v1.2.0-update.json`
+
+macOS and Linux CI/build validation may remain, but public macOS and Linux release packages are not part of the official v1.2.0 release.
 
 ## Validation
 
-The capability refactor was covered by focused tests for:
+This release is covered by focused tests for:
 
-- Known MX Master device capability exposure.
-- Generic fallback devices avoiding MX Master-specific assumptions.
-- Battery, DPI, SmartShift, gesture, and button behavior preserving existing fallback paths.
-- Existing multi-action behavior.
+- Update manifest and version metadata behavior.
+- Locale manager translations.
+- Configuration migration and saved language defaults.
+- Backend/UI label behavior.
+- Generic Mouse Mode button visibility and mapping behavior.
+- Engine handling for generic middle and side-button click / long-press actions.
+- Device layout behavior.
 
 ## Known Limitations
 
 - Windows remains the only official release target.
+- Generic Mouse Mode is Windows-only.
+- Generic Mouse Mode supports Middle Button, Side Button 1, and Side Button 2 only.
+- Generic Mouse Mode cannot currently distinguish multiple standard mice by physical source device.
 - Device support still depends on firmware, operating system exposure, and HID++ features.
 - Some devices may be detected but expose only partial controls.
 - Double Click is planned but not implemented yet.

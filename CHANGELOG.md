@@ -6,14 +6,27 @@ This project uses Semantic Versioning.
 
 ## Unreleased
 
+## v1.2.0 — 2026-07-09
+
 ### Added
 
-- Completed Generic Mouse Mode for standard Windows middle and side-button events. Supported buttons can now use PourInput click and long-press actions without Logitech HID++ support.
+- Generic Mouse Mode for standard Windows mouse buttons.
+- Middle Button support.
+- Side Button 1 and Side Button 2 support.
+- Click + Long Press Multi-Action for all three generic buttons.
+- Generic Mouse Mode operation without a supported Logitech mouse.
+- English / Simplified Chinese application language switching.
+- Persistent saved language preference.
+- Complete Simplified Chinese application UI.
+- Complete Simplified Chinese GitHub documentation.
 - Added a Windows single-instance guard so duplicate PourInput processes cannot create competing low-level mouse hooks.
 
 ### Fixed
 
+- Corrected Generic Mouse Mode button visibility without a Logitech connection.
 - Restored correct runtime Generic Mouse Mode OFF behavior: disabling the mode removes generic mouse callbacks and blocking, returning buttons to native middle-click and Back / Forward behavior.
+- Prevented stale XBUTTON interception after Generic Mouse Mode is disabled.
+- Corrected Generic Mouse Mode CI regression coverage across platforms.
 
 ## v1.1.0 - 2026-07-08
 
