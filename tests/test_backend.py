@@ -850,17 +850,17 @@ class BackendDeviceLayoutTests(unittest.TestCase):
         with patch("ui.backend.sys.platform", "win32"):
             backend = self._make_backend(cfg=cfg)
 
-        button_keys = [button["key"] for button in backend.buttons]
-        self.assertEqual(button_keys, ["generic_xbutton1", "generic_xbutton2"])
-        for button in backend.buttons:
-            self.assertTrue(button["supportsMultiAction"])
-            self.assertEqual(button["actionId"], "none")
-            self.assertEqual(button["longActionId"], "none")
+            button_keys = [button["key"] for button in backend.buttons]
+            self.assertEqual(button_keys, ["generic_xbutton1", "generic_xbutton2"])
+            for button in backend.buttons:
+                self.assertTrue(button["supportsMultiAction"])
+                self.assertEqual(button["actionId"], "none")
+                self.assertEqual(button["longActionId"], "none")
 
-        mapping_keys = [
-            mapping["key"] for mapping in backend.getProfileMappings("default")
-        ]
-        self.assertEqual(mapping_keys, ["generic_xbutton1", "generic_xbutton2"])
+            mapping_keys = [
+                mapping["key"] for mapping in backend.getProfileMappings("default")
+            ]
+            self.assertEqual(mapping_keys, ["generic_xbutton1", "generic_xbutton2"])
 
     def test_set_generic_mouse_enabled_persists_and_reloads_mappings(self):
         engine = _FakeEngine()
