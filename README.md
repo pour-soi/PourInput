@@ -21,13 +21,13 @@ Repository: `pour-soi/PourInput`
 
 ## Current Release
 
-Current release: `v1.2.0`
+Current release: `v1.2.1`
 
 Release date: `2026-07-09`
 
-Release title: `v1.2.0 — Generic Mouse Mode & Chinese UI`
+Release title: `v1.2.1 — Generic Mouse Status Fix`
 
-Windows is the only officially released platform for v1.2.0. Public GitHub Release assets are limited to the Windows release package and the update manifest.
+Windows is the only officially released platform for v1.2.1. Public GitHub Release assets are limited to the Windows release package and the update manifest.
 
 ## Why PourInput?
 
@@ -62,16 +62,16 @@ Download the current Windows release from the [latest release page](https://gith
 Windows users should download:
 
 ```text
-PourInput-v1.2.0-Windows.zip
+PourInput-v1.2.1-Windows.zip
 ```
 
 Extract the downloaded archive before running PourInput.
 
 ## Installation
 
-1. Download `PourInput-v1.2.0-Windows.zip` from the [latest release](https://github.com/pour-soi/PourInput/releases/latest).
+1. Download `PourInput-v1.2.1-Windows.zip` from the [latest release](https://github.com/pour-soi/PourInput/releases/latest).
 2. Extract the zip file.
-3. Run `PourInput-v1.2.0/PourInput.exe`.
+3. Run `PourInput-v1.2.1/PourInput.exe`.
 4. Quit any other PourInput or PourInput build before launching this one.
 
 The packaged Windows app includes the runtime files it needs. You do not need to install Python to use a release build.
@@ -169,13 +169,13 @@ If your mouse is detected but a button is missing, open a device support request
 
 ## Compatibility
 
-Existing user mappings remain compatible with v1.2.0. Language switching changes visible text only; it does not rewrite action IDs, button keys, mappings, or profiles.
+Existing user mappings remain compatible with v1.2.1. Language switching changes visible text only; it does not rewrite action IDs, button keys, mappings, or profiles.
 
 Generic Mouse Mode uses separate generic side-button mapping keys internally so it can coexist with supported Logitech layouts without duplicate visible side-button entries.
 
 ## Limitations
 
-- Windows is the only official release target for v1.2.0.
+- Windows is the only official release target for v1.2.1.
 - Generic Mouse Mode is Windows-only.
 - Generic Mouse Mode currently supports only Middle Button, Side Button 1, and Side Button 2.
 - Generic Mouse Mode does not support left-button remapping, right-button remapping, scroll up/down remapping, or arbitrary extra mouse buttons.
@@ -236,7 +236,7 @@ Raw build output is written to `dist/PourInput/`.
 Create a versioned Windows release package:
 
 ```powershell
-.\scripts\create_release.ps1 -Version v1.2.0
+.\scripts\create_release.ps1 -Version v1.2.1
 ```
 
 If no version is specified, the packaging script reads the latest versioned Windows zip in `release/` and increments the patch version.
@@ -245,15 +245,15 @@ Release output:
 
 ```text
 release/
-    PourInput-v1.2.0-Windows.zip
-    RELEASE_NOTES-v1.2.0.md
+    PourInput-v1.2.1-Windows.zip
+    RELEASE_NOTES-v1.2.1.md
     CHANGELOG.md
 ```
 
 Zip layout:
 
 ```text
-PourInput-v1.2.0/
+PourInput-v1.2.1/
     PourInput.exe
     LICENSE
     README.md
@@ -266,14 +266,14 @@ The release script removes only temporary build output before packaging. It pres
 
 ## Release Platform Policy
 
-v1.2.0 remains officially Windows-only.
+v1.2.1 remains officially Windows-only.
 
 The public GitHub Release should contain only:
 
-- `PourInput-v1.2.0-Windows.zip`
-- `pourinput-v1.2.0-update.json`
+- `PourInput-v1.2.1-Windows.zip`
+- `pourinput-v1.2.1-update.json`
 
-macOS and Linux CI/build validation may remain, but public macOS and Linux release packages are not part of the v1.2.0 official release.
+macOS and Linux CI/build validation may remain, but public macOS and Linux release packages are not part of the v1.2.1 official release.
 
 ## Roadmap
 

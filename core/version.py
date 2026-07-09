@@ -14,7 +14,7 @@ APP_EXECUTABLE_NAME = "PourInput.exe"
 ORIGINAL_PROJECT = "TomBadash/Mouser"
 CUSTOMIZED_BY = "pour-soi"
 
-_DEFAULT_APP_VERSION = "1.2.0"
+_DEFAULT_APP_VERSION = "1.2.1"
 _BUILD_INFO_FILENAME = "POURINPUT_build_info.json"
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 

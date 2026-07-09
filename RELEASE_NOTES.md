@@ -1,4 +1,4 @@
-# PourInput v1.2.0 — Generic Mouse Mode & Chinese UI
+# PourInput v1.2.1 — Generic Mouse Status Fix
 
 Release date: 2026-07-09
 
@@ -8,66 +8,58 @@ Based on: `TomBadash/Mouser`
 
 Maintainer: `pour-soi`
 
-## Summary
+## English
 
-PourInput v1.2.0 adds Generic Mouse Mode for standard Windows mouse buttons and completes the English / Simplified Chinese application and documentation experience.
+PourInput v1.2.1 is a small patch release for the device status shown when Generic Mouse Mode is active.
 
-Generic Mouse Mode is Windows-only, disabled by default, and enabled manually in Settings. It works without a connected supported Logitech mouse and supports Middle Button, Side Button 1, and Side Button 2 with separate Click Action and Long Press Action mappings.
+Generic Mouse Mode functionality itself was already working: a standard mouse could use configured Generic Mouse Mode actions without a supported Logitech mouse. The issue was that the Mouse page status badge still reported the device as disconnected because it only reflected supported Logitech HID++ connection state.
 
-The application can now switch the visible UI between English and Simplified Chinese from Settings. English remains the default when no saved preference exists, and the selected language is saved and restored on the next launch.
+This release keeps Logitech device detection separate from Generic Mouse Mode readiness:
 
-## Highlights
+- Supported Logitech device connected: `Connected — <device name>`
+- No supported Logitech device and Generic Mouse Mode enabled: `Generic Mouse Mode Ready`
+- No supported Logitech device and Generic Mouse Mode disabled: `No supported mouse detected`
 
-- Added Generic Mouse Mode for standard Windows middle and side-button events.
-- Added Middle Button support.
-- Added Side Button 1 and Side Button 2 support.
-- Added Click + Long Press Multi-Action support for all three generic buttons.
-- Kept existing Logitech-specific controls available without duplicate middle-button or side-button entries.
-- Added English / Simplified Chinese application language switching.
-- Added persistent saved language preference.
-- Completed the Simplified Chinese application UI.
-- Replaced the corrupted Chinese README with complete Simplified Chinese documentation.
+Generic Mouse Mode still does not identify a specific physical standard mouse. It does not claim a standard mouse name or per-device identity.
 
-## Generic Mouse Mode Notes
+No input, remapping, hook, blocking, button support, Logitech HID++, or localization-scope behavior changed in this release.
 
-- Generic Mouse Mode is Windows-only.
-- It is disabled by default and enabled manually in Settings.
-- It does not require a connected supported Logitech mouse.
-- It supports Middle Button, Side Button 1, and Side Button 2.
-- All three supported buttons support Click Action and Long Press Action.
-- Multiple standard mice cannot currently have separate generic mappings because standard Windows mouse events are not distinguished by physical source device.
-- Left-button remapping, right-button remapping, scroll up/down remapping, and arbitrary extra mouse buttons are not supported by Generic Mouse Mode.
+## 简体中文
 
-## Language Notes
+PourInput v1.2.1 是一个小型补丁版本，修正通用鼠标模式启用时鼠标页面显示的设备状态。
 
-- Supported languages are English and Simplified Chinese.
-- English remains the default when no saved preference exists.
-- The selected language is saved and restored on the next launch.
-- Language switching changes visible UI labels without changing internal action IDs, button keys, mappings, or profile data.
-- Existing user mappings remain compatible.
+通用鼠标模式本身此前已经可以正常工作：即使没有受支持的 Logitech 鼠标，普通鼠标也可以通过通用鼠标模式使用已配置的操作。问题在于鼠标页面的状态标签只反映受支持 Logitech HID++ 设备的连接状态，因此会误显示为未连接。
+
+此版本将 Logitech 设备连接状态与通用鼠标模式就绪状态分开显示：
+
+- 已连接受支持的 Logitech 设备：`已连接 — <device name>`
+- 没有受支持的 Logitech 设备，但已启用通用鼠标模式：`通用鼠标模式已就绪`
+- 没有受支持的 Logitech 设备，且未启用通用鼠标模式：`未检测到受支持的鼠标`
+
+通用鼠标模式仍然不会识别某一只具体的普通鼠标，也不会显示虚构的标准鼠标名称或物理设备身份。
+
+此版本没有改变输入、重映射、鼠标钩子、事件阻止、按键支持、Logitech HID++ 或本地化范围。
 
 ## Release Policy
 
-Windows remains the only official release target for v1.2.0.
+Windows remains the only official release target for v1.2.1.
 
 The public GitHub Release should contain only:
 
-- `PourInput-v1.2.0-Windows.zip`
-- `pourinput-v1.2.0-update.json`
+- `PourInput-v1.2.1-Windows.zip`
+- `pourinput-v1.2.1-update.json`
 
-macOS and Linux CI/build validation may remain, but public macOS and Linux release packages are not part of the official v1.2.0 release.
+macOS and Linux CI/build validation may remain, but public macOS and Linux release packages are not part of the official v1.2.1 release.
 
 ## Validation
 
-This release is covered by focused tests for:
+This patch release is covered by focused tests for:
 
-- Update manifest and version metadata behavior.
+- Backend device status states.
+- Generic Mouse Mode status transitions.
 - Locale manager translations.
-- Configuration migration and saved language defaults.
-- Backend/UI label behavior.
-- Generic Mouse Mode button visibility and mapping behavior.
-- Engine handling for generic middle and side-button click / long-press actions.
-- Device layout behavior.
+- QML policy coverage for the status labels.
+- Update/version behavior.
 
 ## Known Limitations
 
@@ -76,7 +68,3 @@ This release is covered by focused tests for:
 - Generic Mouse Mode supports Middle Button, Side Button 1, and Side Button 2 only.
 - Generic Mouse Mode cannot currently distinguish multiple standard mice by physical source device.
 - Device support still depends on firmware, operating system exposure, and HID++ features.
-- Some devices may be detected but expose only partial controls.
-- Double Click is planned but not implemented yet.
-- Long Press timeout defaults to 300 ms and is not editable in the UI yet.
-- Macro support and sequential actions are not implemented yet.

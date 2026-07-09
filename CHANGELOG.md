@@ -6,6 +6,14 @@ This project uses Semantic Versioning.
 
 ## Unreleased
 
+## v1.2.1 — 2026-07-09
+
+### Fixed
+
+- Corrected the device status shown when Generic Mouse Mode is active without a supported Logitech mouse.
+- Added distinct status states for Logitech connection, Generic Mouse Mode readiness, and no supported mouse detected.
+- Kept Logitech connection state separate from Generic Mouse Mode readiness.
+
 ## v1.2.0 — 2026-07-09
 
 ### Added
