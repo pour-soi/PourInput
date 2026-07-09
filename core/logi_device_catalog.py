@@ -345,7 +345,7 @@ LOGI_DEVICE_LAYOUTS = {
         [
             _hotspot(
                 "middle",
-                "Middle button",
+                "Middle Button",
                 "mapping",
                 0.755,
                 0.19,
@@ -415,7 +415,7 @@ LOGI_DEVICE_LAYOUTS = {
         [
             _hotspot(
                 "middle",
-                "Middle button",
+                "Middle Button",
                 "mapping",
                 0.71,
                 0.15,
@@ -485,7 +485,7 @@ LOGI_DEVICE_LAYOUTS = {
         [
             _hotspot(
                 "middle",
-                "Middle button",
+                "Middle Button",
                 "mapping",
                 0.71,
                 0.15,
@@ -555,7 +555,7 @@ LOGI_DEVICE_LAYOUTS = {
         [
             _hotspot(
                 "middle",
-                "Middle button",
+                "Middle Button",
                 "mapping",
                 0.73,
                 0.18,
@@ -625,7 +625,7 @@ LOGI_DEVICE_LAYOUTS = {
         [
             _hotspot(
                 "middle",
-                "Middle button",
+                "Middle Button",
                 "mapping",
                 0.73,
                 0.18,
@@ -695,7 +695,7 @@ LOGI_DEVICE_LAYOUTS = {
         [
             _hotspot(
                 "middle",
-                "Middle button",
+                "Middle Button",
                 "mapping",
                 0.52,
                 0.385,
@@ -745,7 +745,7 @@ LOGI_DEVICE_LAYOUTS = {
         [
             _hotspot(
                 "middle",
-                "Middle button",
+                "Middle Button",
                 "mapping",
                 0.72,
                 0.17,
@@ -805,7 +805,7 @@ LOGI_DEVICE_LAYOUTS = {
         [
             _hotspot(
                 "middle",
-                "Middle button",
+                "Middle Button",
                 "mapping",
                 0.71,
                 0.16,

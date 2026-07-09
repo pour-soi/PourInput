@@ -25,7 +25,7 @@ CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
 # Which mouse events map to which friendly button names
 # Order matches the Logi Options+ diagram (top view then side view)
 BUTTON_NAMES = {
-    "middle":        "Middle button",
+    "middle":        "Middle Button",
     "gesture":       "Gesture button",
     "xbutton1":      "Back button",
     "xbutton2":      "Forward button",
@@ -43,6 +43,7 @@ GESTURE_DIRECTION_BUTTONS = (
 )
 
 MULTI_ACTION_BUTTONS = (
+    "middle",
     "mode_shift",
     "xbutton1",
     "xbutton2",
@@ -52,8 +53,8 @@ MULTI_ACTION_BUTTONS = (
 LONG_PRESS_SUFFIX = "_long"
 DEFAULT_LONG_PRESS_THRESHOLD_MS = 300
 GENERIC_MOUSE_BUTTON_NAMES = {
-    "generic_xbutton1": "Generic XBUTTON1",
-    "generic_xbutton2": "Generic XBUTTON2",
+    "generic_xbutton1": "Side Button 1",
+    "generic_xbutton2": "Side Button 2",
 }
 GENERIC_MOUSE_BUTTONS = tuple(GENERIC_MOUSE_BUTTON_NAMES)
 
@@ -112,6 +113,7 @@ DEFAULT_CONFIG = {
                 "hscroll_right": "browser_forward",
                 "mode_shift": "switch_scroll_mode",
                 "mode_shift_long": "switch_scroll_mode",
+                "middle_long": "none",
                 "xbutton1_long": "none",
                 "xbutton2_long": "none",
                 "generic_xbutton1": "none",

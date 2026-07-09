@@ -79,6 +79,10 @@ class ConfigMigrationTests(unittest.TestCase):
             "switch_scroll_mode",
         )
         self.assertEqual(
+            migrated["profiles"]["default"]["mappings"]["middle_long"],
+            "none",
+        )
+        self.assertEqual(
             migrated["profiles"]["default"]["mappings"]["xbutton1_long"],
             "none",
         )

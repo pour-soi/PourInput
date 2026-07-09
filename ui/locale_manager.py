@@ -41,7 +41,7 @@ _TRANSLATIONS = {
         "mouse.interactive_layout_coming": "Interactive layout coming later",
         "mouse.auto_detect": "Auto-detect",
         "mouse.generic_mouse_mode": "Generic Mouse Mode",
-        "mouse.generic_mouse_side_buttons": "XBUTTON1 / XBUTTON2",
+        "mouse.generic_mouse_side_buttons": "Middle / Side Buttons",
 
         # Mouse page — action / mapping helpers
         "mouse.do_nothing": "Do Nothing",
@@ -276,7 +276,7 @@ _TRANSLATIONS = {
         "mouse.interactive_layout_coming": "\u4ea4\u4e92\u5f0f\u5e03\u5c40\u5373\u5c06\u63a8\u51fa",
         "mouse.auto_detect": "\u81ea\u52a8\u68c0\u6d4b",
         "mouse.generic_mouse_mode": "\u901a\u7528\u9f20\u6807\u6a21\u5f0f",
-        "mouse.generic_mouse_side_buttons": "XBUTTON1 / XBUTTON2",
+        "mouse.generic_mouse_side_buttons": "\u4e2d\u952e / \u4fa7\u952e",
 
         "mouse.do_nothing": "\u65e0\u64cd\u4f5c",
         "mouse.horizontal_scroll": "\u6c34\u5e73\u6eda\u52a8",
@@ -498,7 +498,7 @@ _TRANSLATIONS = {
         "mouse.interactive_layout_coming": "\u4e92\u52d5\u5f0f\u7248\u9762\u914d\u7f6e\u5373\u5c07\u63a8\u51fa",
         "mouse.auto_detect": "\u81ea\u52d5\u5075\u6e2c",
         "mouse.generic_mouse_mode": "\u901a\u7528\u6ed1\u9f20\u6a21\u5f0f",
-        "mouse.generic_mouse_side_buttons": "XBUTTON1 / XBUTTON2",
+        "mouse.generic_mouse_side_buttons": "\u4e2d\u9375 / \u5074\u9375",
 
         "mouse.do_nothing": "\u7121\u52d5\u4f5c",
         "mouse.horizontal_scroll": "\u6c34\u5e73\u6372\u52d5",
@@ -701,12 +701,12 @@ AVAILABLE_LANGUAGES = [
 # Key = English name from config.py BUTTON_NAMES / PROFILE_BUTTON_NAMES
 _BUTTON_TR: dict[str, dict[str, str]] = {
     "zh_CN": {
-        "Middle button":          "\u4e2d\u952e",
+        "Middle Button":          "\u4e2d\u952e",
         "Gesture button":         "\u624b\u52bf\u952e",
         "Back button":            "\u540e\u9000\u952e",
         "Forward button":         "\u524d\u8fdb\u952e",
-        "Generic XBUTTON1":       "\u901a\u7528 XBUTTON1",
-        "Generic XBUTTON2":       "\u901a\u7528 XBUTTON2",
+        "Side Button 1":          "\u4fa7\u952e 1",
+        "Side Button 2":          "\u4fa7\u952e 2",
         "Horizontal scroll left": "\u6c34\u5e73\u5de6\u6eda",
         "Horizontal scroll right":"\u6c34\u5e73\u53f3\u6eda",
         "Horizontal Scroll":      "\u6c34\u5e73\u6eda\u52a8",
@@ -717,12 +717,12 @@ _BUTTON_TR: dict[str, dict[str, str]] = {
         "Gesture swipe down":     "\u624b\u52bf\u4e0b\u6ed1",
     },
     "zh_TW": {
-        "Middle button":          "\u4e2d\u9375",
+        "Middle Button":          "\u4e2d\u9375",
         "Gesture button":         "\u624b\u52e2\u9375",
         "Back button":            "\u5f8c\u9000\u9375",
         "Forward button":         "\u524d\u9032\u9375",
-        "Generic XBUTTON1":       "\u901a\u7528 XBUTTON1",
-        "Generic XBUTTON2":       "\u901a\u7528 XBUTTON2",
+        "Side Button 1":          "\u5074\u9375 1",
+        "Side Button 2":          "\u5074\u9375 2",
         "Horizontal scroll left": "\u6c34\u5e73\u5de6\u6372",
         "Horizontal scroll right":"\u6c34\u5e73\u53f3\u6372",
         "Horizontal Scroll":      "\u6c34\u5e73\u6372\u52d5",
@@ -965,7 +965,7 @@ class LocaleManager(QObject):
     # ── button / action / category translation slots for QML ─────
     @Slot(str, result=str)
     def trButton(self, english_name: str) -> str:
-        """Translate a button name (e.g. 'Middle button' → '中键')."""
+        """Translate a button name (e.g. 'Middle Button' -> '中键')."""
         return _BUTTON_TR.get(self._language, {}).get(english_name, english_name)
 
     @Slot(str, result=str)

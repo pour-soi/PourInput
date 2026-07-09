@@ -1022,7 +1022,7 @@ Item {
                                 }
 
                                 Text {
-                                    text: s["mouse.generic_mouse_side_buttons"] || "XBUTTON1 / XBUTTON2"
+                                    text: s["mouse.generic_mouse_side_buttons"] || "Middle / Side Buttons"
                                     font { family: uiState.fontFamily; pixelSize: 11 }
                                     color: theme.textSecondary
                                 }

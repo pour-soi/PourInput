@@ -24,7 +24,7 @@ MX_MASTER_LAYOUT = {
     "hotspots": [
         {
             "buttonKey": "middle",
-            "label": "Middle button",
+            "label": "Middle Button",
             "summaryType": "mapping",
             "normX": 0.33,
             "normY": 0.45,
@@ -113,7 +113,7 @@ MX_ANYWHERE_LAYOUT = {
     "hotspots": [
         {
             "buttonKey": "middle",
-            "label": "Middle button",
+            "label": "Middle Button",
             "summaryType": "mapping",
             "normX": 0.33,
             "normY": 0.46,
@@ -166,7 +166,7 @@ MX_VERTICAL_LAYOUT = {
     "hotspots": [
         {
             "buttonKey": "middle",
-            "label": "Middle button",
+            "label": "Middle Button",
             "summaryType": "mapping",
             "normX": 0.22,
             "normY": 0.38,

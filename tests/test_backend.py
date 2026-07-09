@@ -840,10 +840,10 @@ class BackendDeviceLayoutTests(unittest.TestCase):
         for button in backend.buttons:
             self.assertEqual(
                 button["supportsMultiAction"],
-                button["key"] in ("xbutton1", "xbutton2"),
+                button["key"] in ("middle", "xbutton1", "xbutton2"),
             )
 
-    def test_generic_mouse_mode_exposes_side_buttons_without_logitech_connection(self):
+    def test_generic_mouse_mode_exposes_standard_buttons_without_logitech_connection(self):
         cfg = copy.deepcopy(DEFAULT_CONFIG)
         cfg["settings"]["generic_mouse_enabled"] = True
 
@@ -851,7 +851,15 @@ class BackendDeviceLayoutTests(unittest.TestCase):
             backend = self._make_backend(cfg=cfg)
 
             button_keys = [button["key"] for button in backend.buttons]
-            self.assertEqual(button_keys, ["generic_xbutton1", "generic_xbutton2"])
+            self.assertEqual(
+                button_keys,
+                ["middle", "generic_xbutton1", "generic_xbutton2"],
+            )
+            button_names = [button["name"] for button in backend.buttons]
+            self.assertEqual(
+                button_names,
+                ["Middle Button", "Side Button 1", "Side Button 2"],
+            )
             for button in backend.buttons:
                 self.assertTrue(button["supportsMultiAction"])
                 self.assertEqual(button["actionId"], "none")
@@ -860,7 +868,49 @@ class BackendDeviceLayoutTests(unittest.TestCase):
             mapping_keys = [
                 mapping["key"] for mapping in backend.getProfileMappings("default")
             ]
-            self.assertEqual(mapping_keys, ["generic_xbutton1", "generic_xbutton2"])
+            self.assertEqual(
+                mapping_keys,
+                ["middle", "generic_xbutton1", "generic_xbutton2"],
+            )
+
+    def test_generic_mouse_mode_coexists_with_logitech_layout_without_duplicates(self):
+        cfg = copy.deepcopy(DEFAULT_CONFIG)
+        cfg["settings"]["generic_mouse_enabled"] = True
+        device = SimpleNamespace(
+            key="mx_master_3s",
+            display_name="MX Master 3S",
+            dpi_min=200,
+            dpi_max=8000,
+            ui_layout="mx_master_3s",
+            supported_buttons=(
+                "middle",
+                "gesture",
+                "xbutton1",
+                "xbutton2",
+                "hscroll_left",
+                "hscroll_right",
+                "mode_shift",
+            ),
+        )
+
+        with (
+            patch("ui.backend.load_config", return_value=cfg),
+            patch("ui.backend.save_config"),
+            patch("ui.backend.supports_login_startup", return_value=False),
+            patch("ui.backend.sys.platform", "win32"),
+        ):
+            backend = Backend(engine=_FakeEngine(device_connected=True, connected_device=device))
+
+            button_keys = [button["key"] for button in backend.buttons]
+            self.assertEqual(button_keys.count("middle"), 1)
+            self.assertEqual(button_keys.count("generic_xbutton1"), 1)
+            self.assertEqual(button_keys.count("generic_xbutton2"), 1)
+            self.assertNotIn("xbutton1", button_keys)
+            self.assertNotIn("xbutton2", button_keys)
+            self.assertIn("gesture", button_keys)
+            self.assertIn("hscroll_left", button_keys)
+            self.assertIn("hscroll_right", button_keys)
+            self.assertIn("mode_shift", button_keys)
 
     def test_set_generic_mouse_enabled_persists_and_reloads_mappings(self):
         engine = _FakeEngine()

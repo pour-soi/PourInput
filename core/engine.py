@@ -165,6 +165,12 @@ class Engine:
                     continue
             elif generic_mouse_enabled and btn_key in _WINDOWS_XBUTTON_KEYS:
                 continue
+            elif not self._should_bind_middle_button(
+                btn_key,
+                generic_mouse_enabled,
+                device_buttons,
+            ):
+                continue
             elif not self._should_bind_physical_xbutton(btn_key, device_buttons):
                 continue
             if btn_key.startswith("gesture") and not device_supports_gesture:
@@ -237,6 +243,15 @@ class Engine:
         if sys.platform != "win32":
             return True
         return False
+
+    def _should_bind_middle_button(self, button_key, generic_mouse_enabled, device_buttons):
+        if button_key != "middle":
+            return True
+        if sys.platform != "win32":
+            return True
+        if generic_mouse_enabled:
+            return True
+        return device_buttons is not None and "middle" in device_buttons
 
     def _execute_mapped_action(self, action_id, event_type=None):
         if action_id == "none":

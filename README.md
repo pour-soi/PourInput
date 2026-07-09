@@ -25,15 +25,15 @@ Many mice expose useful extra controls, but not every workflow fits a single act
 
 Multi-Action allows one physical mouse button to perform different actions depending on how it is used. PourInput currently supports separate actions for click and long press. For example, one side button can copy text when clicked and run Browser Forward when held.
 
-Generic Mouse Mode allows standard Windows mouse side buttons to use PourInput actions without requiring Logitech HID++ support. Supported side buttons can use different actions for click and long press, and disabling the mode restores their native Back / Forward behavior.
+Generic Mouse Mode allows standard Windows mouse middle and side buttons to use PourInput actions without requiring Logitech HID++ support. Supported buttons can use different actions for click and long press, and disabling the mode restores their native middle-click and Back / Forward behavior.
 
 Compared with Logitech Options+, PourInput is open source, scriptable, reviewable, and easier to inspect when debugging input behavior. It does not replace every Options+ feature; it is a focused tool for configurable button remapping and advanced button actions.
 
 ## Features
 
 - **Multi-Action click / long-press support** - supported buttons can run one action when clicked and another action when held.
-- **Generic Mouse Mode for standard Windows side buttons** - standard Windows XBUTTON side-button events can be mapped to PourInput actions without Logitech HID++; this has been manually verified with a ZOWIE mouse.
-- **Runtime Generic Mouse Mode switching** - when the mode is turned off, PourInput removes active XBUTTON callbacks and blocking so native browser Back / Forward behavior returns without restarting.
+- **Generic Mouse Mode for standard Windows middle and side buttons** - standard Windows middle/side-button events can be mapped to PourInput actions without Logitech HID++; this has been manually verified with a ZOWIE mouse.
+- **Runtime Generic Mouse Mode switching** - when the mode is turned off, PourInput removes active middle/side-button callbacks and blocking so native middle-click and browser Back / Forward behavior returns without restarting.
 - **Capability-based device support foundations** - PourInput enables features according to what a device can actually do, rather than treating support as a simple brand-based yes/no list.
 - **Logitech HID++ advanced features where supported** - supported Logitech devices may expose extra controls such as Mode Shift, SmartShift, adjustable DPI, battery reporting, gesture controls, and horizontal scroll.
 - **Application-specific profiles** - automatically switch button mappings for different applications.
@@ -80,8 +80,9 @@ Each supported button can show:
 
 Examples:
 
-- Generic XBUTTON1: Click -> Copy, Long Press -> Browser Forward
-- Generic XBUTTON2: Click -> Paste, Long Press -> Browser Back
+- Middle Button: Click -> Copy, Long Press -> Paste
+- Side Button 1: Click -> Copy, Long Press -> Browser Forward
+- Side Button 2: Click -> Paste, Long Press -> Browser Back
 - Mode Shift on a supported Logitech device: Click -> Screenshot Region -> Clipboard, Long Press -> Switch Scroll Mode
 
 A press shorter than 300 ms runs the Click Action. A press held for at least 300 ms runs the Long Press Action when released.
@@ -90,15 +91,15 @@ If no Long Press Action is configured, the button keeps the same behavior it had
 
 ### Generic Mouse Mode
 
-Generic Mouse Mode is a Windows-only mode for standard mouse side buttons that appear as XBUTTON1 and XBUTTON2 events. It does not require Logitech HID++ support, so a compatible non-Logitech mouse can use PourInput actions when its side buttons report standard Windows XBUTTON events.
+Generic Mouse Mode is a Windows-only mode for standard middle-button and side-button mouse events. It does not require Logitech HID++ support, so a compatible non-Logitech mouse can use PourInput actions when its middle button and side buttons report standard Windows mouse events.
 
-The current implementation applies to standard Windows XBUTTON side-button events only. It supports click and long-press actions, runtime ON/OFF switching, and restoration of native Back / Forward behavior when disabled.
+The current implementation applies to the standard Windows middle-button event and standard Windows side-button events. It supports click and long-press actions, runtime ON/OFF switching, and restoration of native middle-click and Back / Forward behavior when disabled.
 
-This is not universal support for every mouse, every mouse button, every operating system, or vendor-specific buttons that do not appear as standard Windows XBUTTON events. PourInput also does not yet provide reliable per-device differentiation between multiple standard mice.
+This is not universal support for every mouse, every mouse button, every operating system, or vendor-specific buttons that do not appear as standard Windows mouse events. PourInput also does not yet provide reliable per-device differentiation between multiple standard mice.
 
 ## Supported Devices
 
-PourInput uses capability-based device support. This means that PourInput enables features according to what a device can actually do, rather than treating support as a simple brand-based yes/no list. A mouse with standard Windows side buttons can use Generic Mouse Mode, while a supported Logitech device may expose additional HID++ features.
+PourInput uses capability-based device support. This means that PourInput enables features according to what a device can actually do, rather than treating support as a simple brand-based yes/no list. A mouse with standard Windows middle and side buttons can use Generic Mouse Mode, while a supported Logitech device may expose additional HID++ features.
 
 Some Logitech controls must be both reprogrammable and divertable before PourInput can intercept them. If capability information is missing or incomplete, PourInput falls back conservatively to the existing catalog and generic button behavior rather than assuming full support.
 
@@ -111,18 +112,18 @@ Some Logitech controls must be both reprogrammable and divertable before PourInp
 
 ### Experimental / Potentially Compatible
 
-These devices are not claimed as officially supported unless they have been tested with PourInput. They may work when they expose matching standard Windows XBUTTON events or HID++ capabilities.
+These devices are not claimed as officially supported unless they have been tested with PourInput. They may work when they expose matching standard Windows middle/side-button events or HID++ capabilities.
 
 | Device | Notes |
 |--------|-------|
-| Standard Windows mice with XBUTTON side buttons | Potentially compatible with Generic Mouse Mode for side-button click and long-press actions |
+| Standard Windows mice with middle and side buttons | Potentially compatible with Generic Mouse Mode for middle-button and side-button click and long-press actions |
 | MX Master 3S | Expected to share many MX Master capabilities; needs user/device testing |
 | M720 Triathlon | Potentially compatible where required HID++ controls are exposed |
 | MX Anywhere series | Potentially compatible where required HID++ controls are exposed |
 | MX Master 4 / 2S / original MX Master | Potentially compatible where required HID++ controls are exposed |
 | Other Logitech HID++ devices | Potentially compatible when they expose matching reprogrammable, divertable controls |
 
-Multi-Action support is available for Generic Mouse Mode side buttons and for supported Logitech controls where those controls are exposed. Device-specific capabilities such as DPI, SmartShift, battery reporting, gesture controls, and horizontal scroll vary by device and firmware.
+Multi-Action support is available for Generic Mouse Mode middle/side buttons and for supported Logitech controls where those controls are exposed. Device-specific capabilities such as DPI, SmartShift, battery reporting, gesture controls, and horizontal scroll vary by device and firmware.
 
 If your mouse is detected but a button is missing, open a device support request and include the device info JSON from the Mouse page.
 
@@ -197,9 +198,9 @@ The release script removes only temporary build output before packaging. It pres
 ## Known Limitations
 
 - Windows is the only official release target for v1.1.0.
-- Generic Mouse Mode currently supports only standard Windows XBUTTON1 / XBUTTON2 side-button events.
+- Generic Mouse Mode currently supports only the standard Windows middle-button event and standard Windows side-button events.
 - Generic Mouse Mode does not identify separate standard mice per device yet.
-- Vendor-specific buttons that do not appear as standard Windows XBUTTON events are not supported by Generic Mouse Mode.
+- Vendor-specific buttons that do not appear as standard Windows mouse events are not supported by Generic Mouse Mode.
 - Some Logitech features depend on device firmware and exposed HID++ capabilities.
 - macOS support is planned but not officially available.
 - Double Click is planned but not implemented yet.
@@ -211,7 +212,7 @@ The release script removes only temporary build output before packaging. It pres
 ### Completed
 
 - **Multi-Action click / long-press support** - one supported physical button can run different actions for click and long press.
-- **Generic Mouse Mode** - standard Windows XBUTTON side buttons can use PourInput actions without Logitech HID++, and turning the mode off restores native Back / Forward behavior.
+- **Generic Mouse Mode** - standard Windows middle/side buttons can use PourInput actions without Logitech HID++, and turning the mode off restores native middle-click and Back / Forward behavior.
 - **Capability-based device support foundations** - PourInput can enable or limit features according to detected device capabilities instead of relying only on a static device list.
 
 ### Planned / Future Directions

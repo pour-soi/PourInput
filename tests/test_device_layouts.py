@@ -135,7 +135,7 @@ class DeviceLayoutTests(unittest.TestCase):
         self.assertNotIn("gesture_up", hotspots)
         self.assertNotIn("gesture_down", hotspots)
 
-        self.assertEqual(hotspots["middle"]["label"], "Middle button")
+        self.assertEqual(hotspots["middle"]["label"], "Middle Button")
         self.assertEqual(hotspots["xbutton1"]["label"], "Back button")
         self.assertEqual(hotspots["xbutton2"]["label"], "Forward button")
 
