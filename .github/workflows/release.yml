@@ -243,9 +243,6 @@ jobs:
         run: |
           mkdir -p update-assets
           cp "PourInput-Windows/${{ env.WINDOWS_ARCHIVE_NAME }}" update-assets/
-          cp PourInput-macOS/PourInput-macOS.zip update-assets/
-          cp PourInput-macOS-intel/PourInput-macOS-intel.zip update-assets/
-          cp PourInput-Linux/PourInput-Linux.zip update-assets/
           python tools/generate_update_manifest.py \
             --repo "${{ github.repository }}" \
             --tag "${{ env.RELEASE_TAG }}" \
@@ -268,9 +265,6 @@ jobs:
               --repo "${{ github.repository }}" \
               --clobber \
               "PourInput-Windows/${{ env.WINDOWS_ARCHIVE_NAME }}" \
-              PourInput-macOS/PourInput-macOS.zip \
-              PourInput-macOS-intel/PourInput-macOS-intel.zip \
-              PourInput-Linux/PourInput-Linux.zip \
               pourinput-${{ env.RELEASE_TAG }}-update.json
           else
             gh release create "${{ env.RELEASE_TAG }}" \
@@ -278,8 +272,5 @@ jobs:
               --title "PourInput ${{ env.RELEASE_TAG }}" \
               --generate-notes \
               "PourInput-Windows/${{ env.WINDOWS_ARCHIVE_NAME }}" \
-              PourInput-macOS/PourInput-macOS.zip \
-              PourInput-macOS-intel/PourInput-macOS-intel.zip \
-              PourInput-Linux/PourInput-Linux.zip \
               pourinput-${{ env.RELEASE_TAG }}-update.json
           fi
