@@ -197,6 +197,8 @@ These are development directions, not guaranteed release commitments or fixed de
 
 ## Development
 
+Design and visual-release documentation starts with the [Pour product-family design system](docs/POUR_DESIGN_SYSTEM.md).
+
 Requirements:
 
 - Python 3.12

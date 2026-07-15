@@ -60,7 +60,7 @@ python -m unittest discover -s tests
 - `core/accessibility.py`: Centralizes the native macOS trust check used by both startup and backend-exposed state.
 - `core/startup.py`: Owns login startup integration on both Windows and macOS, including the per-user macOS LaunchAgent used by the **Start at login** UI toggle.
 - `AppIconProvider` & `SystemIconProvider`: Subclasses of `QQuickImageProvider`. QML uses these to request images dynamically (e.g., rendering SVGs cleanly at various DPIs or reading native file icons via `QFileIconProvider`).
-- `_app_icon()`, `_tray_icon()`, & `_render_svg_pixmap()`: Utility functions that construct high-resolution (`QIcon` / `QPixmap`) icons for the taskbar and the system tray, handling platform differences.
+- `_app_icon()`, `_tray_icon()`, `_render_svg_pixmap()`, and `_render_raster_mask_pixmap()`: Utility functions that construct high-resolution (`QIcon` / `QPixmap`) icons for the taskbar and system tray, handling platform differences.
 
 ### How Data Flows Through the Code
 
@@ -81,7 +81,7 @@ python -m unittest discover -s tests
 - **Hardcoded PySide6 Plugin Paths:** `QML2_IMPORT_PATH` and `QT_PLUGIN_PATH` are manually set via `os.environ` to work around PyInstaller/PySide6 edge cases where the QML engine fails to locate basic QML modules when bundled.
 - **LaunchAgent Wiring:** macOS autostart is implemented as a per-user LaunchAgent that launches either the frozen app executable or the current interpreter plus `main_qml.py`, so the same UI toggle works in packaged and source-based workflows.
 - **Centralized Accessibility Check:** The backend and startup path share the same native trust check from `core/accessibility.py`, avoiding drift between the permission banner and the live settings state.
-- **macOS System Tray Contrast:** The system tray icon provides two different SVGs (black and white) marked as `Normal` and `Selected`. This macOS-specific trick ensures the menu bar icon automatically inverts color appropriately when the user selects it or toggles dark/light mode.
+- **macOS System Tray Contrast:** The system tray uses `images/logo_tray_template.png` as a monochrome mask and provides black `Normal` and white `Selected` pixmaps. The native AppKit status item marks the same artwork as a template so macOS supplies the appropriate menu-bar contrast.
 - **macOS Debugging (`SIGUSR1`):** A custom signal handler `signal.signal(signal.SIGUSR1, _dump_threads)` is registered, providing developers a hidden way to dump all thread stack traces directly to the terminal via `kill -SIGUSR1 <pid>`. This is highly useful for debugging cross-thread freezing bugs without a debugger attached.
 - **Startup Benchmarks:** Explicit timing logic (`_t0`, `_t1`, ..., `_t8`) is used to profile startup times. Because importing heavy UI frameworks like Qt in Python can be slow, this enforces performance budgets.
 
