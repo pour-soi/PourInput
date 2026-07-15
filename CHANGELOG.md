@@ -6,10 +6,20 @@ This project uses Semantic Versioning.
 
 ## Unreleased
 
-### Changed
+## v1.3.1 - 2026-07-15
 
-- Reframed current product documentation and application metadata around PourInput as an independently designed and maintained application.
-- Removed obsolete upstream-project fields from runtime and Windows executable metadata without changing application behavior or storage locations.
+### Fixed
+
+- Fixed Generic Mouse localization refresh after language switching.
+- Corrected Side Button 1 (Back) and Side Button 2 (Forward) presentation labels.
+- Fixed several remaining localized presentation labels.
+- Improved localization consistency across the interface.
+
+### Documentation
+
+- Improved GitHub repository homepage.
+- Added dedicated English and Simplified Chinese screenshots.
+- Updated screenshot documentation and packaging references.
 
 ## v1.3.0 - 2026-07-14
 
