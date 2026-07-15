@@ -24,7 +24,7 @@ PourInput is an independent Windows app that gives one mouse button separate Cli
 [![License](https://img.shields.io/github/license/pour-soi/PourInput)](LICENSE)
 
 <p align="center">
-  <img src="images/Screenshot_mouse.png" alt="PourInput Mouse and Profiles page in English light mode">
+  <img src="images/Screenshot_mouse_en.png" alt="PourInput Mouse and Profiles page in English light mode">
 </p>
 
 | ⚡ Multi-Action | 🖱 Generic Mouse Mode | 📸 Screenshot Actions |
@@ -66,7 +66,7 @@ A press shorter than 300 ms runs the Click Action. A press held for at least 300
 
 | General Settings | Generic Mouse Mode |
 |---|---|
-| ![PourInput General Settings page in Simplified Chinese light mode](images/Screenshot_settings.png) | ![PourInput Generic Mouse Mode page in Simplified Chinese light mode](images/Screenshot.png) |
+| ![PourInput General Settings page in English light mode](images/Screenshot_settings_en.png) | ![PourInput Generic Mouse Mode page in English light mode](images/Screenshot_generic_en.png) |
 
 ## Download & Installation
 

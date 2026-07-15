@@ -108,7 +108,11 @@ Examples:
 - `pourinput_settings_dark_zh-cn_150.png`
 - `pourinput_about_light_en_100.png`
 
-This naming format is a **future recommendation**; the existing `Screenshot.png`, `Screenshot_mouse.png`, and `Screenshot_settings.png` remain legacy names.
+The README homepage uses explicit language-specific names for its matched English and Simplified Chinese screenshot sets:
+
+- `Screenshot_mouse_en.png` and `Screenshot_mouse_zh-CN.png`
+- `Screenshot_settings_en.png` and `Screenshot_settings_zh-CN.png`
+- `Screenshot_generic_en.png` and `Screenshot_generic_zh-CN.png`
 
 ### Review and before/after screenshots
 
