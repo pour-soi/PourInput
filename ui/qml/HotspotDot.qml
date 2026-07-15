@@ -77,7 +77,7 @@ Item {
         border.width: isSelected || hotspot.activeFocus ? 2 : 1
         border.color: isSelected || hotspot.activeFocus
                       ? theme.accent
-                      : Qt.rgba(0, 0.83, 0.67, 0.3)
+                      : Qt.rgba(0.36, 0.56, 0.95, 0.3)
         opacity: isSelected || isHovered || hotspot.activeFocus ? 1 : 0.6
 
         Behavior on opacity { NumberAnimation { duration: 200 } }
@@ -126,7 +126,7 @@ Item {
         onPaint: {
             var ctx = getContext("2d")
             ctx.clearRect(0, 0, width, height)
-            ctx.strokeStyle = isSelected ? theme.accent : Qt.rgba(0, 0.83, 0.67, 0.35)
+            ctx.strokeStyle = isSelected ? theme.accent : Qt.rgba(0.36, 0.56, 0.95, 0.35)
             ctx.lineWidth = 1
             ctx.setLineDash([4, 3])
             ctx.beginPath()
@@ -158,11 +158,11 @@ Item {
         radius: 8
         color: isSelected
                ? (uiState.darkMode
-                  ? Qt.rgba(0, 0.83, 0.67, 0.12)
+                  ? Qt.rgba(0.36, 0.56, 0.95, 0.12)
                   : Qt.rgba(0.82, 0.97, 0.93, 0.9))
                           : uiState.darkMode ? Qt.rgba(0, 0, 0, 0.35) : Qt.rgba(1, 1, 1, 0.92)
         border.width: isSelected || hotspot.activeFocus ? 1 : 0
-        border.color: Qt.rgba(0, 0.83, 0.67, 0.3)
+        border.color: Qt.rgba(0.36, 0.56, 0.95, 0.3)
 
         Behavior on color { ColorAnimation { duration: 200 } }
 
@@ -205,6 +205,6 @@ Item {
         x: lineEndX - 3
         y: lineEndY - 3
         width: 6; height: 6; radius: 3
-        color: isSelected ? theme.accent : Qt.rgba(0, 0.83, 0.67, 0.5)
+        color: isSelected ? theme.accent : Qt.rgba(0.36, 0.56, 0.95, 0.5)
     }
 }

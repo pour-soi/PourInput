@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="images/logo.png" alt="PourInput 标志" width="96">
+  <img src="images/logo.png" alt="PourInput 标志" width="420">
 </p>
 
 # PourInput

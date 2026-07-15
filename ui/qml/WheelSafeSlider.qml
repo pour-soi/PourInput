@@ -7,8 +7,8 @@ Item {
     property real to: 1
     property real stepSize: 0
     property real value: from
-    property color accentColor: "#00d4aa"
-    property color accentDimColor: "#0d2e26"
+    property color accentColor: "#5d8ff3"
+    property color accentDimColor: "#e7f0ff"
     property color trackColor: "#263246"
     readonly property bool pressed: dragArea.pressed
     readonly property real normalizedPosition: {

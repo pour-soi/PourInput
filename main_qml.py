@@ -53,7 +53,7 @@ setup_logging()
 
 # Set Material theme before any Qt imports
 os.environ["QT_QUICK_CONTROLS_STYLE"] = "Material"
-os.environ["QT_QUICK_CONTROLS_MATERIAL_ACCENT"] = "#00d4aa"
+os.environ["QT_QUICK_CONTROLS_MATERIAL_ACCENT"] = "#5d8ff3"
 
 _t1 = _time.perf_counter()
 from PySide6.QtWidgets import QApplication, QSystemTrayIcon, QMenu, QFileIconProvider, QMessageBox
@@ -282,20 +282,42 @@ def _render_svg_pixmap(path: str, color: QColor, size: int) -> QPixmap:
     return pixmap
 
 
+def _render_raster_mask_pixmap(path: str, color: QColor, size: int) -> QPixmap:
+    source = QPixmap(path)
+    if source.isNull():
+        return QPixmap()
+
+    screen = QApplication.primaryScreen()
+    dpr = screen.devicePixelRatio() if screen else 1.0
+    pixel_size = max(size, int(round(size * dpr)))
+    pixmap = source.scaled(
+        pixel_size,
+        pixel_size,
+        Qt.AspectRatioMode.KeepAspectRatio,
+        Qt.TransformationMode.SmoothTransformation,
+    )
+    painter = QPainter(pixmap)
+    painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceIn)
+    painter.fillRect(pixmap.rect(), color)
+    painter.end()
+    pixmap.setDevicePixelRatio(dpr)
+    return pixmap
+
+
 def _tray_icon() -> QIcon:
     if sys.platform != "darwin":
         return _app_icon()
 
-    tray_svg = os.path.join(ROOT, "images", "icons", "mouse-simple.svg")
+    tray_template = os.path.join(ROOT, "images", "logo_tray_template.png")
     icon = QIcon()
     # Provide both Normal (black, for light menu bar) and Selected (white,
     # for dark menu bar) modes so macOS always picks the correct contrast.
     for size in (18, 36):
         icon.addPixmap(
-            _render_svg_pixmap(tray_svg, QColor("#000000"), size),
+            _render_raster_mask_pixmap(tray_template, QColor("#000000"), size),
             QIcon.Mode.Normal)
         icon.addPixmap(
-            _render_svg_pixmap(tray_svg, QColor("#FFFFFF"), size),
+            _render_raster_mask_pixmap(tray_template, QColor("#FFFFFF"), size),
             QIcon.Mode.Selected)
     icon.setIsMask(True)
     return icon
@@ -794,18 +816,18 @@ def _install_native_macos_status_item(qmenu, on_left_click):
         print(f"[PourInput] Native status-item bootstrap failed: {exc}")
         return None
 
-    icon_svg = os.path.join(ROOT, "images", "icons", "mouse-simple.svg")
-    if not os.path.isfile(icon_svg):
-        print(f"[PourInput] mouse-simple.svg not found at {icon_svg}")
+    icon_template = os.path.join(ROOT, "images", "logo_tray_template.png")
+    if not os.path.isfile(icon_template):
+        print(f"[PourInput] status-item template not found at {icon_template}")
         return None
 
-    # Render the SVG into a 22 px square NSImage. 22 is the macOS-
+    # Render the template into a 22 px square NSImage. 22 is the macOS-
     # idiomatic menu-bar height (matches Apple's own SF Symbols).
     # Drawing at 2x and letting AppKit downsample preserves crisp
     # edges on both retina and non-retina displays.
-    icon_png = _render_svg_pixmap(icon_svg, _qcolor_white(), 22)
+    icon_png = _render_raster_mask_pixmap(icon_template, _qcolor_white(), 22)
     if icon_png.isNull():
-        print("[PourInput] could not render mouse-simple.svg for status item")
+        print("[PourInput] could not render status-item template")
         return None
     icon_bytes = _qpixmap_to_png_bytes(icon_png)
     ns_image = appkit.NSImage.alloc().initWithData_(icon_bytes)

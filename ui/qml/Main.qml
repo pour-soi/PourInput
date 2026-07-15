@@ -56,7 +56,7 @@ ApplicationWindow {
 
         Rectangle {
             id: sidebar
-            Layout.preferredWidth: 72
+            Layout.preferredWidth: 76
             Layout.fillHeight: true
             color: root.theme.bgSidebar
 
@@ -73,36 +73,29 @@ ApplicationWindow {
                         left: parent.left
                         right: parent.right
                     }
-                    spacing: 6
+                    spacing: Theme.space8
 
-                    Rectangle {
-                        // Brand mark in the top-left of the sidebar -- a
-                        // pocket-sized echo of the Dock icon: same navy
-                        // squircle, same white mouse glyph. Renders
-                        // identically across light / dark themes so the
-                        // brand stays recognisable regardless of system
-                        // appearance, and distinguishes itself from the
-                        // teal-accented navigation items below.
+                    Item {
                         width: 44
                         height: 44
-                        radius: 14
-                        color: root.theme.brandMarkBg
                         anchors.horizontalCenter: parent.horizontalCenter
 
                         Accessible.role: Accessible.StaticText
                         Accessible.name: appName
                         Accessible.description: root.versionLabel
 
-                        AppIcon {
-                            anchors.centerIn: parent
-                            width: 24
-                            height: 24
-                            name: "mouse-simple"
-                            iconColor: root.theme.brandMarkFg
+                        Image {
+                            anchors.fill: parent
+                            source: "../../images/logo_icon.png"
+                            sourceSize.width: 128
+                            sourceSize.height: 128
+                            fillMode: Image.PreserveAspectFit
+                            smooth: true
+                            mipmap: true
                         }
                     }
 
-                    Item { width: 1; height: 18 }
+                    Item { width: 1; height: 16 }
 
                     Repeater {
                         model: [
@@ -113,7 +106,7 @@ ApplicationWindow {
                         delegate: FocusScope {
                             id: navItem
                             width: sidebar.width
-                            height: 56
+                            height: 48
                             activeFocusOnTab: true
 
                             Accessible.role: Accessible.Button
@@ -127,13 +120,13 @@ ApplicationWindow {
 
                             Rectangle {
                                 anchors.centerIn: parent
-                                width: 46
-                                height: 46
-                                radius: 14
+                                width: 44
+                                height: 40
+                                radius: Theme.radiusControl
                                 color: root.currentPage === modelData.page
-                                       ? Qt.rgba(0, 0.83, 0.67, root.darkMode ? 0.14 : 0.16)
+                                       ? root.theme.accentDim
                                        : navMouse.containsMouse || navItem.activeFocus
-                                         ? Qt.rgba(1, 1, 1, root.darkMode ? 0.06 : 0.22)
+                                         ? root.theme.bgCardHover
                                          : "transparent"
 
                                 border.width: navItem.activeFocus ? 1 : 0
@@ -143,8 +136,8 @@ ApplicationWindow {
 
                                 AppIcon {
                                     anchors.centerIn: parent
-                                    width: 22
-                                    height: 22
+                                    width: 20
+                                    height: 20
                                     name: modelData.icon
                                     iconColor: root.currentPage === modelData.page
                                                ? root.theme.accent
@@ -156,14 +149,14 @@ ApplicationWindow {
 
                             Rectangle {
                                 width: 3
-                                height: 24
+                                height: 22
                                 radius: 2
                                 color: root.theme.accent
                                 anchors {
                                     left: parent.left
                                     verticalCenter: parent.verticalCenter
                                 }
-                                visible: root.currentPage === modelData.page
+                                visible: false
                             }
 
                             MouseArea {
@@ -198,7 +191,7 @@ ApplicationWindow {
                         horizontalCenter: parent.horizontalCenter
                     }
                     width: sidebar.width
-                    height: 56
+                    height: 48
                     activeFocusOnTab: true
 
                     Accessible.role: Accessible.Button
@@ -212,11 +205,11 @@ ApplicationWindow {
 
                     Rectangle {
                         anchors.centerIn: parent
-                        width: 46
-                        height: 46
-                        radius: 14
+                        width: 44
+                        height: 40
+                        radius: Theme.radiusControl
                         color: aboutMouse.containsMouse || aboutButton.activeFocus || aboutDialog.visible
-                               ? Qt.rgba(1, 1, 1, root.darkMode ? 0.06 : 0.22)
+                               ? root.theme.bgCardHover
                                : "transparent"
 
                         border.width: aboutButton.activeFocus ? 1 : 0
@@ -226,8 +219,8 @@ ApplicationWindow {
 
                         AppIcon {
                             anchors.centerIn: parent
-                            width: 20
-                            height: 20
+                            width: 18
+                            height: 18
                             name: "info"
                             iconColor: aboutMouse.containsMouse || aboutButton.activeFocus || aboutDialog.visible
                                        ? root.theme.textPrimary
@@ -287,12 +280,12 @@ ApplicationWindow {
             y: Math.max(8, Math.min(root.height - height - 8, root.hoveredNavCenterY - height / 2))
             visible: root.hoveredNavItem !== null
             opacity: visible ? 1 : 0
-            radius: 10
+            radius: Theme.radiusSmall
             color: root.theme.tooltipBg
             border.width: 1
             border.color: Qt.rgba(1, 1, 1, root.darkMode ? 0.06 : 0.12)
-            width: navTooltipText.implicitWidth + 22
-            height: navTooltipText.implicitHeight + 14
+            width: navTooltipText.implicitWidth + 20
+            height: navTooltipText.implicitHeight + 12
 
             Behavior on opacity { NumberAnimation { duration: 120 } }
 
@@ -349,18 +342,18 @@ ApplicationWindow {
                     anchors.verticalCenter: parent.verticalCenter
                     spacing: 12
 
-                    Rectangle {
+                    Item {
                         width: 36
                         height: 36
-                        radius: 12
-                        color: root.theme.accentDim
 
-                        AppIcon {
-                            anchors.centerIn: parent
-                            width: 18
-                            height: 18
-                            name: "info"
-                            iconColor: root.theme.accent
+                        Image {
+                            anchors.fill: parent
+                            source: "../../images/logo_icon.png"
+                            sourceSize.width: 96
+                            sourceSize.height: 96
+                            fillMode: Image.PreserveAspectFit
+                            smooth: true
+                            mipmap: true
                         }
                     }
 

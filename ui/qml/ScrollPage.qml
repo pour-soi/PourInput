@@ -77,12 +77,12 @@ Item {
 
             Item {
                 width: parent.width
-                height: 96
+                height: 88
 
                 Column {
                     anchors {
                         left: parent.left
-                        leftMargin: 36
+                        leftMargin: Theme.space32
                         verticalCenter: parent.verticalCenter
                     }
                     spacing: 4
@@ -109,21 +109,21 @@ Item {
             }
 
             Rectangle {
-                width: parent.width - 72
+                width: parent.width - 64
                 height: 1
                 color: scrollPage.theme.border
                 anchors.horizontalCenter: parent.horizontalCenter
             }
 
-            Item { width: 1; height: 24 }
+            Item { width: 1; height: Theme.space20 }
 
             // ── DPI / Pointer Speed ───────────────────────────────
             Rectangle {
                 id: dpiCard
                 visible: backend.hidFeaturesReady
-                width: parent.width - 72
+                width: parent.width - 64
                 anchors.horizontalCenter: parent.horizontalCenter
-                height: dpiContent.implicitHeight + 40
+                height: dpiContent.implicitHeight + 32
                 radius: Theme.radius
                 color: scrollPage.theme.bgCard
                 border.width: 1
@@ -135,7 +135,7 @@ Item {
                         left: parent.left
                         right: parent.right
                         top: parent.top
-                        margins: 20
+                        margins: Theme.space16
                     }
                     spacing: 12
 
@@ -297,9 +297,9 @@ Item {
             // ── Scroll Wheel Mode ─────────────────────────────────
             Rectangle {
                 visible: backend.smartShiftSupported && backend.deviceHasSmartShift
-                width: parent.width - 72
+                width: parent.width - 64
                 anchors.horizontalCenter: parent.horizontalCenter
-                height: smartShiftContent.implicitHeight + 40
+                height: smartShiftContent.implicitHeight + 32
                 radius: Theme.radius
                 color: scrollPage.theme.bgCard
                 border.width: 1
@@ -311,7 +311,7 @@ Item {
                         left: parent.left
                         right: parent.right
                         top: parent.top
-                        margins: 20
+                        margins: Theme.space16
                     }
                     spacing: 16
 
@@ -508,9 +508,9 @@ Item {
 
             // ── Appearance ────────────────────────────────────────
             Rectangle {
-                width: parent.width - 72
+                width: parent.width - 64
                 anchors.horizontalCenter: parent.horizontalCenter
-                height: appearanceContent.implicitHeight + 40
+                height: appearanceContent.implicitHeight + 32
                 radius: Theme.radius
                 color: scrollPage.theme.bgCard
                 border.width: 1
@@ -522,7 +522,7 @@ Item {
                         left: parent.left
                         right: parent.right
                         top: parent.top
-                        margins: 20
+                        margins: Theme.space16
                     }
                     spacing: 12
 
@@ -603,9 +603,9 @@ Item {
 
             // ── Language ──────────────────────────────────────────
             Rectangle {
-                width: parent.width - 72
+                width: parent.width - 64
                 anchors.horizontalCenter: parent.horizontalCenter
-                height: languageContent.implicitHeight + 40
+                height: languageContent.implicitHeight + 32
                 radius: Theme.radius
                 color: scrollPage.theme.bgCard
                 border.width: 1
@@ -617,7 +617,7 @@ Item {
                         left: parent.left
                         right: parent.right
                         top: parent.top
-                        margins: 20
+                        margins: Theme.space16
                     }
                     spacing: 12
 
@@ -702,9 +702,9 @@ Item {
             // ── Startup ───────────────────────────────────────────
             Rectangle {
                 visible: backend.supportsStartAtLogin
-                width: parent.width - 72
+                width: parent.width - 64
                 anchors.horizontalCenter: parent.horizontalCenter
-                height: startupContent.implicitHeight + 40
+                height: startupContent.implicitHeight + 32
                 radius: Theme.radius
                 color: scrollPage.theme.bgCard
                 border.width: 1
@@ -716,7 +716,7 @@ Item {
                         left: parent.left
                         right: parent.right
                         top: parent.top
-                        margins: 20
+                        margins: Theme.space16
                     }
                     spacing: 12
 
@@ -937,9 +937,9 @@ Item {
 
             // ── Screenshots ───────────────────────────────────────
             Rectangle {
-                width: parent.width - 72
+                width: parent.width - 64
                 anchors.horizontalCenter: parent.horizontalCenter
-                height: screenshotContent.implicitHeight + 40
+                height: screenshotContent.implicitHeight + 32
                 radius: Theme.radius
                 color: scrollPage.theme.bgCard
                 border.width: 1
@@ -951,7 +951,7 @@ Item {
                         left: parent.left
                         right: parent.right
                         top: parent.top
-                        margins: 20
+                        margins: Theme.space16
                     }
                     spacing: 12
 
@@ -1090,9 +1090,9 @@ Item {
 
             // ── Scroll Direction ──────────────────────────────────
             Rectangle {
-                width: parent.width - 72
+                width: parent.width - 64
                 anchors.horizontalCenter: parent.horizontalCenter
-                height: scrollContent.implicitHeight + 40
+                height: scrollContent.implicitHeight + 32
                 radius: Theme.radius
                 color: scrollPage.theme.bgCard
                 border.width: 1
@@ -1104,7 +1104,7 @@ Item {
                         left: parent.left
                         right: parent.right
                         top: parent.top
-                        margins: 20
+                        margins: Theme.space16
                     }
                     spacing: 12
 
@@ -1251,7 +1251,7 @@ Item {
 
             // ── DPI note ──────────────────────────────────────────
             Rectangle {
-                width: parent.width - 72
+                width: parent.width - 64
                 anchors.horizontalCenter: parent.horizontalCenter
                 height: noteRow.implicitHeight + 28
                 radius: Theme.radius

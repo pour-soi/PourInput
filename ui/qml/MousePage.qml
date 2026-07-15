@@ -35,7 +35,7 @@ Item {
                 verticalAlignment: Text.AlignVCenter
             }
             background: Rectangle {
-                color: highlighted ? Qt.rgba(0, 0.83, 0.67, 0.1) : "transparent"
+                color: highlighted ? Qt.rgba(0.36, 0.56, 0.95, 0.1) : "transparent"
             }
         }
     }
@@ -61,7 +61,7 @@ Item {
                 verticalAlignment: Text.AlignVCenter
             }
             background: Rectangle {
-                color: highlighted ? Qt.rgba(0, 0.83, 0.67, 0.1) : "transparent"
+                color: highlighted ? Qt.rgba(0.36, 0.56, 0.95, 0.1) : "transparent"
             }
         }
     }
@@ -530,10 +530,10 @@ Item {
         // ══════════════════════════════════════════════════════
         Rectangle {
             id: leftPanel
-            width: 248
+            width: 240
             height: parent.height
-            color: theme.bgCard
-            border.width: 1; border.color: theme.border
+            color: theme.bgElevated
+            border.width: 0
 
             Column {
                 anchors.fill: parent
@@ -541,15 +541,15 @@ Item {
 
                 // Title bar
                 Item {
-                    width: parent.width; height: 52
+                    width: parent.width; height: 60
 
                     Text {
                         anchors {
-                            left: parent.left; leftMargin: 16
+                            left: parent.left; leftMargin: Theme.space16
                             verticalCenter: parent.verticalCenter
                         }
                                 text: s["mouse.profiles"]
-                                font { family: uiState.fontFamily; pixelSize: 14; bold: true }
+                                font { family: uiState.fontFamily; pixelSize: 15; bold: true }
                                 color: theme.textPrimary
                     }
                 }
@@ -560,16 +560,16 @@ Item {
                 ListView {
                     id: profileList
                     width: parent.width
-                    height: parent.height - 54 - addProfileSection.height
+                    height: parent.height - 62 - addProfileSection.height
                     model: backend.profiles
                     clip: true
                     boundsBehavior: Flickable.StopAtBounds
 
                     delegate: Rectangle {
                         width: profileList.width
-                        height: 58
+                        height: 52
                         color: selectedProfile === modelData.name
-                               ? Qt.rgba(0, 0.83, 0.67, 0.08)
+                               ? theme.accentDim
                                : profItemMa.containsMouse
                                  ? Qt.rgba(1, 1, 1, 0.03)
                                  : "transparent"
@@ -578,13 +578,13 @@ Item {
                         Row {
                             anchors {
                                 fill: parent
-                                leftMargin: 6; rightMargin: 10
+                                leftMargin: 10; rightMargin: 12
                             }
                             spacing: 8
 
                             // Active indicator
                             Rectangle {
-                                width: 3; height: 28; radius: 2
+                                width: 2; height: 24; radius: 1
                                 color: modelData.isActive
                                        ? theme.accent : "transparent"
                                 anchors.verticalCenter: parent.verticalCenter
@@ -620,10 +620,9 @@ Item {
                                     text: modelData.label
                                     font {
                                         family: uiState.fontFamily
-                                        pixelSize: 12; bold: true
+                                        pixelSize: 12; weight: Font.DemiBold
                                     }
-                                    color: selectedProfile === modelData.name
-                                           ? theme.accent : theme.textPrimary
+                                    color: theme.textPrimary
                                     elide: Text.ElideRight
                                     width: leftPanel.width - 70
                                 }
@@ -631,7 +630,7 @@ Item {
                                     text: modelData.displayApps.length
                                           ? modelData.displayApps.join(", ")
                                           : (s["mouse.all_applications"] || "All applications")
-                                    font { family: uiState.fontFamily; pixelSize: 9 }
+                                    font { family: uiState.fontFamily; pixelSize: 10 }
                                     color: theme.textSecondary
                                     elide: Text.ElideRight
                                     width: leftPanel.width - 70
@@ -655,17 +654,17 @@ Item {
                 Item {
                     id: addProfileSection
                     width: parent.width
-                    height: 88
+                    height: 76
 
                     Rectangle {
                         anchors {
                             fill: parent
                             leftMargin: 8
                             rightMargin: 8
-                            topMargin: 10
-                            bottomMargin: 10
+                            topMargin: 8
+                            bottomMargin: 8
                         }
-                        radius: 14
+                        radius: Theme.radiusControl
                         color: theme.bgSubtle
                         border.width: 1
                         border.color: theme.border
@@ -674,14 +673,14 @@ Item {
                             anchors.fill: parent
                             anchors.leftMargin: 12
                             anchors.rightMargin: 12
-                            spacing: 10
+                            spacing: 8
 
                             Rectangle {
-                                width: 30
-                                height: 30
-                                radius: 10
+                                width: 28
+                                height: 28
+                                radius: 8
                                 anchors.verticalCenter: parent.verticalCenter
-                                color: Qt.rgba(0, 0.83, 0.67, uiState.darkMode ? 0.16 : 0.14)
+                                color: Qt.rgba(0.36, 0.56, 0.95, uiState.darkMode ? 0.16 : 0.14)
 
                                 Text {
                                     anchors.centerIn: parent
@@ -703,7 +702,7 @@ Item {
 
                                 Text {
                                     text: s["mouse.search_installed_apps"]
-                                    font { family: uiState.fontFamily; pixelSize: 9 }
+                                    font { family: uiState.fontFamily; pixelSize: 10 }
                                     color: theme.textSecondary
                                     elide: Text.ElideRight
                                     width: leftPanel.width - 110
@@ -720,6 +719,14 @@ Item {
                     }
                 }
             }
+
+            Rectangle {
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
+                anchors.right: parent.right
+                width: 1
+                color: theme.border
+            }
         }
 
         // ══════════════════════════════════════════════════════
@@ -732,7 +739,7 @@ Item {
             clip: true
 
             Flickable {
-                contentHeight: rightCol.implicitHeight + 32
+                contentHeight: rightCol.implicitHeight + Theme.space24
                 boundsBehavior: Flickable.StopAtBounds
 
                 Column {
@@ -742,14 +749,14 @@ Item {
 
                     // ── Header ────────────────────────────────
                     Item {
-                        width: parent.width; height: 70
+                        width: parent.width; height: 88
 
                         Row {
                             anchors {
-                                left: parent.left; leftMargin: 28
+                                left: parent.left; leftMargin: Theme.space32
                                 verticalCenter: parent.verticalCenter
                             }
-                            spacing: 12
+                            spacing: Theme.space12
 
                             Column {
                                 spacing: 3
@@ -760,7 +767,7 @@ Item {
 
                                     Text {
                                         text: backend.deviceDisplayName
-                                        font { family: uiState.fontFamily; pixelSize: 20; bold: true }
+                                        font { family: uiState.fontFamily; pixelSize: 24; bold: true }
                                         color: theme.textPrimary
                                     }
 
@@ -769,7 +776,7 @@ Item {
                                         visible: selectedProfileLabel !== ""
                                         width: profBadgeText.implicitWidth + 16
                                         height: 22; radius: 11
-                                        color: Qt.rgba(0, 0.83, 0.67, 0.12)
+                                        color: Qt.rgba(0.36, 0.56, 0.95, 0.12)
                                         anchors.verticalCenter: parent.verticalCenter
 
                                         Text {
@@ -788,7 +795,7 @@ Item {
                                           : backend.hasInteractiveDeviceLayout
                                             ? s["mouse.click_dot"]
                                             : s["mouse.choose_layout"]
-                                    font { family: uiState.fontFamily; pixelSize: 12 }
+                                    font { family: uiState.fontFamily; pixelSize: 13 }
                                     color: theme.textSecondary
                                 }
                             }
@@ -797,10 +804,10 @@ Item {
                         // Right-side status row: delete button + battery + connection
                         Row {
                             anchors {
-                                right: parent.right; rightMargin: 28
+                                right: parent.right; rightMargin: Theme.space32
                                 verticalCenter: parent.verticalCenter
                             }
-                            spacing: 8
+                            spacing: Theme.space8
 
                             // Delete profile button (not for default)
                             Rectangle {
@@ -849,13 +856,13 @@ Item {
                             Rectangle {
                                 visible: backend.batteryLevel >= 0
                                 width: battRow.implicitWidth + 16
-                                height: 24; radius: 12
+                                height: 22; radius: 11
                                 anchors.verticalCenter: parent.verticalCenter
                                 color: {
                                     var lvl = backend.batteryLevel
                                     if (lvl <= 20) return Qt.rgba(0.88, 0.2, 0.2, 0.18)
                                     if (lvl <= 40) return Qt.rgba(0.9, 0.56, 0.1, 0.18)
-                                    return Qt.rgba(0, 0.83, 0.67, uiState.darkMode ? 0.12 : 0.16)
+                                    return Qt.rgba(0.36, 0.56, 0.95, uiState.darkMode ? 0.12 : 0.16)
                                 }
 
                                 Row {
@@ -895,9 +902,9 @@ Item {
                                 height: 24; radius: 12
                                 anchors.verticalCenter: parent.verticalCenter
                                 color: backend.mouseConnected
-                                       ? Qt.rgba(0, 0.83, 0.67, 0.12)
+                                       ? Qt.rgba(0.36, 0.56, 0.95, 0.12)
                                        : (backend.deviceStatusKind === "generic_ready"
-                                          ? Qt.rgba(0, 0.83, 0.67, 0.12)
+                                          ? Qt.rgba(0.36, 0.56, 0.95, 0.12)
                                           : Qt.rgba(0.9, 0.3, 0.3, 0.15))
 
                                 Row {
@@ -919,7 +926,7 @@ Item {
                                               : (backend.deviceStatusKind === "generic_ready"
                                                  ? (s["mouse.generic_ready"] || "Generic Mouse Mode Ready")
                                                  : (s["mouse.no_supported_mouse_detected"] || "No supported mouse detected"))
-                                        font { family: uiState.fontFamily; pixelSize: 11 }
+                                        font { family: uiState.fontFamily; pixelSize: 10; weight: Font.DemiBold }
                                         color: backend.deviceStatusKind === "no_supported_mouse"
                                                ? "#e05555" : theme.accent
                                     }
@@ -995,27 +1002,29 @@ Item {
                     }
 
                     Rectangle {
-                        width: parent.width - 56; height: 1
+                        width: parent.width - 64; height: 1
                         color: theme.border
                         anchors.horizontalCenter: parent.horizontalCenter
                     }
 
                     // ── Mouse image with hotspots ─────────────
+                    Item { width: 1; height: Theme.space16 }
+
                     Rectangle {
                         visible: backend.isWindows
-                        width: parent.width - 56
+                        width: parent.width - 64
                         anchors.horizontalCenter: parent.horizontalCenter
-                        height: 56
-                        radius: 14
+                        height: 52
+                        radius: Theme.radius
                         color: theme.bgCard
                         border.width: 1
                         border.color: theme.border
 
                         RowLayout {
                             anchors.fill: parent
-                            anchors.leftMargin: 16
-                            anchors.rightMargin: 16
-                            spacing: 12
+                            anchors.leftMargin: Theme.space16
+                            anchors.rightMargin: Theme.space16
+                            spacing: Theme.space12
 
                             Column {
                                 Layout.fillWidth: true
@@ -1044,10 +1053,12 @@ Item {
                         }
                     }
 
+                    Item { width: 1; height: Theme.space12; visible: backend.isWindows }
+
                     Item {
                         id: mouseImageArea
                         width: parent.width
-                        height: 420
+                        height: canConfigureMouse ? 420 : 340
 
                         Rectangle {
                             anchors.fill: parent
@@ -1073,10 +1084,12 @@ Item {
 
                         Rectangle {
                             visible: !canConfigureMouse
-                            width: Math.min(parent.width - 120, 760)
-                            height: emptyStateCol.implicitHeight + 52
-                            radius: 24
-                            anchors.centerIn: parent
+                            width: Math.min(parent.width - 64, 640)
+                            height: emptyStateCol.implicitHeight + 40
+                            radius: Theme.radiusLarge
+                            anchors.top: parent.top
+                            anchors.topMargin: Theme.space32
+                            anchors.horizontalCenter: parent.horizontalCenter
                             color: theme.bgCard
                             border.width: 1
                             border.color: theme.border
@@ -1084,19 +1097,19 @@ Item {
                             Column {
                                 id: emptyStateCol
                                 anchors.fill: parent
-                                anchors.margins: 26
-                                spacing: 14
+                                anchors.margins: Theme.space20
+                                spacing: Theme.space12
 
                                 Rectangle {
                                     width: waitingRow.implicitWidth + 16
-                                    height: 28
-                                    radius: 14
+                                    height: 24
+                                    radius: 12
                                     color: Qt.rgba(0.9, 0.3, 0.3, uiState.darkMode ? 0.18 : 0.10)
 
                                     Row {
                                         id: waitingRow
                                         anchors.centerIn: parent
-                                        spacing: 8
+                                        spacing: 6
 
                                         Rectangle {
                                             width: 8
@@ -1118,7 +1131,7 @@ Item {
                                     width: parent.width
                                     text: s["mouse.connect_mouse"]
                                     wrapMode: Text.WordWrap
-                                    font { family: uiState.fontFamily; pixelSize: 26; bold: true }
+                                    font { family: uiState.fontFamily; pixelSize: 24; bold: true }
                                     color: theme.textPrimary
                                 }
 
@@ -1136,8 +1149,8 @@ Item {
 
                                     Rectangle {
                                         width: firstHint.implicitWidth + 20
-                                        height: 30
-                                        radius: 15
+                                        height: 28
+                                        radius: Theme.radiusSmall
                                         color: theme.bgSubtle
                                         border.width: 1
                                         border.color: theme.border
@@ -1153,8 +1166,8 @@ Item {
 
                                     Rectangle {
                                         width: secondHint.implicitWidth + 20
-                                        height: 30
-                                        radius: 15
+                                        height: 28
+                                        radius: Theme.radiusSmall
                                         color: theme.bgSubtle
                                         border.width: 1
                                         border.color: theme.border
@@ -1193,19 +1206,21 @@ Item {
 
                         Rectangle {
                             visible: canConfigureMouse && !backend.hasInteractiveDeviceLayout
-                            width: Math.min(420, parent.width - 48)
-                            height: fallbackCol.implicitHeight + 32
-                            radius: 16
+                            width: Math.min(480, parent.width - 64)
+                            height: fallbackCol.implicitHeight + 40
+                            radius: Theme.radiusLarge
                             color: theme.bgCard
                             border.width: 1
                             border.color: theme.border
-                            anchors.centerIn: parent
+                            anchors.top: parent.top
+                            anchors.topMargin: Theme.space32
+                            anchors.horizontalCenter: parent.horizontalCenter
 
                             Column {
                                 id: fallbackCol
                                 anchors.fill: parent
-                                anchors.margins: 16
-                                spacing: 10
+                                anchors.margins: Theme.space20
+                                spacing: Theme.space12
 
                                 Text {
                                     text: s["mouse.interactive_layout_coming"]
@@ -1281,7 +1296,7 @@ Item {
 
                     // ── Separator ─────────────────────────────
                     Rectangle {
-                        width: parent.width - 56; height: 1
+                        width: parent.width - 64; height: 1
                         color: theme.border
                         anchors.horizontalCenter: parent.horizontalCenter
                         visible: selectedButton !== ""
@@ -1290,7 +1305,7 @@ Item {
                     // ── Action picker ─────────────────────────
                     Rectangle {
                         id: actionPicker
-                        width: parent.width - 56
+                        width: parent.width - 64
                         anchors.horizontalCenter: parent.horizontalCenter
                         height: selectedButton !== ""
                                 ? pickerCol.implicitHeight + 32 : 0
@@ -1912,7 +1927,7 @@ Item {
                     // ── Device info share card (always visible when connected)
                     Rectangle {
                         visible: backend.mouseConnected
-                        width: parent.width - 56
+                        width: parent.width - 64
                         anchors.horizontalCenter: parent.horizontalCenter
                         height: shareDevRow.implicitHeight + 24
                         radius: 14
@@ -1936,8 +1951,8 @@ Item {
                                 width: shareDevBtnRow.implicitWidth + 20
                                 height: 30; radius: 10
                                 color: shareDevBtnMa.containsMouse
-                                       ? Qt.rgba(0, 0.83, 0.67, 0.22)
-                                       : Qt.rgba(0, 0.83, 0.67, 0.12)
+                                       ? Qt.rgba(0.36, 0.56, 0.95, 0.22)
+                                       : Qt.rgba(0.36, 0.56, 0.95, 0.12)
                                 anchors.verticalCenter: parent.verticalCenter
 
                                 Row {
@@ -1980,7 +1995,7 @@ Item {
                     }
 
                     Rectangle {
-                        width: parent.width - 56
+                        width: parent.width - 64
                         anchors.horizontalCenter: parent.horizontalCenter
                         height: debugCol.implicitHeight + 24
                         radius: 14
@@ -2159,7 +2174,7 @@ Item {
                                             height: 24
                                             radius: 12
                                             color: backend.gestureMoveSeen
-                                                   ? Qt.rgba(0, 0.83, 0.67, 0.12)
+                                                   ? Qt.rgba(0.36, 0.56, 0.95, 0.12)
                                                    : Qt.rgba(1, 1, 1, 0.05)
 
                                             Text {
@@ -2271,8 +2286,8 @@ Item {
         modal: true
         focus: true
         title: ""
-        width: 720
-        height: 520
+        width: 680
+        height: 460
         x: Math.round((parent.width - width) / 2)
         y: Math.round((parent.height - height) / 2)
         padding: 0
@@ -2343,7 +2358,7 @@ Item {
         onVisibleAppsChanged: ensureSelection()
 
         background: Rectangle {
-            radius: 24
+            radius: Theme.radiusLarge
             color: theme.bgElevated
             border.width: 1
             border.color: theme.border
@@ -2358,9 +2373,9 @@ Item {
                 anchors.top: parent.top
                 anchors.left: parent.left
                 anchors.right: parent.right
-                anchors.topMargin: 14
-                anchors.leftMargin: 24
-                anchors.rightMargin: 24
+                anchors.topMargin: Theme.space16
+                anchors.leftMargin: Theme.space20
+                anchors.rightMargin: Theme.space20
                 height: 42
 
                 Column {
@@ -2370,13 +2385,13 @@ Item {
 
                     Text {
                         text: s["mouse.add_app_dialog.title"]
-                        font { family: uiState.fontFamily; pixelSize: 17; bold: true }
+                        font { family: uiState.fontFamily; pixelSize: 18; bold: true }
                         color: theme.textPrimary
                     }
 
                     Text {
                         text: s["mouse.add_app_dialog.desc"]
-                        font { family: uiState.fontFamily; pixelSize: 11 }
+                        font { family: uiState.fontFamily; pixelSize: 12 }
                         color: theme.textSecondary
                     }
                 }
@@ -2384,7 +2399,7 @@ Item {
                 Rectangle {
                     width: 34
                     height: 34
-                    radius: 12
+                    radius: Theme.radiusControl
                     anchors.right: parent.right
                     anchors.rightMargin: 0
                     anchors.verticalCenter: parent.verticalCenter
@@ -2394,8 +2409,8 @@ Item {
 
                     AppIcon {
                         anchors.centerIn: parent
-                        width: 14
-                        height: 14
+                        width: 16
+                        height: 16
                         name: "x"
                         iconColor: theme.textSecondary
                     }
@@ -2415,11 +2430,11 @@ Item {
                 anchors.top: addDialogHeader.bottom
                 anchors.topMargin: 12
                 anchors.left: parent.left
-                anchors.leftMargin: 24
+                anchors.leftMargin: Theme.space20
                 anchors.right: browseButton.left
                 anchors.rightMargin: 12
-                height: 46
-                radius: 16
+                height: 40
+                radius: Theme.radiusControl
                 color: theme.bgSubtle
                 border.width: 1
                 border.color: appSearchInput.activeFocus ? theme.accent : theme.border
@@ -2473,10 +2488,10 @@ Item {
                 id: browseButton
                 anchors.top: searchField.top
                 anchors.right: parent.right
-                anchors.rightMargin: 24
-                width: 112
-                height: 46
-                radius: 16
+                anchors.rightMargin: Theme.space20
+                width: 104
+                height: 40
+                radius: Theme.radiusControl
                 color: browseDialogMa.containsMouse
                        ? Qt.rgba(1, 1, 1, uiState.darkMode ? 0.08 : 0.55)
                        : theme.bgSubtle
@@ -2505,20 +2520,20 @@ Item {
             Item {
                 id: resultsBlock
                 anchors.top: searchField.bottom
-                anchors.topMargin: 18
+                anchors.topMargin: Theme.space16
                 anchors.left: parent.left
-                anchors.leftMargin: 24
+                anchors.leftMargin: Theme.space20
                 anchors.right: parent.right
-                anchors.rightMargin: 24
+                anchors.rightMargin: Theme.space20
                 anchors.bottom: footerRow.top
-                anchors.bottomMargin: 20
+                anchors.bottomMargin: Theme.space16
 
                 Row {
                     id: resultsHeader
                     anchors.top: parent.top
                     anchors.left: parent.left
                     height: 22
-                    spacing: 10
+                    spacing: Theme.space8
 
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
@@ -2531,7 +2546,7 @@ Item {
                         width: resultCountText.implicitWidth + 16
                         height: 22
                         radius: 11
-                        color: Qt.rgba(0, 0.83, 0.67, uiState.darkMode ? 0.12 : 0.14)
+                        color: Qt.rgba(0.36, 0.56, 0.95, uiState.darkMode ? 0.12 : 0.14)
 
                         Text {
                             id: resultCountText
@@ -2545,11 +2560,11 @@ Item {
 
                 Rectangle {
                     anchors.top: resultsHeader.bottom
-                    anchors.topMargin: 12
+                    anchors.topMargin: Theme.space8
                     anchors.left: parent.left
                     anchors.right: parent.right
                     anchors.bottom: parent.bottom
-                    radius: 20
+                    radius: Theme.radius
                     color: theme.bg
                     border.width: 1
                     border.color: theme.border
@@ -2557,19 +2572,19 @@ Item {
                     ListView {
                         id: appResultsList
                         anchors.fill: parent
-                        anchors.margins: 10
+                        anchors.margins: Theme.space8
                         clip: true
                         model: addAppDialog.visibleApps
-                        spacing: 6
+                        spacing: Theme.space4
                         visible: addAppDialog.visibleApps.length > 0
                         boundsBehavior: Flickable.StopAtBounds
 
                         delegate: Rectangle {
                             width: ListView.view.width
-                            height: 58
-                            radius: 15
+                            height: 52
+                            radius: Theme.radiusControl
                             color: selectedKnownApp && selectedKnownApp.id === modelData.id
-                                   ? Qt.rgba(0, 0.83, 0.67, uiState.darkMode ? 0.16 : 0.12)
+                                   ? Qt.rgba(0.36, 0.56, 0.95, uiState.darkMode ? 0.16 : 0.12)
                                    : appRowMa.containsMouse
                                      ? Qt.rgba(1, 1, 1, uiState.darkMode ? 0.06 : 0.6)
                                      : "transparent"
@@ -2671,22 +2686,22 @@ Item {
             Item {
                 id: footerRow
                 anchors.left: parent.left
-                anchors.leftMargin: 24
+                anchors.leftMargin: Theme.space20
                 anchors.right: parent.right
-                anchors.rightMargin: 24
+                anchors.rightMargin: Theme.space20
                 anchors.bottom: parent.bottom
-                anchors.bottomMargin: 24
-                height: 48
+                anchors.bottomMargin: Theme.space20
+                height: 40
 
                 Rectangle {
                     id: createButton
                     anchors.right: parent.right
-                    width: 160
+                    width: 144
                     height: parent.height
-                    radius: 16
+                    radius: Theme.radiusControl
                     color: selectedKnownApp
                            ? (createDialogMa.containsMouse ? theme.accentHover : theme.accent)
-                           : Qt.rgba(0, 0.83, 0.67, 0.22)
+                           : Qt.rgba(0.36, 0.56, 0.95, 0.22)
 
                     Text {
                         anchors.centerIn: parent
@@ -2712,10 +2727,10 @@ Item {
 
                 Rectangle {
                     anchors.right: createButton.left
-                    anchors.rightMargin: 10
-                    width: 108
+                    anchors.rightMargin: Theme.space8
+                    width: 100
                     height: parent.height
-                    radius: 16
+                    radius: Theme.radiusControl
                     color: cancelDialogMa.containsMouse
                            ? Qt.rgba(1, 1, 1, uiState.darkMode ? 0.08 : 0.55)
                            : theme.bgSubtle
