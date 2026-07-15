@@ -8,7 +8,7 @@
 
 [English](README.md) | **简体中文**
 
-开源鼠标自定义工具，专注于 Multi-Action（多操作）输入、Generic Mouse Mode（通用鼠标模式）与更灵活的工作流。
+PourInput 是一款独立的 Windows 输入自定义应用，可配置灵活的鼠标按键行为，包括短按与长按操作。它提供清晰、本地化且能感知设备的控制，无需依赖专有设备软件。
 
 <p>
   <a href="https://github.com/pour-soi/PourInput/releases/download/v1.3.0/PourInput-v1.3.0-Windows.zip">
@@ -270,12 +270,10 @@ python -m venv .venv
 
 ## 致谢
 
-PourInput 基于原始 [Mouser](https://github.com/TomBadash/Mouser) 项目。感谢 Mouser 贡献者创建了让本项目成为可能的基础。
-
-PourInput 将继续独立开发，同时保留并尊重对原始工作的署名。
+历史致谢：PourInput 的早期开发采用了 [Mouser](https://github.com/TomBadash/Mouser) 项目的部分工作。PourInput 现已独立设计、维护、配置和发布；运行 PourInput 不需要 Mouser。
 
 维护者：`pour-soi`
 
 ## 许可证
 
-本项目保留原始 Mouser 许可证。详见 [LICENSE](LICENSE)。
+PourInput 采用 MIT 许可证。版权与署名声明保留在 [LICENSE](LICENSE) 中。

@@ -11,8 +11,7 @@ import sys
 
 APP_NAME = "PourInput"
 APP_EXECUTABLE_NAME = "PourInput.exe"
-ORIGINAL_PROJECT = "TomBadash/Mouser"
-CUSTOMIZED_BY = "pour-soi"
+MAINTAINER = "pour-soi"
 
 _DEFAULT_APP_VERSION = "1.3.0"
 _BUILD_INFO_FILENAME = "POURINPUT_build_info.json"

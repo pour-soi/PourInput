@@ -8,7 +8,7 @@
 
 **English** | [简体中文](README_CN.md)
 
-Open-source mouse customization for Multi-Action input, Generic Mouse Mode, and smarter workflows.
+PourInput is an independent Windows input customization application that lets users configure flexible mouse button behaviors, including short-press and long-press actions. It provides clear, local, and device-aware control without depending on proprietary device software.
 
 <p>
   <a href="https://github.com/pour-soi/PourInput/releases/download/v1.3.0/PourInput-v1.3.0-Windows.zip">
@@ -270,12 +270,10 @@ See [CONTRIBUTING.md](CONTRIBUTING.md), [CONTRIBUTING_DEVICES.md](CONTRIBUTING_D
 
 ## Credits
 
-PourInput is based on the original [Mouser](https://github.com/TomBadash/Mouser) project. Many thanks to the Mouser contributors for creating the foundation that made this project possible.
-
-PourInput continues as an independently developed project while preserving attribution to the original work.
+Historical acknowledgement: early PourInput development incorporated work from the [Mouser](https://github.com/TomBadash/Mouser) project. PourInput is now independently designed, maintained, configured, and released; Mouser is not required to run it.
 
 Maintainer: `pour-soi`
 
 ## License
 
-This project preserves the original Mouser license. See [LICENSE](LICENSE) for details.
+PourInput is licensed under the MIT License. Copyright and attribution notices are preserved in [LICENSE](LICENSE).

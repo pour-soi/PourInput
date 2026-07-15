@@ -1,6 +1,6 @@
 # PourInput macOS Support
 
-PourInput inherits Mouser's macOS support alongside Windows. This document covers macOS-specific setup and known differences.
+PourInput includes experimental macOS support alongside its primary Windows application. This document covers macOS-specific setup and known differences.
 
 ## Requirements
 

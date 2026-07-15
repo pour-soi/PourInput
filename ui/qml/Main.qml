@@ -564,40 +564,6 @@ ApplicationWindow {
                                 anchors.leftMargin: 18
                                 anchors.verticalCenter: parent.verticalCenter
                                 width: 92
-                                text: lm.strings["about.based_on"] || "Based on:"
-                                font { family: uiState.fontFamily; pixelSize: 11; bold: true }
-                                color: theme.textSecondary
-                            }
-
-                            Text {
-                                anchors.left: parent.left
-                                anchors.leftMargin: 126
-                                anchors.right: parent.right
-                                anchors.rightMargin: 18
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: appOriginalProject
-                                font { family: root.monoFontFamily; pixelSize: 13 }
-                                color: theme.textPrimary
-                            }
-                        }
-
-                        Rectangle {
-                            width: parent.width - 36
-                            height: 1
-                            x: 18
-                            color: theme.border
-                            opacity: 0.9
-                        }
-
-                        Item {
-                            width: parent.width
-                            height: 64
-
-                            Text {
-                                anchors.left: parent.left
-                                anchors.leftMargin: 18
-                                anchors.verticalCenter: parent.verticalCenter
-                                width: 92
                                 text: lm.strings["about.maintainer"] || "Maintainer:"
                                 font { family: uiState.fontFamily; pixelSize: 11; bold: true }
                                 color: theme.textSecondary
@@ -609,7 +575,7 @@ ApplicationWindow {
                                 anchors.right: parent.right
                                 anchors.rightMargin: 18
                                 anchors.verticalCenter: parent.verticalCenter
-                                text: appCustomizedBy
+                                text: appMaintainer
                                 font { family: root.monoFontFamily; pixelSize: 13 }
                                 color: theme.textPrimary
                             }

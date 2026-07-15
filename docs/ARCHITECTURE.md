@@ -2,6 +2,8 @@
 
 This document describes the architecture implemented in the current repository. It is an engineering reference, not a roadmap. For detailed flows and ownership boundaries, follow the links in [Related documentation](#related-documentation).
 
+PourInput owns its runtime, configuration, input pipeline, packaging, and update infrastructure. It does not load or require another application's executable, process, service, configuration, or installation.
+
 ## Contents
 
 - [System overview](#system-overview)

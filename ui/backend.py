@@ -252,7 +252,7 @@ class Backend(QObject):
         self._root_dir = root_dir or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         self._cfg = load_config()
         self._mouse_connected = False
-        self._device_display_name = "Logitech mouse"
+        self._device_display_name = "Mouse device"
         self._connected_device_key = ""
         self._device_layout_override_key = ""
         self._device_layout = get_device_layout("generic_mouse")
@@ -1954,7 +1954,7 @@ class Backend(QObject):
 
     def _apply_device_layout(self, device):
         device_key = getattr(device, "key", "") or ""
-        display_name = getattr(device, "display_name", "") or "Logitech mouse"
+        display_name = getattr(device, "display_name", "") or "Mouse device"
         source = getattr(device, "source", "") or ""
         transport = getattr(device, "transport", "") or ""
         dpi_min = getattr(device, "dpi_min", DEFAULT_DPI_MIN) or DEFAULT_DPI_MIN

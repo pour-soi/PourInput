@@ -1,6 +1,6 @@
 # Contributing to PourInput
 
-Thanks for helping improve PourInput. This project is a focused fork of the original Mouser project that adds generic Multi-Action support for supported Logitech HID++ mouse buttons.
+Thanks for helping improve PourInput. PourInput is an independently designed and maintained input-customization application, with Multi-Action support for compatible mouse buttons.
 
 ## What Makes a Good Contribution?
 

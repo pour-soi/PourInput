@@ -56,17 +56,17 @@ def _payload(**updates):
         "build_number": 30700,
         "expires_at": expires.isoformat().replace("+00:00", "Z"),
         "commit": "abc123",
-        "release_notes_url": "https://github.com/TomBadash/Mouser/releases/tag/v3.7.0",
+        "release_notes_url": "https://github.com/pour-soi/PourInput/releases/tag/v3.7.0",
         "assets": {
             "windows-x64": {
                 "name": "PourInput-Windows.zip",
-                "url": "https://github.com/TomBadash/Mouser/releases/download/v3.7.0/PourInput-Windows.zip",
+                "url": "https://github.com/pour-soi/PourInput/releases/download/v3.7.0/PourInput-Windows.zip",
                 "size": 123,
                 "sha256": "a" * 64,
             },
             "macos-arm64": {
                 "name": "PourInput-macOS.zip",
-                "url": "https://github.com/TomBadash/Mouser/releases/download/v3.7.0/PourInput-macOS.zip",
+                "url": "https://github.com/pour-soi/PourInput/releases/download/v3.7.0/PourInput-macOS.zip",
                 "size": 456,
                 "sha256": "b" * 64,
             },

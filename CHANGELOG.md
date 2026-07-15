@@ -6,6 +6,11 @@ This project uses Semantic Versioning.
 
 ## Unreleased
 
+### Changed
+
+- Reframed current product documentation and application metadata around PourInput as an independently designed and maintained application.
+- Removed obsolete upstream-project fields from runtime and Windows executable metadata without changing application behavior or storage locations.
+
 ## v1.3.0 - 2026-07-14
 
 ### Changed

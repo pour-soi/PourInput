@@ -23,7 +23,7 @@ else:
 CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
 
 # Which mouse events map to which friendly button names
-# Order matches the Logi Options+ diagram (top view then side view)
+# Stable PourInput display order (top controls, then side controls).
 BUTTON_NAMES = {
     "middle":        "Middle Button",
     "gesture":       "Gesture button",
@@ -353,7 +353,7 @@ def _migrate(cfg):
 
     if version < 8:
         # v7 defaulted mode_shift to "toggle_smart_shift" (SmartShift on/off toggle).
-        # The better default matches Logi Options+: switch ratchet ↔ free-spin.
+        # Default to switching between ratchet and free-spin modes.
         # Upgrade "toggle_smart_shift" → "switch_scroll_mode" for all profiles.
         # Users who prefer the old toggle can reassign it in the UI.
         for pdata in cfg.get("profiles", {}).values():

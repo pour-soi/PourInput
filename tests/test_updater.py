@@ -46,7 +46,7 @@ class UpdaterTests(unittest.TestCase):
     def test_fetch_latest_release_parses_github_response(self):
         payload = {
             "tag_name": "v3.7.1",
-            "html_url": "https://github.com/TomBadash/Mouser/releases/tag/v3.7.1",
+            "html_url": "https://github.com/pour-soi/PourInput/releases/tag/v3.7.1",
             "name": "PourInput v3.7.1",
             "published_at": "2026-05-13T00:00:00Z",
         }
@@ -57,7 +57,7 @@ class UpdaterTests(unittest.TestCase):
             release,
             LatestRelease(
                 tag_name="v3.7.1",
-                html_url="https://github.com/TomBadash/Mouser/releases/tag/v3.7.1",
+                html_url="https://github.com/pour-soi/PourInput/releases/tag/v3.7.1",
                 name="PourInput v3.7.1",
                 published_at="2026-05-13T00:00:00Z",
             ),
@@ -72,7 +72,7 @@ class UpdaterTests(unittest.TestCase):
     def test_check_latest_release_accepts_utf8_bom_response(self):
         payload = (
             b'\xef\xbb\xbf{"tag_name":"v3.7.1",'
-            b'"html_url":"https://github.com/TomBadash/Mouser/releases/tag/v3.7.1"}'
+            b'"html_url":"https://github.com/pour-soi/PourInput/releases/tag/v3.7.1"}'
         )
 
         with patch("urllib.request.urlopen", return_value=_FakeResponse(payload)):
@@ -109,7 +109,7 @@ class UpdaterTests(unittest.TestCase):
     def test_fetch_latest_release_ignores_drafts_and_prereleases(self):
         payload = {
             "tag_name": "v3.8.0-beta.1",
-            "html_url": "https://github.com/TomBadash/Mouser/releases/tag/v3.8.0-beta.1",
+            "html_url": "https://github.com/pour-soi/PourInput/releases/tag/v3.8.0-beta.1",
             "prerelease": True,
         }
         with patch("urllib.request.urlopen", return_value=_FakeResponse(payload)):
@@ -162,7 +162,7 @@ class UpdaterTests(unittest.TestCase):
     def test_check_latest_release_sends_conditional_headers_and_persists_cache(self):
         payload = {
             "tag_name": "v3.7.1",
-            "html_url": "https://github.com/TomBadash/Mouser/releases/tag/v3.7.1",
+            "html_url": "https://github.com/pour-soi/PourInput/releases/tag/v3.7.1",
         }
         state = UpdateCheckState(
             etag='"old"',
@@ -232,7 +232,7 @@ class UpdaterTests(unittest.TestCase):
     def test_check_latest_release_manual_bypasses_automatic_interval(self):
         payload = {
             "tag_name": "v3.7.1",
-            "html_url": "https://github.com/TomBadash/Mouser/releases/tag/v3.7.1",
+            "html_url": "https://github.com/pour-soi/PourInput/releases/tag/v3.7.1",
         }
         state = UpdateCheckState(last_check=100.0)
 

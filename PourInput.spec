@@ -20,7 +20,6 @@ VERSION_INFO_PATH = os.path.join(ROOT, "build", "POURINPUT_version_info.txt")
 APP_NAME = "PourInput"
 APP_EXECUTABLE_NAME = "PourInput.exe"
 APP_MAINTAINER = "pour-soi"
-ORIGINAL_PROJECT = "TomBadash/Mouser"
 
 
 def _load_app_version() -> str:
@@ -142,7 +141,6 @@ VSVersionInfo(
           StringStruct('InternalName', 'PourInput'),
           StringStruct('Maintainer', '{APP_MAINTAINER}'),
           StringStruct('OriginalFilename', '{APP_EXECUTABLE_NAME}'),
-          StringStruct('OriginalProject', '{ORIGINAL_PROJECT}'),
           StringStruct('ProductName', '{APP_NAME}'),
           StringStruct('ProductVersion', '{version}'),
         ]

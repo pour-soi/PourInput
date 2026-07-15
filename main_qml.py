@@ -82,8 +82,7 @@ from core.version import (
     APP_COMMIT_DISPLAY,
     APP_NAME,
     APP_VERSION,
-    CUSTOMIZED_BY,
-    ORIGINAL_PROJECT,
+    MAINTAINER,
 )
 from ui.backend import Backend
 from ui.locale_manager import LocaleManager
@@ -1221,8 +1220,7 @@ def main():
     qml_engine.rootContext().setContextProperty("appVersion", APP_VERSION)
     qml_engine.rootContext().setContextProperty("appBuildMode", APP_BUILD_MODE)
     qml_engine.rootContext().setContextProperty("appCommit", APP_COMMIT_DISPLAY)
-    qml_engine.rootContext().setContextProperty("appOriginalProject", ORIGINAL_PROJECT)
-    qml_engine.rootContext().setContextProperty("appCustomizedBy", CUSTOMIZED_BY)
+    qml_engine.rootContext().setContextProperty("appMaintainer", MAINTAINER)
     qml_engine.rootContext().setContextProperty(
         "appLaunchPath", _runtime_launch_path().replace("\\", "/"))
 

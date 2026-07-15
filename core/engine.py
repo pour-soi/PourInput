@@ -419,7 +419,7 @@ class Engine:
             threading.Thread(target=_write, daemon=True, name="ToggleSmartShift").start()
 
     def _switch_scroll_mode(self):
-        """Switch between ratchet and free-spin (Logi Options+ physical button behaviour).
+        """Switch between ratchet and free-spin using the device's mode control.
 
         SmartShift auto-switching is disabled so the chosen fixed mode takes effect.
         Same deadlock caveat as _toggle_smart_shift — device write runs off-thread.
