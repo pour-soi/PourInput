@@ -102,6 +102,12 @@ foreach ($doc in @("LICENSE", "README.md", "README_CN.md", "CHANGELOG.md", "RELE
     Copy-Item -LiteralPath $src -Destination (Join-Path $StageDir $doc) -Force
 }
 
+$StageImagesDir = Join-Path $StageDir "images"
+New-Item -ItemType Directory -Force -Path $StageImagesDir | Out-Null
+foreach ($image in @("Screenshot.png", "Screenshot_mouse.png", "Screenshot_settings.png")) {
+    Copy-Item -LiteralPath (Join-Path $Root "images\$image") -Destination (Join-Path $StageImagesDir $image) -Force
+}
+
 Copy-Item -LiteralPath (Join-Path $Root "RELEASE_NOTES.md") -Destination $VersionedReleaseNotes -Force
 Copy-Item -LiteralPath (Join-Path $Root "CHANGELOG.md") -Destination (Join-Path $ReleaseDir "CHANGELOG.md") -Force
 
