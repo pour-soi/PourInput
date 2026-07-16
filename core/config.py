@@ -57,6 +57,7 @@ GENERIC_MOUSE_BUTTON_NAMES = {
     "generic_xbutton2": "Side Button 2 — Forward",
 }
 GENERIC_MOUSE_BUTTONS = tuple(GENERIC_MOUSE_BUTTON_NAMES)
+WINDOWS_XBUTTON_KEYS = frozenset(("xbutton1", "xbutton2"))
 
 PROFILE_BUTTON_NAMES = {
     **BUTTON_NAMES,
@@ -92,6 +93,29 @@ def long_press_mapping_key(button):
 
 def supports_multi_action(button):
     return button in MULTI_ACTION_BUTTONS
+
+
+def resolve_windows_xbutton_mapping_key(
+    button,
+    *,
+    generic_mouse_enabled,
+    platform_name=None,
+):
+    """Resolve a standard XBUTTON event to one active configuration key.
+
+    ``WH_MOUSE_LL`` does not expose per-device identity, so neither live device
+    presence nor catalog capabilities can prove which mouse emitted an event.
+    Generic Mouse Mode is therefore the only safe Windows route. Returning
+    ``None`` leaves the native event untouched.
+    """
+    if button not in WINDOWS_XBUTTON_KEYS:
+        return None
+    platform_name = sys.platform if platform_name is None else platform_name
+    if platform_name != "win32":
+        return button
+    if generic_mouse_enabled:
+        return f"generic_{button}"
+    return None
 
 DEFAULT_CONFIG = {
     "version": 11,

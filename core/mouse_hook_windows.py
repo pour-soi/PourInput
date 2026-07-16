@@ -94,6 +94,16 @@ RIM_TYPEHID = 2
 RIDI_DEVICENAME = 0x20000007
 SW_HIDE = 0
 STANDARD_BUTTON_MASK = 0x1F
+RI_MOUSE_BUTTON_4_DOWN = 0x0040
+RI_MOUSE_BUTTON_4_UP = 0x0080
+RI_MOUSE_BUTTON_5_DOWN = 0x0100
+RI_MOUSE_BUTTON_5_UP = 0x0200
+RAW_XBUTTON_FLAGS = {
+    RI_MOUSE_BUTTON_4_DOWN: "XBUTTON1_DOWN",
+    RI_MOUSE_BUTTON_4_UP: "XBUTTON1_UP",
+    RI_MOUSE_BUTTON_5_DOWN: "XBUTTON2_DOWN",
+    RI_MOUSE_BUTTON_5_UP: "XBUTTON2_UP",
+}
 
 
 class RAWINPUTDEVICE(Structure):
@@ -380,6 +390,7 @@ class MouseHook(BaseMouseHook):
             data = lParam.contents
             mouse_data = data.mouseData
             flags = data.flags
+            binding_snapshot = self.capture_binding_snapshot()
             event = None
             should_block = False
 
@@ -404,27 +415,21 @@ class MouseHook(BaseMouseHook):
                 xbutton = hiword(mouse_data)
                 if xbutton == XBUTTON1:
                     event = MouseEvent(MouseEvent.XBUTTON1_DOWN)
-                    should_block = MouseEvent.XBUTTON1_DOWN in self._blocked_events
                 elif xbutton == XBUTTON2:
                     event = MouseEvent(MouseEvent.XBUTTON2_DOWN)
-                    should_block = MouseEvent.XBUTTON2_DOWN in self._blocked_events
 
             elif wParam == WM_XBUTTONUP:
                 xbutton = hiword(mouse_data)
                 if xbutton == XBUTTON1:
                     event = MouseEvent(MouseEvent.XBUTTON1_UP)
-                    should_block = MouseEvent.XBUTTON1_UP in self._blocked_events
                 elif xbutton == XBUTTON2:
                     event = MouseEvent(MouseEvent.XBUTTON2_UP)
-                    should_block = MouseEvent.XBUTTON2_UP in self._blocked_events
 
             elif wParam == WM_MBUTTONDOWN:
                 event = MouseEvent(MouseEvent.MIDDLE_DOWN)
-                should_block = MouseEvent.MIDDLE_DOWN in self._blocked_events
 
             elif wParam == WM_MBUTTONUP:
                 event = MouseEvent(MouseEvent.MIDDLE_UP)
-                should_block = MouseEvent.MIDDLE_UP in self._blocked_events
 
             elif wParam == WM_MOUSEWHEEL:
                 if self.invert_vscroll:
@@ -446,10 +451,11 @@ class MouseHook(BaseMouseHook):
                 delta = hiword(mouse_data)
                 if delta > 0:
                     event = MouseEvent(MouseEvent.HSCROLL_LEFT, abs(delta))
-                    should_block = MouseEvent.HSCROLL_LEFT in self._blocked_events
                 elif delta < 0:
                     event = MouseEvent(MouseEvent.HSCROLL_RIGHT, abs(delta))
-                    should_block = MouseEvent.HSCROLL_RIGHT in self._blocked_events
+
+                if event:
+                    should_block = event.event_type in binding_snapshot.blocked_events
 
                 if self.invert_hscroll:
                     if delta != 0 and self._ri_hwnd and not should_block:
@@ -466,6 +472,17 @@ class MouseHook(BaseMouseHook):
                         )
 
             if event:
+                self.bind_event(event, binding_snapshot)
+                should_block = event.binding_suppressed
+                self._emit_debug(
+                    "Windows hook event "
+                    f"message={self._WM_NAMES.get(wParam, f'0x{wParam:04X}')} "
+                    f"button={event.event_type} device=unavailable(WH_MOUSE_LL) "
+                    f"blocked={should_block} "
+                    f"generation={event.binding_generation} "
+                    f"route={event.binding_route or 'native'} "
+                    f"callbacks={len(event.binding_callbacks)}"
+                )
                 self._enqueue_dispatch_event(event)
                 if should_block:
                     return 1
@@ -539,9 +556,27 @@ class MouseHook(BaseMouseHook):
         if ret == 0xFFFFFFFF:
             return
         header = RAWINPUTHEADER.from_buffer_copy(buffer)
-        if not self._is_logitech(header.hDevice):
-            return
         if header.dwType == RIM_TYPEMOUSE:
+            # Raw Input has useful device identity for diagnostics, but its
+            # asynchronous messages cannot be correlated reliably with the
+            # synchronous WH_MOUSE_LL event used for suppression and routing.
+            mouse = RAWMOUSE.from_buffer_copy(buffer, sizeof(RAWINPUTHEADER))
+            xbutton_flags = [
+                name
+                for flag, name in RAW_XBUTTON_FLAGS.items()
+                if mouse.usButtonFlags & flag
+            ]
+            if xbutton_flags:
+                device_name = self._get_device_name(header.hDevice)
+                self._emit_debug(
+                    "Raw input event "
+                    f"buttons={','.join(xbutton_flags)} "
+                    f"device_handle={int(header.hDevice or 0)} "
+                    f"device={device_name or 'unknown'} "
+                    f"logitech={self._is_logitech(header.hDevice)}"
+                )
+            if not self._is_logitech(header.hDevice):
+                return
             self._check_raw_mouse_gesture(header.hDevice, buffer)
 
     def _check_raw_mouse_gesture(self, hDevice, buffer):
@@ -790,18 +825,34 @@ class MouseHook(BaseMouseHook):
         self._running = False
         self._stop_hid_listener()
         self._connected_device = None
+        stopped = True
         if self._dispatch_worker_thread:
-            self._dispatch_worker_thread.join(timeout=1)
-            self._dispatch_worker_thread = None
+            if self._dispatch_worker_thread is threading.current_thread():
+                stopped = False
+            else:
+                self._dispatch_worker_thread.join(timeout=1)
+                if self._dispatch_worker_thread.is_alive():
+                    stopped = False
+                else:
+                    self._dispatch_worker_thread = None
         if self._thread_id:
             PostThreadMessageW(self._thread_id, WM_QUIT, 0, 0)
         if self._hook_thread:
-            self._hook_thread.join(timeout=2)
-        self._hook = None
-        self._ri_hwnd = None
-        self._thread_id = None
-        self._startup_ok = False
+            if self._hook_thread is threading.current_thread():
+                stopped = False
+            else:
+                self._hook_thread.join(timeout=2)
+                if self._hook_thread.is_alive():
+                    stopped = False
+                else:
+                    self._hook_thread = None
+        if stopped:
+            self._hook = None
+            self._ri_hwnd = None
+            self._thread_id = None
+            self._startup_ok = False
         self._startup_event.clear()
+        return stopped
 
 
 MouseHook._platform_module = sys.modules[__name__]

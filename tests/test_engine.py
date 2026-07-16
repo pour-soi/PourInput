@@ -1,11 +1,12 @@
 import copy
 import unittest
+from types import MappingProxyType
 from types import SimpleNamespace
 from unittest.mock import Mock, call, patch
 
 from core.config import DEFAULT_CONFIG
 from core.mouse_hook import MouseEvent
-from core.mouse_hook_types import HidRuntimeState
+from core.mouse_hook_types import BindingBuilder, BindingSnapshot, HidRuntimeState
 
 
 class _FakeMouseHook:
@@ -22,6 +23,7 @@ class _FakeMouseHook:
         self.blocked_events = []
         self.registered_events = []
         self.callbacks = {}
+        self._binding_snapshot = BindingSnapshot.empty()
 
     def set_debug_callback(self, cb):
         self._debug_callback = cb
@@ -45,10 +47,43 @@ class _FakeMouseHook:
         self.registered_events.append(event_type)
         self.callbacks.setdefault(event_type, []).append(callback)
 
-    def reset_bindings(self):
-        self.blocked_events = []
-        self.registered_events = []
-        self.callbacks = {}
+    def reset_bindings(self, wait_timeout=None):
+        return self.publish_bindings(BindingBuilder())
+
+    def new_binding_builder(self):
+        return BindingBuilder()
+
+    def publish_bindings(self, builder):
+        self.callbacks = {
+            event_type: list(callbacks)
+            for event_type, callbacks in builder.callbacks.items()
+        }
+        self.registered_events = [
+            event_type
+            for event_type, callbacks in self.callbacks.items()
+            for _ in callbacks
+        ]
+        self.blocked_events = list(builder.blocked_events)
+        self._binding_snapshot = BindingSnapshot(
+            generation=self._binding_snapshot.generation + 1,
+            callbacks=MappingProxyType(
+                {key: tuple(value) for key, value in self.callbacks.items()}
+            ),
+            blocked_events=frozenset(builder.blocked_events),
+            routes=MappingProxyType(dict(builder.routes)),
+        )
+        return self._binding_snapshot
+
+    def capture_binding_snapshot(self):
+        return self._binding_snapshot
+
+    def bind_event(self, event, snapshot=None):
+        snapshot = snapshot or self._binding_snapshot
+        event.binding_generation = snapshot.generation
+        event.binding_route = snapshot.routes.get(event.event_type)
+        event.binding_callbacks = snapshot.callbacks.get(event.event_type, ())
+        event.binding_suppressed = event.event_type in snapshot.blocked_events
+        return event
 
     def sync_hid_extra_diverts(self):
         self.sync_hid_extra_diverts_calls += 1
@@ -116,6 +151,14 @@ class EngineHorizontalScrollTests(unittest.TestCase):
             patch("core.engine.load_config", return_value=cfg),
         ):
             return Engine()
+
+    def _configure_generic_xbutton_multi_action(self, engine):
+        engine.cfg["settings"]["generic_mouse_enabled"] = True
+        mappings = engine.cfg["profiles"]["default"]["mappings"]
+        mappings["generic_xbutton1"] = "browser_back"
+        mappings["generic_xbutton1_long"] = "copy"
+        with patch("core.engine.sys.platform", "win32"):
+            return engine._replace_bindings("test-generic-xbutton")
 
     def test_hscroll_desktop_action_uses_cooldown(self):
         engine = self._make_engine()
@@ -354,10 +397,16 @@ class EngineHorizontalScrollTests(unittest.TestCase):
         self.assertEqual(len(engine.hook.callbacks[MouseEvent.XBUTTON1_DOWN]), 1)
         self.assertEqual(len(engine.hook.callbacks[MouseEvent.XBUTTON1_UP]), 1)
 
-    def test_physical_xbutton_mapping_is_not_bound_on_windows_without_device_identity(self):
+    def test_recognized_logitech_device_does_not_authorize_physical_xbuttons(self):
         engine = self._make_engine()
+        mappings = engine.cfg["profiles"]["default"]["mappings"]
+        mappings["xbutton1"] = "browser_back"
+        mappings["xbutton2"] = "browser_forward"
         engine.hook.device_connected = True
         engine.hook.connected_device = SimpleNamespace(
+            key="mx_master_3",
+            display_name="MX Master 3",
+            transport="bluetooth",
             supported_buttons=("middle", "xbutton1", "xbutton2"),
             capabilities=SimpleNamespace(
                 reprogrammable_buttons=("middle", "xbutton1", "xbutton2"),
@@ -371,10 +420,375 @@ class EngineHorizontalScrollTests(unittest.TestCase):
         ):
             engine.reload_mappings()
 
+        self.assertNotIn(MouseEvent.XBUTTON1_DOWN, engine.hook.callbacks)
+        self.assertNotIn(MouseEvent.XBUTTON2_DOWN, engine.hook.callbacks)
+        self.assertNotIn(MouseEvent.XBUTTON1_DOWN, engine.hook.blocked_events)
+        self.assertNotIn(MouseEvent.XBUTTON2_DOWN, engine.hook.blocked_events)
+
+    def test_generic_route_wins_with_logitech_and_second_mouse_connected(self):
+        engine = self._make_engine()
+        engine.cfg["settings"]["generic_mouse_enabled"] = True
+        mappings = engine.cfg["profiles"]["default"]["mappings"]
+        mappings["xbutton1"] = "browser_back"
+        mappings["generic_xbutton1"] = "copy"
+        engine.hook.device_connected = True
+        engine.hook.connected_device = SimpleNamespace(
+            key="mx_master_3",
+            transport="receiver",
+            supported_buttons=("middle", "xbutton1", "xbutton2"),
+            capabilities=SimpleNamespace(
+                reprogrammable_buttons=("middle", "xbutton1", "xbutton2"),
+            ),
+            capability_inventory=SimpleNamespace(has_reprog_controls=True),
+        )
+
+        with (
+            patch("core.engine.load_config", return_value=engine.cfg),
+            patch("core.engine.sys.platform", "win32"),
+        ):
+            engine.reload_mappings()
+
+        self.assertEqual(len(engine.hook.callbacks[MouseEvent.XBUTTON1_DOWN]), 1)
+        with patch("core.engine.execute_action") as execute_action_mock:
+            engine.hook.callbacks[MouseEvent.XBUTTON1_DOWN][0](
+                SimpleNamespace(event_type=MouseEvent.XBUTTON1_DOWN)
+            )
+        execute_action_mock.assert_called_once_with("copy")
+
+    def test_unrecognized_logitech_fallback_does_not_authorize_physical_xbuttons(self):
+        engine = self._make_engine()
+        mappings = engine.cfg["profiles"]["default"]["mappings"]
+        mappings["xbutton1"] = "browser_back"
+        engine.hook.device_connected = True
+        engine.hook.connected_device = SimpleNamespace(
+            key="unrecognized_logitech",
+            supported_buttons=("middle", "xbutton1", "xbutton2"),
+            capabilities=SimpleNamespace(
+                reprogrammable_buttons=("middle", "xbutton1", "xbutton2"),
+            ),
+            capability_inventory=SimpleNamespace(has_reprog_controls=False),
+        )
+
+        with (
+            patch("core.engine.load_config", return_value=engine.cfg),
+            patch("core.engine.sys.platform", "win32"),
+        ):
+            engine.reload_mappings()
+
+        self.assertNotIn(MouseEvent.XBUTTON1_DOWN, engine.hook.callbacks)
+        self.assertNotIn(MouseEvent.XBUTTON1_DOWN, engine.hook.blocked_events)
+
+    def test_removing_mx_master_3_xbutton_mapping_restores_native_behavior(self):
+        engine = self._make_engine()
+        mappings = engine.cfg["profiles"]["default"]["mappings"]
+        for key in ("xbutton1", "xbutton2", "xbutton1_long", "xbutton2_long"):
+            mappings[key] = "none"
+        engine.hook.device_connected = True
+        engine.hook.connected_device = SimpleNamespace(
+            key="mx_master_3",
+            supported_buttons=("middle", "xbutton1", "xbutton2"),
+        )
+
+        with (
+            patch("core.engine.load_config", return_value=engine.cfg),
+            patch("core.engine.sys.platform", "win32"),
+        ):
+            engine.reload_mappings()
+
         self.assertNotIn(MouseEvent.XBUTTON1_DOWN, engine.hook.registered_events)
         self.assertNotIn(MouseEvent.XBUTTON2_DOWN, engine.hook.registered_events)
         self.assertNotIn(MouseEvent.XBUTTON1_DOWN, engine.hook.blocked_events)
         self.assertNotIn(MouseEvent.XBUTTON2_DOWN, engine.hook.blocked_events)
+
+    def test_generic_xbutton_short_and_long_press_use_existing_timing(self):
+        engine = self._make_engine()
+        engine.cfg["settings"]["generic_mouse_enabled"] = True
+        mappings = engine.cfg["profiles"]["default"]["mappings"]
+        mappings["generic_xbutton1"] = "browser_back"
+        mappings["generic_xbutton1_long"] = "copy"
+
+        with (
+            patch("core.engine.load_config", return_value=engine.cfg),
+            patch("core.engine.sys.platform", "win32"),
+        ):
+            engine.reload_mappings()
+
+        down = engine.hook.callbacks[MouseEvent.XBUTTON1_DOWN][0]
+        up = engine.hook.callbacks[MouseEvent.XBUTTON1_UP][0]
+        with (
+            patch(
+                "core.engine.time.monotonic",
+                side_effect=[10.000, 10.100, 20.000, 20.300],
+            ),
+            patch("core.engine.execute_action") as execute_action_mock,
+        ):
+            down(SimpleNamespace(event_type=MouseEvent.XBUTTON1_DOWN))
+            up(SimpleNamespace(event_type=MouseEvent.XBUTTON1_UP))
+            down(SimpleNamespace(event_type=MouseEvent.XBUTTON1_DOWN))
+            up(SimpleNamespace(event_type=MouseEvent.XBUTTON1_UP))
+
+        self.assertEqual(
+            execute_action_mock.call_args_list,
+            [call("browser_back"), call("copy")],
+        )
+
+    def test_unmatched_xbutton_up_is_ignored(self):
+        engine = self._make_engine()
+        snapshot = self._configure_generic_xbutton_multi_action(engine)
+        up = snapshot.callbacks[MouseEvent.XBUTTON1_UP][0]
+        event = engine.hook.bind_event(MouseEvent(MouseEvent.XBUTTON1_UP), snapshot)
+
+        with patch("core.engine.execute_action") as execute_action_mock:
+            up(event)
+
+        execute_action_mock.assert_not_called()
+        self.assertEqual(engine._multi_action_down_at, {})
+
+    def test_overflow_invalidation_clears_press_before_next_complete_press(self):
+        engine = self._make_engine()
+        snapshot = self._configure_generic_xbutton_multi_action(engine)
+        down = snapshot.callbacks[MouseEvent.XBUTTON1_DOWN][0]
+        up = snapshot.callbacks[MouseEvent.XBUTTON1_UP][0]
+        down_event = engine.hook.bind_event(
+            MouseEvent(MouseEvent.XBUTTON1_DOWN), snapshot
+        )
+        up_event = engine.hook.bind_event(MouseEvent(MouseEvent.XBUTTON1_UP), snapshot)
+
+        with patch("core.engine.time.monotonic", return_value=10.0):
+            down(down_event)
+        engine._invalidate_press_lifecycle(
+            snapshot.generation, "generic_xbutton1"
+        )
+        with patch("core.engine.execute_action") as execute_action_mock:
+            up(up_event)
+        execute_action_mock.assert_not_called()
+        self.assertEqual(engine._multi_action_down_at, {})
+
+        with (
+            patch("core.engine.time.monotonic", side_effect=[20.0, 20.1]),
+            patch("core.engine.execute_action") as execute_action_mock,
+        ):
+            down(down_event)
+            up(up_event)
+        execute_action_mock.assert_called_once_with("browser_back")
+        self.assertEqual(engine._multi_action_down_at, {})
+
+    def test_physical_and_generic_routes_cannot_share_press_state(self):
+        engine = self._make_engine()
+        generation = engine.hook.capture_binding_snapshot().generation
+        physical_down = engine._make_multi_action_down_handler(
+            "xbutton1", "browser_back", "copy"
+        )
+        generic_up = engine._make_multi_action_up_handler(
+            "generic_xbutton1", "browser_back", "copy"
+        )
+        down_event = SimpleNamespace(binding_generation=generation)
+        up_event = SimpleNamespace(binding_generation=generation)
+
+        with patch("core.engine.time.monotonic", return_value=10.0):
+            physical_down(down_event)
+        with patch("core.engine.execute_action") as execute_action_mock:
+            generic_up(up_event)
+
+        execute_action_mock.assert_not_called()
+        self.assertIn((generation, "xbutton1"), engine._multi_action_down_at)
+        engine._replace_bindings("route-isolation-cleanup")
+        self.assertEqual(engine._multi_action_down_at, {})
+
+    def test_complete_xbutton_press_executes_exactly_once(self):
+        engine = self._make_engine()
+        snapshot = self._configure_generic_xbutton_multi_action(engine)
+        down = snapshot.callbacks[MouseEvent.XBUTTON1_DOWN][0]
+        up = snapshot.callbacks[MouseEvent.XBUTTON1_UP][0]
+        down_event = engine.hook.bind_event(
+            MouseEvent(MouseEvent.XBUTTON1_DOWN), snapshot
+        )
+        up_event = engine.hook.bind_event(MouseEvent(MouseEvent.XBUTTON1_UP), snapshot)
+
+        with (
+            patch("core.engine.time.monotonic", side_effect=[10.0, 10.1]),
+            patch("core.engine.execute_action") as execute_action_mock,
+        ):
+            down(down_event)
+            up(up_event)
+
+        execute_action_mock.assert_called_once_with("browser_back")
+        self.assertEqual(engine._multi_action_down_at, {})
+
+    def test_profile_switch_invalidates_in_progress_xbutton_press(self):
+        engine = self._make_engine()
+        snapshot = self._configure_generic_xbutton_multi_action(engine)
+        down = snapshot.callbacks[MouseEvent.XBUTTON1_DOWN][0]
+        up = snapshot.callbacks[MouseEvent.XBUTTON1_UP][0]
+        down_event = engine.hook.bind_event(
+            MouseEvent(MouseEvent.XBUTTON1_DOWN), snapshot
+        )
+        up_event = engine.hook.bind_event(MouseEvent(MouseEvent.XBUTTON1_UP), snapshot)
+        engine.cfg["profiles"]["other"] = copy.deepcopy(
+            engine.cfg["profiles"]["default"]
+        )
+
+        with patch("core.engine.time.monotonic", return_value=10.0):
+            down(down_event)
+        with patch("core.engine.sys.platform", "win32"):
+            engine._switch_profile("other")
+        with patch("core.engine.execute_action") as execute_action_mock:
+            up(up_event)
+
+        execute_action_mock.assert_not_called()
+        self.assertEqual(engine._multi_action_down_at, {})
+
+    def test_generic_mode_toggle_invalidates_in_progress_xbutton_press(self):
+        engine = self._make_engine()
+        snapshot = self._configure_generic_xbutton_multi_action(engine)
+        down = snapshot.callbacks[MouseEvent.XBUTTON1_DOWN][0]
+        up = snapshot.callbacks[MouseEvent.XBUTTON1_UP][0]
+        down_event = engine.hook.bind_event(
+            MouseEvent(MouseEvent.XBUTTON1_DOWN), snapshot
+        )
+        up_event = engine.hook.bind_event(MouseEvent(MouseEvent.XBUTTON1_UP), snapshot)
+
+        with patch("core.engine.time.monotonic", return_value=10.0):
+            down(down_event)
+        engine.cfg["settings"]["generic_mouse_enabled"] = False
+        with patch("core.engine.sys.platform", "win32"):
+            replacement = engine._replace_bindings("generic-mode-disabled")
+        with patch("core.engine.execute_action") as execute_action_mock:
+            up(up_event)
+
+        execute_action_mock.assert_not_called()
+        self.assertNotIn(MouseEvent.XBUTTON1_DOWN, replacement.blocked_events)
+        self.assertEqual(engine._multi_action_down_at, {})
+
+    def test_mapping_removal_invalidates_held_press_and_restores_native_event(self):
+        engine = self._make_engine()
+        snapshot = self._configure_generic_xbutton_multi_action(engine)
+        down = snapshot.callbacks[MouseEvent.XBUTTON1_DOWN][0]
+        up = snapshot.callbacks[MouseEvent.XBUTTON1_UP][0]
+        down_event = engine.hook.bind_event(
+            MouseEvent(MouseEvent.XBUTTON1_DOWN), snapshot
+        )
+        up_event = engine.hook.bind_event(MouseEvent(MouseEvent.XBUTTON1_UP), snapshot)
+
+        with patch("core.engine.time.monotonic", return_value=10.0):
+            down(down_event)
+        engine.cfg["profiles"]["default"]["mappings"]["generic_xbutton1"] = "none"
+        engine.cfg["profiles"]["default"]["mappings"]["generic_xbutton1_long"] = "none"
+        with patch("core.engine.sys.platform", "win32"):
+            replacement = engine._replace_bindings("mapping-removal")
+        with patch("core.engine.execute_action") as execute_action_mock:
+            up(up_event)
+
+        execute_action_mock.assert_not_called()
+        self.assertNotIn(MouseEvent.XBUTTON1_DOWN, replacement.blocked_events)
+        self.assertNotIn(MouseEvent.XBUTTON1_UP, replacement.blocked_events)
+        self.assertEqual(engine._multi_action_down_at, {})
+
+    def test_disconnect_invalidates_in_progress_xbutton_press(self):
+        engine = self._make_engine()
+        snapshot = self._configure_generic_xbutton_multi_action(engine)
+        down = snapshot.callbacks[MouseEvent.XBUTTON1_DOWN][0]
+        up = snapshot.callbacks[MouseEvent.XBUTTON1_UP][0]
+        down_event = engine.hook.bind_event(
+            MouseEvent(MouseEvent.XBUTTON1_DOWN), snapshot
+        )
+        up_event = engine.hook.bind_event(MouseEvent(MouseEvent.XBUTTON1_UP), snapshot)
+
+        with patch("core.engine.time.monotonic", return_value=10.0):
+            down(down_event)
+        engine._last_connection_state = True
+        engine.hook.device_connected = False
+        with patch("core.engine.sys.platform", "win32"):
+            engine._on_connection_change(False)
+        with patch("core.engine.execute_action") as execute_action_mock:
+            up(up_event)
+
+        execute_action_mock.assert_not_called()
+        self.assertEqual(engine._multi_action_down_at, {})
+
+    def test_rapid_reconnect_publishes_distinct_binding_generations(self):
+        engine = self._make_engine()
+        start_generation = engine.hook.capture_binding_snapshot().generation
+        engine._last_connection_state = False
+        engine.hook.device_connected = True
+
+        with (
+            patch("core.engine.sys.platform", "win32"),
+            patch("core.engine.threading.Thread", _RecordedThread),
+        ):
+            engine._on_connection_change(True)
+            connected_generation = engine.hook.capture_binding_snapshot().generation
+            engine.hook.device_connected = False
+            engine._on_connection_change(False)
+
+        self.assertGreater(connected_generation, start_generation)
+        self.assertGreater(
+            engine.hook.capture_binding_snapshot().generation,
+            connected_generation,
+        )
+        self.assertEqual(engine._multi_action_down_at, {})
+
+    def test_connected_device_route_change_invalidates_press_state(self):
+        engine = self._make_engine()
+        snapshot = self._configure_generic_xbutton_multi_action(engine)
+        down = snapshot.callbacks[MouseEvent.XBUTTON1_DOWN][0]
+        down_event = engine.hook.bind_event(
+            MouseEvent(MouseEvent.XBUTTON1_DOWN), snapshot
+        )
+        engine._last_connection_state = True
+        engine.hook.device_connected = True
+
+        with patch("core.engine.time.monotonic", return_value=10.0):
+            down(down_event)
+        engine.hook.connected_device = SimpleNamespace(
+            key="replacement_mouse",
+            product_id=0x1234,
+            transport="receiver",
+            source="hidpp",
+        )
+        with patch("core.engine.sys.platform", "win32"):
+            engine._on_connection_change(True)
+
+        self.assertGreater(
+            engine.hook.capture_binding_snapshot().generation,
+            snapshot.generation,
+        )
+        self.assertEqual(engine._multi_action_down_at, {})
+
+    def test_repeated_mapping_reloads_retire_all_queued_generations(self):
+        engine = self._make_engine()
+        first = self._configure_generic_xbutton_multi_action(engine)
+        generations = [first.generation]
+
+        with (
+            patch("core.engine.sys.platform", "win32"),
+            patch("core.engine.load_config", return_value=engine.cfg),
+        ):
+            for _ in range(10):
+                engine.reload_mappings()
+                generations.append(engine.hook.capture_binding_snapshot().generation)
+
+        self.assertEqual(generations, sorted(set(generations)))
+        self.assertEqual(engine._multi_action_down_at, {})
+
+    def test_stop_retires_bindings_and_clears_press_state(self):
+        engine = self._make_engine()
+        snapshot = self._configure_generic_xbutton_multi_action(engine)
+        down = snapshot.callbacks[MouseEvent.XBUTTON1_DOWN][0]
+        down_event = engine.hook.bind_event(
+            MouseEvent(MouseEvent.XBUTTON1_DOWN), snapshot
+        )
+
+        with patch("core.engine.time.monotonic", return_value=10.0):
+            down(down_event)
+        engine.stop()
+
+        self.assertEqual(engine._multi_action_down_at, {})
+        self.assertGreater(
+            engine.hook.capture_binding_snapshot().generation,
+            snapshot.generation,
+        )
+        self.assertTrue(engine.hook.stop_called)
 
     def test_generic_mouse_mode_uses_generic_side_button_mappings_only(self):
         from core.engine import Engine

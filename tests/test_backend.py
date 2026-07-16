@@ -4,12 +4,13 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from types import MappingProxyType
 from types import SimpleNamespace
 from unittest.mock import patch
 
 from core.config import DEFAULT_CONFIG
 from core.mouse_hook import MouseEvent
-from core.mouse_hook_types import HidRuntimeState
+from core.mouse_hook_types import BindingBuilder, BindingSnapshot, HidRuntimeState
 from core.updater import UpdateCheckState
 
 try:
@@ -108,6 +109,7 @@ class _InspectableMouseHook:
         self._hid_gesture = None
         self._callbacks = {}
         self._blocked_events = set()
+        self._binding_snapshot = BindingSnapshot.empty()
         self.divert_mode_shift = False
         self.divert_dpi_switch = False
         self.sync_hid_extra_diverts_calls = 0
@@ -141,9 +143,30 @@ class _InspectableMouseHook:
     def register(self, event_type, callback):
         self._callbacks.setdefault(event_type, []).append(callback)
 
-    def reset_bindings(self):
-        self._blocked_events.clear()
-        self._callbacks.clear()
+    def reset_bindings(self, wait_timeout=None):
+        return self.publish_bindings(BindingBuilder())
+
+    def new_binding_builder(self):
+        return BindingBuilder()
+
+    def publish_bindings(self, builder):
+        self._callbacks = {
+            event_type: list(callbacks)
+            for event_type, callbacks in builder.callbacks.items()
+        }
+        self._blocked_events = set(builder.blocked_events)
+        self._binding_snapshot = BindingSnapshot(
+            generation=self._binding_snapshot.generation + 1,
+            callbacks=MappingProxyType(
+                {key: tuple(value) for key, value in self._callbacks.items()}
+            ),
+            blocked_events=frozenset(builder.blocked_events),
+            routes=MappingProxyType(dict(builder.routes)),
+        )
+        return self._binding_snapshot
+
+    def capture_binding_snapshot(self):
+        return self._binding_snapshot
 
     def sync_hid_extra_diverts(self):
         self.sync_hid_extra_diverts_calls += 1
@@ -154,6 +177,13 @@ class _InspectableMouseHook:
 
     def stop(self):
         return None
+
+
+class _DisconnectedInspectableMouseHook(_InspectableMouseHook):
+    def __init__(self):
+        super().__init__()
+        self.device_connected = False
+        self.connected_device = None
 
 
 class _FakeAppDetector:
@@ -1134,7 +1164,7 @@ class BackendDeviceLayoutTests(unittest.TestCase):
             patch("ui.backend.supports_login_startup", return_value=False),
             patch("ui.backend.sys.platform", "win32"),
             patch("core.engine.load_config", side_effect=load_persisted),
-            patch("core.engine.MouseHook", _InspectableMouseHook),
+            patch("core.engine.MouseHook", _DisconnectedInspectableMouseHook),
             patch("core.engine.AppDetector", _FakeAppDetector),
             patch("core.engine.sys.platform", "win32"),
         ):

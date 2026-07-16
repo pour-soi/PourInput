@@ -109,11 +109,13 @@ When enabled:
 
 - `middle` is available for standard middle-button mapping;
 - `generic_xbutton1` and `generic_xbutton2` map standard side-button events;
-- physical `xbutton1` and `xbutton2` mappings are skipped to prevent duplicate dispatch;
-- the backend removes duplicate physical side-button entries from its device projection;
+- detected Logitech identity and catalog button defaults do not authorize physical XBUTTON mappings;
+- exactly one generic mapping source is registered for each XBUTTON event;
 - only configured events are blocked.
 
-When disabled, generic side-button mappings are not registered. On Windows, physical side-button keys are also not bound through the general low-level path; Logitech-specific controls continue through their device-specific HID/diversion paths where implemented. Middle-button mapping without Generic Mouse Mode requires a detected device reporting `middle` support.
+When disabled, generic side-button mappings are not registered and standard side events remain native. Middle-button mapping without Generic Mouse Mode requires a detected device reporting `middle` support.
+
+The Windows low-level mouse hook reports `XBUTTON1` and `XBUTTON2` but no physical device handle. Raw Input device handles are logged in Debug Mode when available, but those asynchronous messages are not treated as correlated with a low-level event. Generic Mouse Mode is deliberately device-agnostic and cannot distinguish which of several connected mice produced a standard XBUTTON event.
 
 ## Validation and conflict handling
 
@@ -121,7 +123,7 @@ When disabled, generic side-button mappings are not registered. On Windows, phys
 |---|---|
 | Unsupported control | Device capability/layout filtering hides it; engine skips wiring where support is explicitly absent |
 | Unknown capability | Engine preserves conservative fallback behavior rather than assuming explicit non-support |
-| Generic/physical side duplication | Generic mode suppresses physical `xbutton1`/`xbutton2` wiring and duplicate UI entries |
+| Generic/physical side duplication | Windows wires only the explicit Generic Mouse Mode source for standard XBUTTON events |
 | No action | Event is normally left unblocked and no callback is registered |
 | Custom shortcut syntax | Backend uses `key_registry` to canonicalize, report parse errors, and flag reserved risky shortcuts |
 | Missing up event | Mouse-action injection has a 20-second safety release where paired handling exists |

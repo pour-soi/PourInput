@@ -3,20 +3,30 @@ Shared mouse hook behavior used by platform implementations.
 """
 
 import queue
+import threading
 import time
+from types import MappingProxyType
 
 try:
     from core.hid_gesture import HidGestureListener
 except Exception:
     HidGestureListener = None
 
-from core.mouse_hook_types import HidRuntimeState, MouseEvent, format_debug_details
+from core.mouse_hook_types import (
+    BindingBuilder,
+    BindingSnapshot,
+    DispatchGenerationState,
+    HidRuntimeState,
+    MouseEvent,
+    LifecycleInvalidation,
+    format_debug_details,
+)
 
 
 class BaseMouseHook:
     def __init__(self):
-        self._callbacks = {}
-        self._blocked_events = set()
+        self._binding_lock = threading.Lock()
+        self._binding_snapshot = BindingSnapshot.empty()
         self._debug_callback = None
         self._gesture_callback = None
         self._status_callback = None
@@ -62,27 +72,134 @@ class BaseMouseHook:
             return
         except queue.Full:
             pass
+        evicted = []
         try:
-            q.get_nowait()
+            evicted.append(q.get_nowait())
         except queue.Empty:
             pass
+        contexts = []
+        for item in evicted:
+            if isinstance(item, LifecycleInvalidation):
+                contexts.extend(item.contexts)
+                continue
+            context = self._lifecycle_context(item)
+            if context is not None:
+                contexts.append(context)
+        if contexts and q.maxsize == 1:
+            context = self._lifecycle_context(event)
+            if context is not None:
+                contexts.append(context)
+            event = None
+        elif contexts:
+            # Put the invalidation ahead of every surviving data event.  Once a
+            # lifecycle edge is lost, retaining later queued edges could let
+            # them observe stale press state before the worker invalidates it.
+            while True:
+                try:
+                    item = q.get_nowait()
+                except queue.Empty:
+                    break
+                if isinstance(item, LifecycleInvalidation):
+                    contexts.extend(item.contexts)
+                else:
+                    context = self._lifecycle_context(item)
+                    if context is not None:
+                        contexts.append(context)
         try:
-            q.put_nowait(event)
+            if contexts:
+                q.put_nowait(LifecycleInvalidation(tuple(contexts)))
+            if event is not None:
+                q.put_nowait(event)
         except queue.Full:
-            self._emit_debug(f"Dropped event due to full dispatch queue: {event.event_type}")
+            self._emit_debug("Dropped event due to full dispatch queue")
+
+    @staticmethod
+    def _lifecycle_context(event):
+        event_type = getattr(event, "event_type", "")
+        route = getattr(event, "binding_route", None)
+        invalidator = getattr(event, "binding_lifecycle_invalidator", None)
+        generation = getattr(event, "binding_generation", None)
+        if (
+            route
+            and invalidator
+            and generation is not None
+            and (event_type.endswith("_down") or event_type.endswith("_up"))
+        ):
+            return generation, route, invalidator
+        return None
 
     def register(self, event_type, callback):
-        self._callbacks.setdefault(event_type, []).append(callback)
+        builder = BindingBuilder(self.capture_binding_snapshot())
+        builder.register(event_type, callback)
+        self.publish_bindings(builder)
 
     def block(self, event_type):
-        self._blocked_events.add(event_type)
+        builder = BindingBuilder(self.capture_binding_snapshot())
+        builder.block(event_type)
+        self.publish_bindings(builder)
 
     def unblock(self, event_type):
-        self._blocked_events.discard(event_type)
+        builder = BindingBuilder(self.capture_binding_snapshot())
+        builder.unblock(event_type)
+        self.publish_bindings(builder)
 
-    def reset_bindings(self):
-        self._callbacks.clear()
-        self._blocked_events.clear()
+    def reset_bindings(self, wait_timeout=None):
+        return self.publish_bindings(BindingBuilder(), wait_timeout=wait_timeout)
+
+    @property
+    def _callbacks(self):
+        return self._binding_snapshot.callbacks
+
+    @property
+    def _blocked_events(self):
+        return self._binding_snapshot.blocked_events
+
+    def new_binding_builder(self):
+        return BindingBuilder()
+
+    def capture_binding_snapshot(self):
+        with self._binding_lock:
+            return self._binding_snapshot
+
+    def publish_bindings(self, builder, wait_timeout=None):
+        """Publish atomically, then wait without the binding lock for old leases.
+
+        Lock order is binding lock -> generation-state lock.  Callback bodies
+        hold only a generation lease, never either structural lock.
+        """
+        callbacks = MappingProxyType(
+            {
+                event_type: tuple(callbacks)
+                for event_type, callbacks in builder.callbacks.items()
+            }
+        )
+        with self._binding_lock:
+            previous = self._binding_snapshot
+            previous.dispatch_state.retire()
+            snapshot = BindingSnapshot(
+                generation=self._binding_snapshot.generation + 1,
+                callbacks=callbacks,
+                blocked_events=frozenset(builder.blocked_events),
+                routes=MappingProxyType(dict(builder.routes)),
+                dispatch_state=DispatchGenerationState(),
+                lifecycle_invalidator=builder.lifecycle_invalidator,
+            )
+            self._binding_snapshot = snapshot
+        self._last_retirement_complete = previous.dispatch_state.wait_for_drain(
+            timeout=wait_timeout
+        )
+        return snapshot
+
+    def bind_event(self, event, snapshot=None):
+        """Attach the exact binding generation used when the event was received."""
+        snapshot = snapshot or self.capture_binding_snapshot()
+        event.binding_generation = snapshot.generation
+        event.binding_route = snapshot.routes.get(event.event_type)
+        event.binding_callbacks = snapshot.callbacks.get(event.event_type, ())
+        event.binding_suppressed = event.event_type in snapshot.blocked_events
+        event.binding_dispatch_state = snapshot.dispatch_state
+        event.binding_lifecycle_invalidator = snapshot.lifecycle_invalidator
+        return event
 
     def configure_gestures(
         self,
@@ -172,33 +289,50 @@ class BaseMouseHook:
                 pass
 
     def _dispatch(self, event):
-        callbacks = self._callbacks.get(event.event_type, [])
-        self._emit_debug(
-            f"Dispatch {event.event_type}"
-            f"{format_debug_details(event.raw_data)} callbacks={len(callbacks)}"
-        )
-        if event.event_type.startswith("gesture_"):
-            self._emit_gesture_event(
-                {
-                    "type": "dispatch",
-                    "event_name": event.event_type,
-                    "callbacks": len(callbacks),
-                }
+        if isinstance(event, LifecycleInvalidation):
+            for generation, route, invalidator in event.contexts:
+                invalidator(generation, route)
+            return
+        if getattr(event, "binding_generation", None) is None:
+            self.bind_event(event)
+        dispatch_state = event.binding_dispatch_state
+        if not dispatch_state.try_acquire():
+            self._emit_debug(
+                f"Dropped retired event {event.event_type} "
+                f"generation={event.binding_generation}"
             )
-        if not callbacks:
-            self._emit_debug(f"No mapped action for {event.event_type}")
+            return
+        try:
+            callbacks = event.binding_callbacks
+            self._emit_debug(
+                f"Dispatch {event.event_type}"
+                f"{format_debug_details(event.raw_data)} callbacks={len(callbacks)}"
+            )
             if event.event_type.startswith("gesture_"):
                 self._emit_gesture_event(
                     {
-                        "type": "unmapped",
+                        "type": "dispatch",
                         "event_name": event.event_type,
+                        "callbacks": len(callbacks),
                     }
                 )
-        for callback in callbacks:
-            try:
-                callback(event)
-            except Exception as exc:
-                print(f"[MouseHook] callback error: {exc}")
+            if not callbacks:
+                self._emit_debug(f"No mapped action for {event.event_type}")
+                if event.event_type.startswith("gesture_"):
+                    self._emit_gesture_event(
+                        {
+                            "type": "unmapped",
+                            "event_name": event.event_type,
+                        }
+                    )
+            for callback in callbacks:
+                try:
+                    callback(event)
+                    self._emit_debug(f"Callback executed for {event.event_type}")
+                except Exception as exc:
+                    print(f"[MouseHook] callback error: {exc}")
+        finally:
+            dispatch_state.release()
 
     def _hid_gesture_available(self):
         return self._hid_gesture is not None and self._device_connected

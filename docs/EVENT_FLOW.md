@@ -169,17 +169,19 @@ sequenceDiagram
     QML->>Backend: setGenericMouseEnabled(value)
     Backend->>Config: save generic_mouse_enabled
     Backend->>Engine: reload_mappings()
-    Engine->>Hook: clear callbacks and block flags
+    Engine->>Engine: build complete callback/suppression snapshot
     alt enabled
         Engine->>Hook: bind middle and generic side mappings
-        Engine->>Hook: suppress duplicate physical xbutton mappings
     else disabled
-        Engine->>Hook: stop managing generic side events
+        Engine->>Engine: leave standard side events native
     end
+    Engine->>Hook: atomically publish new binding generation
     Backend-->>QML: settings, mappings, layout/status signals
 ```
 
-The mode is forced off by engine logic on non-Windows platforms. When enabled without a connected supported device, the UI exposes middle plus two generic side buttons. With a device connected, it removes Logitech `xbutton1`/`xbutton2` UI duplicates and uses `generic_xbutton1`/`generic_xbutton2` for the standard Windows side events. Disabled or unmapped standard events pass through natively.
+The mode is forced off by engine logic on non-Windows platforms. When enabled, the UI exposes middle plus two generic side buttons and Generic Mouse Mode owns the standard side events. Detected-device identity and catalog capabilities never authorize a Logitech-specific low-level XBUTTON route because they cannot identify the event source. Disabled or unmapped events pass through natively.
+
+Windows `WH_MOUSE_LL` XBUTTON messages do not include a physical device handle. Raw Input can report a device handle for diagnostics, but it cannot be correlated safely with the synchronous low-level suppression decision. The engine therefore treats standard XBUTTONs as device-ambiguous and routes them only through explicitly enabled Generic Mouse Mode.
 
 ## Save operations
 

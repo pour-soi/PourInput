@@ -9,6 +9,7 @@ from unittest.mock import Mock, patch
 
 from core import hid_gesture
 from core.config import DEFAULT_CONFIG
+from core.mouse_hook_types import BindingBuilder, BindingSnapshot
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -254,6 +255,7 @@ class _FakeMouseHook:
         self._hid_gesture = None
         self.divert_mode_shift = False
         self.start_called = False
+        self._binding_snapshot = BindingSnapshot.empty()
 
     def set_debug_callback(self, cb): pass
     def set_gesture_callback(self, cb): pass
@@ -262,7 +264,14 @@ class _FakeMouseHook:
     def configure_gestures(self, **kwargs): pass
     def block(self, event_type): pass
     def register(self, event_type, callback): pass
-    def reset_bindings(self): pass
+    def new_binding_builder(self): return BindingBuilder()
+    def publish_bindings(self, builder):
+        self._binding_snapshot = BindingSnapshot.empty(
+            self._binding_snapshot.generation + 1
+        )
+        return self._binding_snapshot
+    def capture_binding_snapshot(self): return self._binding_snapshot
+    def reset_bindings(self, wait_timeout=None): return self.publish_bindings(BindingBuilder())
     def sync_hid_extra_diverts(self): pass
     def start(self): self.start_called = True
     def stop(self): pass

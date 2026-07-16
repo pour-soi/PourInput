@@ -2,6 +2,7 @@ import importlib
 import ctypes
 import queue
 import sys
+import threading
 import unittest
 from types import SimpleNamespace
 from unittest.mock import Mock, MagicMock, call, patch
@@ -9,7 +10,7 @@ from unittest.mock import Mock, MagicMock, call, patch
 import core
 from core import mouse_hook
 from core.mouse_hook_base import BaseMouseHook
-from core.mouse_hook_types import HidRuntimeState
+from core.mouse_hook_types import HidRuntimeState, LifecycleInvalidation, MouseEvent
 
 
 class _FakeEvdevDevice:
@@ -150,6 +151,150 @@ class BaseMouseHookDispatchQueueTests(unittest.TestCase):
         self.assertIn("Dropped event due to full dispatch queue", hook._debug_callback.call_args[0][0])
 
 
+class BaseMouseHookBindingSnapshotTests(unittest.TestCase):
+    def test_binding_snapshot_replacement_is_atomic_and_immutable(self):
+        hook = BaseMouseHook()
+        first_callback = Mock()
+        first_builder = hook.new_binding_builder()
+        first_builder.register(MouseEvent.XBUTTON1_DOWN, first_callback)
+        first_builder.block(MouseEvent.XBUTTON1_DOWN)
+        first_builder.set_route(MouseEvent.XBUTTON1_DOWN, "generic_xbutton1")
+        first = hook.publish_bindings(first_builder)
+
+        second_callback = Mock()
+        second_builder = hook.new_binding_builder()
+        second_builder.register(MouseEvent.XBUTTON1_DOWN, second_callback)
+        second = hook.publish_bindings(second_builder)
+
+        self.assertEqual(second.generation, first.generation + 1)
+        self.assertEqual(first.callbacks[MouseEvent.XBUTTON1_DOWN], (first_callback,))
+        self.assertIn(MouseEvent.XBUTTON1_DOWN, first.blocked_events)
+        self.assertEqual(first.routes[MouseEvent.XBUTTON1_DOWN], "generic_xbutton1")
+        self.assertEqual(second.callbacks[MouseEvent.XBUTTON1_DOWN], (second_callback,))
+        self.assertNotIn(MouseEvent.XBUTTON1_DOWN, second.blocked_events)
+
+    def test_retired_queued_event_does_not_execute_new_or_old_callback(self):
+        hook = BaseMouseHook()
+        old_callback = Mock()
+        old_builder = hook.new_binding_builder()
+        old_builder.register(MouseEvent.XBUTTON1_DOWN, old_callback)
+        old_snapshot = hook.publish_bindings(old_builder)
+        event = hook.bind_event(
+            MouseEvent(MouseEvent.XBUTTON1_DOWN),
+            old_snapshot,
+        )
+
+        new_callback = Mock()
+        new_builder = hook.new_binding_builder()
+        new_builder.register(MouseEvent.XBUTTON1_DOWN, new_callback)
+        hook.publish_bindings(new_builder)
+        hook._dispatch(event)
+
+        old_callback.assert_not_called()
+        new_callback.assert_not_called()
+
+    def test_replacement_waits_for_admitted_callback_to_finish(self):
+        hook = BaseMouseHook()
+        callback = Mock()
+        builder = hook.new_binding_builder()
+        builder.register(MouseEvent.XBUTTON1_DOWN, callback)
+        snapshot = hook.publish_bindings(builder)
+        event = hook.bind_event(MouseEvent(MouseEvent.XBUTTON1_DOWN), snapshot)
+        admitted = threading.Event()
+        allow_callback = threading.Event()
+        retirement_waiting = threading.Event()
+        replacement_done = threading.Event()
+        original_acquire = snapshot.dispatch_state.try_acquire
+        original_wait = snapshot.dispatch_state.wait_for_drain
+
+        def controlled_acquire():
+            acquired = original_acquire()
+            admitted.set()
+            allow_callback.wait()
+            return acquired
+
+        def observed_wait(timeout=None):
+            retirement_waiting.set()
+            return original_wait(timeout)
+
+        snapshot.dispatch_state.try_acquire = controlled_acquire
+        snapshot.dispatch_state.wait_for_drain = observed_wait
+        dispatch_thread = threading.Thread(target=hook._dispatch, args=(event,))
+        dispatch_thread.start()
+        self.assertTrue(admitted.wait(1))
+
+        def replace():
+            hook.publish_bindings(hook.new_binding_builder())
+            replacement_done.set()
+
+        replace_thread = threading.Thread(target=replace)
+        replace_thread.start()
+        self.assertTrue(retirement_waiting.wait(1))
+        self.assertFalse(replacement_done.is_set())
+        allow_callback.set()
+        dispatch_thread.join(1)
+        replace_thread.join(1)
+
+        self.assertTrue(replacement_done.is_set())
+        callback.assert_called_once_with(event)
+
+    def test_reentrant_replacement_does_not_self_deadlock(self):
+        hook = BaseMouseHook()
+        replacement_returned = Mock()
+
+        def callback(_event):
+            hook.publish_bindings(hook.new_binding_builder())
+            replacement_returned()
+
+        builder = hook.new_binding_builder()
+        builder.register(MouseEvent.XBUTTON1_DOWN, callback)
+        snapshot = hook.publish_bindings(builder)
+        hook._dispatch(hook.bind_event(MouseEvent(MouseEvent.XBUTTON1_DOWN), snapshot))
+
+        replacement_returned.assert_called_once_with()
+
+    def test_overflow_queues_lifecycle_invalidation_before_new_event(self):
+        hook = BaseMouseHook()
+        hook._init_dispatch_queue(maxsize=3)
+        invalidator = Mock()
+        builder = hook.new_binding_builder()
+        builder.set_route(MouseEvent.XBUTTON1_UP, "generic_xbutton1")
+        builder.set_lifecycle_invalidator(invalidator)
+        snapshot = hook.publish_bindings(builder)
+        up = hook.bind_event(MouseEvent(MouseEvent.XBUTTON1_UP), snapshot)
+        hook._enqueue_dispatch_event(up)
+        hook._enqueue_dispatch_event(MouseEvent(MouseEvent.HSCROLL_LEFT))
+        hook._enqueue_dispatch_event(MouseEvent(MouseEvent.HSCROLL_RIGHT))
+        new_event = MouseEvent(MouseEvent.MIDDLE_DOWN)
+        hook._enqueue_dispatch_event(new_event)
+
+        control = hook._dispatch_queue.get_nowait()
+        self.assertIsInstance(control, LifecycleInvalidation)
+        hook._dispatch(control)
+        invalidator.assert_called_once_with(snapshot.generation, "generic_xbutton1")
+        self.assertIs(hook._dispatch_queue.get_nowait(), new_event)
+
+    def test_consecutive_overflow_preserves_pending_invalidations(self):
+        hook = BaseMouseHook()
+        hook._init_dispatch_queue(maxsize=2)
+        invalidator = Mock()
+        builder = hook.new_binding_builder()
+        builder.set_route(MouseEvent.XBUTTON1_UP, "generic_xbutton1")
+        builder.set_lifecycle_invalidator(invalidator)
+        snapshot = hook.publish_bindings(builder)
+
+        for _ in range(2):
+            up = hook.bind_event(MouseEvent(MouseEvent.XBUTTON1_UP), snapshot)
+            hook._enqueue_dispatch_event(up)
+            hook._enqueue_dispatch_event(MouseEvent(MouseEvent.MIDDLE_DOWN))
+            hook._enqueue_dispatch_event(MouseEvent(MouseEvent.MIDDLE_UP))
+
+        control = hook._dispatch_queue.get_nowait()
+        self.assertIsInstance(control, LifecycleInvalidation)
+        hook._dispatch(control)
+        self.assertGreaterEqual(invalidator.call_count, 2)
+
+
 @unittest.skipUnless(sys.platform == "win32", "Windows-only low-level hook tests")
 class WindowsXButtonHookTests(unittest.TestCase):
     def _windows_module(self):
@@ -265,6 +410,84 @@ class WindowsXButtonHookTests(unittest.TestCase):
             )
 
         self.assertEqual(result, 1)
+
+    def test_debug_logging_reports_xbutton_routing_and_callback_execution(self):
+        module = self._windows_module()
+        hook = module.MouseHook()
+        callback = Mock()
+        debug_messages = []
+        hook.debug_mode = True
+        hook.set_debug_callback(debug_messages.append)
+        hook.register(module.MouseEvent.XBUTTON1_DOWN, callback)
+        hook.block(module.MouseEvent.XBUTTON1_DOWN)
+
+        with patch.object(module, "CallNextHookEx", return_value=123):
+            result = hook._low_level_handler_inner(
+                module.HC_ACTION,
+                module.WM_XBUTTONDOWN,
+                self._xbutton_pointer(module, module.XBUTTON1),
+            )
+
+        self.assertEqual(result, 1)
+        event = hook._dispatch_queue.get_nowait()
+        hook._dispatch(event)
+        callback.assert_called_once()
+        joined = "\n".join(debug_messages)
+        self.assertIn("WM_XBUTTONDOWN", joined)
+        self.assertIn("device=unavailable(WH_MOUSE_LL)", joined)
+        self.assertIn("blocked=True", joined)
+        self.assertIn("callbacks=1", joined)
+        self.assertIn("Callback executed for xbutton1_down", joined)
+
+    def test_suppression_and_callback_context_use_the_receipt_generation(self):
+        module = self._windows_module()
+        hook = module.MouseHook()
+        old_callback = Mock()
+        old_builder = hook.new_binding_builder()
+        old_builder.register(module.MouseEvent.XBUTTON1_DOWN, old_callback)
+        old_builder.block(module.MouseEvent.XBUTTON1_DOWN)
+        old_builder.set_route(module.MouseEvent.XBUTTON1_DOWN, "generic_xbutton1")
+        old_snapshot = hook.publish_bindings(old_builder)
+
+        with patch.object(module, "CallNextHookEx", return_value=123):
+            result = hook._low_level_handler_inner(
+                module.HC_ACTION,
+                module.WM_XBUTTONDOWN,
+                self._xbutton_pointer(module, module.XBUTTON1),
+            )
+
+        self.assertEqual(result, 1)
+        queued = hook._dispatch_queue.get_nowait()
+        self.assertEqual(queued.binding_generation, old_snapshot.generation)
+        self.assertEqual(queued.binding_route, "generic_xbutton1")
+        self.assertTrue(queued.binding_suppressed)
+        self.assertEqual(queued.binding_callbacks, (old_callback,))
+
+        new_callback = Mock()
+        new_builder = hook.new_binding_builder()
+        new_builder.register(module.MouseEvent.XBUTTON1_DOWN, new_callback)
+        hook.publish_bindings(new_builder)
+        hook._dispatch(queued)
+
+        old_callback.assert_not_called()
+        new_callback.assert_not_called()
+
+
+@unittest.skipUnless(sys.platform == "win32", "Windows-only worker lifecycle test")
+class WindowsMouseHookShutdownTests(unittest.TestCase):
+    def test_stop_preserves_live_worker_reference(self):
+        module = importlib.import_module("core.mouse_hook_windows")
+        hook = module.MouseHook()
+        worker = Mock()
+        worker.is_alive.return_value = True
+        hook._dispatch_worker_thread = worker
+
+        with patch.object(module.threading, "current_thread", return_value=object()):
+            stopped = hook.stop()
+
+        self.assertFalse(stopped)
+        self.assertIs(hook._dispatch_worker_thread, worker)
+        worker.join.assert_called_once_with(timeout=1)
 
 
 class LinuxMouseHookReconnectTests(unittest.TestCase):

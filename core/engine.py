@@ -18,6 +18,7 @@ from core.config import (
     GENERIC_MOUSE_BUTTONS,
     GESTURE_DIRECTION_BUTTONS, save_config,
     long_press_mapping_key, supports_multi_action,
+    resolve_windows_xbutton_mapping_key, WINDOWS_XBUTTON_KEYS,
 )
 from core.app_detector import AppDetector
 from core.mouse_hook_types import HidRuntimeState
@@ -31,9 +32,6 @@ from core.logi_devices import clamp_dpi, get_reprogrammable_buttons
 HSCROLL_ACTION_COOLDOWN_S = 0.35
 HSCROLL_VOLUME_COOLDOWN_S = 0.06
 _VOLUME_ACTIONS = {"volume_up", "volume_down"}
-_WINDOWS_XBUTTON_KEYS = {"xbutton1", "xbutton2"}
-
-
 class Engine:
     """
     Core logic: reads config, installs the mouse hook,
@@ -66,17 +64,19 @@ class Engine:
         self._battery_poll_thread = None          # track the poller thread
         self._last_connection_state = bool(self._hid_runtime_state().input_ready)
         self._last_hid_features_ready = bool(self.hid_features_ready)
+        self._last_binding_route_identity = self._binding_route_identity()
         self._hid_replay_requested_this_launch = False
         self._replay_inflight = False
         self._replay_pending_rerun = False
         self._replay_lock = threading.Lock()
         self._mouse_release_timers = {}   # action_id → Timer for safety auto-release
         self._multi_action_down_at = {}
+        self._binding_state_lock = threading.Lock()
         self._lock = threading.Lock()
         self.hook.set_debug_callback(self._emit_debug)
         self.hook.set_gesture_callback(self._emit_gesture_event)
         self.hook.set_status_callback(self._emit_status)
-        self._setup_hooks()
+        self._replace_bindings("startup")
         self.hook.set_connection_change_callback(self._on_connection_change)
         # Apply persisted DPI setting
         dpi = self.cfg.get("settings", {}).get("dpi", 1000)
@@ -98,12 +98,22 @@ class Engine:
             connected_device=getattr(self.hook, "connected_device", None),
         )
 
+    def _binding_route_identity(self):
+        device = self._hid_runtime_state().connected_device
+        if device is None:
+            return None
+        return tuple(
+            getattr(device, field, None)
+            for field in ("key", "product_id", "transport", "source")
+        )
+
     # ------------------------------------------------------------------
     # Hook wiring
     # ------------------------------------------------------------------
-    def _setup_hooks(self):
+    def _setup_hooks(self, bindings):
         """Register callbacks and block events for all mapped buttons."""
         mappings = get_active_mappings(self.cfg)
+        bindings.set_lifecycle_invalidator(self._invalidate_press_lifecycle)
         generic_mouse_enabled = self._generic_mouse_enabled()
 
         # Apply scroll inversion settings to the hook
@@ -133,6 +143,37 @@ class Engine:
         # connected yet, assume the button exists (safe: if the device
         # turns out not to have it, the divert simply has no effect).
         device_buttons = get_reprogrammable_buttons(device)
+        xbutton_routes = {
+            button: resolve_windows_xbutton_mapping_key(
+                button,
+                generic_mouse_enabled=generic_mouse_enabled,
+                platform_name=sys.platform,
+            )
+            for button in WINDOWS_XBUTTON_KEYS
+        }
+        if self._debug_events_enabled and sys.platform == "win32":
+            device_key = getattr(device, "key", "") or "unresolved"
+            transport = getattr(device, "transport", "") or "unknown"
+            for physical_key in sorted(WINDOWS_XBUTTON_KEYS):
+                mapping_key = xbutton_routes[physical_key]
+                action_id = mappings.get(mapping_key, "none") if mapping_key else "none"
+                long_action_id = (
+                    mappings.get(long_press_mapping_key(mapping_key), "none")
+                    if mapping_key
+                    else "none"
+                )
+                self._emit_debug(
+                    "XBUTTON route "
+                    f"profile={self._current_profile} device={device_key} "
+                    f"transport={transport} physical={physical_key} "
+                    f"logical={mapping_key or 'native'} action={action_id} "
+                    f"long_action={long_action_id}"
+                )
+        for mapping_key in xbutton_routes.values():
+            if not mapping_key:
+                continue
+            for event_type in BUTTON_TO_EVENTS.get(mapping_key, ()):
+                bindings.set_route(event_type, mapping_key)
         has_mode_shift = device_buttons is None or "mode_shift" in device_buttons
         self.hook.divert_mode_shift = (
             has_mode_shift
@@ -161,21 +202,23 @@ class Engine:
             if btn_key.endswith("_long"):
                 continue
             if btn_key in GENERIC_MOUSE_BUTTONS:
-                if not generic_mouse_enabled:
+                physical_key = btn_key.removeprefix("generic_")
+                if xbutton_routes.get(physical_key) != btn_key:
                     continue
-            elif generic_mouse_enabled and btn_key in _WINDOWS_XBUTTON_KEYS:
-                continue
+            elif btn_key in WINDOWS_XBUTTON_KEYS:
+                if xbutton_routes.get(btn_key) != btn_key:
+                    continue
             elif not self._should_bind_middle_button(
                 btn_key,
                 generic_mouse_enabled,
                 device_buttons,
             ):
                 continue
-            elif not self._should_bind_physical_xbutton(btn_key, device_buttons):
-                continue
             if btn_key.startswith("gesture") and not device_supports_gesture:
                 continue
             events = list(BUTTON_TO_EVENTS.get(btn_key, ()))
+            for event_type in events:
+                bindings.set_route(event_type, btn_key)
             long_action_id = mappings.get(long_press_mapping_key(btn_key), "none")
             has_multi_action = (
                 supports_multi_action(btn_key)
@@ -185,9 +228,9 @@ class Engine:
             )
             if has_multi_action:
                 for evt_type in events:
-                    self.hook.block(evt_type)
+                    bindings.block(evt_type)
                     if evt_type.endswith("_down"):
-                        self.hook.register(
+                        bindings.register(
                             evt_type,
                             self._make_multi_action_down_handler(
                                 btn_key,
@@ -196,7 +239,7 @@ class Engine:
                             ),
                         )
                     elif evt_type.endswith("_up"):
-                        self.hook.register(
+                        bindings.register(
                             evt_type,
                             self._make_multi_action_up_handler(
                                 btn_key,
@@ -212,37 +255,54 @@ class Engine:
             for evt_type in events:
                 if has_paired_down and evt_type.endswith("_up"):
                     if action_id != "none":
-                        self.hook.block(evt_type)
+                        bindings.block(evt_type)
                         if is_mouse_button_action(action_id):
-                            self.hook.register(evt_type, self._make_mouse_up_handler(action_id))
+                            bindings.register(evt_type, self._make_mouse_up_handler(action_id))
                     continue
 
                 if action_id != "none":
-                    self.hook.block(evt_type)
+                    bindings.block(evt_type)
 
                     if "hscroll" in evt_type:
-                        self.hook.register(evt_type, self._make_hscroll_handler(action_id))
+                        bindings.register(evt_type, self._make_hscroll_handler(action_id))
                     elif is_mouse_button_action(action_id):
                         if has_up:
                             # Button has a matching _up event → split press/release
-                            self.hook.register(evt_type, self._make_mouse_down_handler(action_id))
+                            bindings.register(evt_type, self._make_mouse_down_handler(action_id))
                         else:
                             # Single-fire event (gesture, swipe) → full click
-                            self.hook.register(evt_type, self._make_handler(action_id))
+                            bindings.register(evt_type, self._make_handler(action_id))
                     else:
-                        self.hook.register(evt_type, self._make_handler(action_id))
+                        bindings.register(evt_type, self._make_handler(action_id))
+
+    def _replace_bindings(self, reason):
+        """Build and publish one generation, then remove only retired state.
+
+        Publication drains admitted callbacks before returning.  The engine
+        state lock is acquired afterward, so mapped actions never run under it.
+        """
+        bindings = self.hook.new_binding_builder()
+        self._setup_hooks(bindings)
+        snapshot = self.hook.publish_bindings(bindings)
+        with self._binding_state_lock:
+            self._multi_action_down_at = {
+                key: value
+                for key, value in self._multi_action_down_at.items()
+                if key[0] == snapshot.generation
+            }
+        self._emit_debug(
+            f"Bindings replaced generation={snapshot.generation} reason={reason}"
+        )
+        return snapshot
+
+    def _invalidate_press_lifecycle(self, generation, route):
+        with self._binding_state_lock:
+            self._multi_action_down_at.pop((generation, route), None)
 
     def _generic_mouse_enabled(self):
         if sys.platform != "win32":
             return False
         return bool(self.cfg.get("settings", {}).get("generic_mouse_enabled", False))
-
-    def _should_bind_physical_xbutton(self, button_key, device_buttons):
-        if button_key not in _WINDOWS_XBUTTON_KEYS:
-            return True
-        if sys.platform != "win32":
-            return True
-        return False
 
     def _should_bind_middle_button(self, button_key, generic_mouse_enabled, device_buttons):
         if button_key != "middle":
@@ -302,9 +362,17 @@ class Engine:
         def handler(event):
             try:
                 if self._enabled:
-                    self._multi_action_down_at[button_key] = time.monotonic()
+                    event_generation = getattr(
+                        event,
+                        "binding_generation",
+                        self.hook.capture_binding_snapshot().generation,
+                    )
+                    with self._binding_state_lock:
+                        state_key = (event_generation, button_key)
+                        self._multi_action_down_at[state_key] = time.monotonic()
                     self._emit_debug(
-                        f"{button_key} down -> armed click={click_action_id} "
+                        f"{button_key} down generation={event_generation} "
+                        f"-> armed click={click_action_id} "
                         f"long={long_action_id}"
                     )
             except Exception as exc:
@@ -318,8 +386,21 @@ class Engine:
                 if not self._enabled:
                     return
                 now = time.monotonic()
-                down_at = self._multi_action_down_at.pop(button_key, None)
-                held_s = 0.0 if down_at is None else max(0.0, now - down_at)
+                event_generation = getattr(
+                    event,
+                    "binding_generation",
+                    self.hook.capture_binding_snapshot().generation,
+                )
+                with self._binding_state_lock:
+                    state_key = (event_generation, button_key)
+                    down_at = self._multi_action_down_at.pop(state_key, None)
+                if down_at is None:
+                    self._emit_debug(
+                        f"Ignored unmatched {button_key} up "
+                        f"generation={event_generation}"
+                    )
+                    return
+                held_s = max(0.0, now - down_at)
                 held_ms = int(round(held_s * 1000))
                 if held_s >= self._multi_action_threshold_s():
                     print(f"[Engine] {button_key} long press ({held_ms}ms) -> {long_action_id}")
@@ -544,8 +625,7 @@ class Engine:
             self.cfg["active_profile"] = profile_name
             self._current_profile = profile_name
             # Lightweight: just re-wire callbacks, keep hook + HID++ alive
-            self.hook.reset_bindings()
-            self._setup_hooks()
+            self._replace_bindings(f"profile:{profile_name}")
             self._emit_debug(f"Active profile -> {profile_name}")
         # Notify UI (if connected)
         if self._profile_change_cb:
@@ -782,6 +862,8 @@ class Engine:
         connection_changed = connected != self._last_connection_state
         hid_features_ready = self.hid_features_ready
         hid_features_changed = hid_features_ready != self._last_hid_features_ready
+        route_identity = self._binding_route_identity()
+        route_changed = route_identity != self._last_binding_route_identity
         if connection_changed:
             self._last_connection_state = connected
             self._battery_poll_stop.set()
@@ -789,10 +871,16 @@ class Engine:
                 self._battery_poll_thread.join(timeout=5)
                 self._battery_poll_thread = None
         self._last_hid_features_ready = hid_features_ready
-        if connection_changed or hid_features_changed:
+        self._last_binding_route_identity = route_identity
+        if connection_changed or hid_features_changed or route_changed:
             with self._lock:
-                self.hook.reset_bindings()
-                self._setup_hooks()
+                self._replace_bindings(
+                    "connection"
+                    if connection_changed
+                    else "hid-readiness"
+                    if hid_features_changed
+                    else "device-route"
+                )
         if self._connection_change_cb:
             try:
                 self._connection_change_cb(connected)
@@ -1010,12 +1098,15 @@ class Engine:
         with self._lock:
             self.cfg = load_config()
             self._current_profile = self.cfg.get("active_profile", "default")
-            self.hook.reset_bindings()
-            self._setup_hooks()
+            self._replace_bindings("mapping-reload")
             self._emit_debug(f"reload_mappings profile={self._current_profile}")
 
     def set_enabled(self, enabled):
-        self._enabled = bool(enabled)
+        enabled = bool(enabled)
+        if enabled != self._enabled:
+            with self._binding_state_lock:
+                self._multi_action_down_at.clear()
+        self._enabled = enabled
 
     def set_ui_passthrough(self, enabled):
         if hasattr(self.hook, "set_ui_passthrough"):
@@ -1057,4 +1148,7 @@ class Engine:
             self._battery_poll_thread.join(timeout=5)
             self._battery_poll_thread = None
         self._app_detector.stop()
-        self.hook.stop()
+        self.hook.reset_bindings(wait_timeout=1.0)
+        with self._binding_state_lock:
+            self._multi_action_down_at.clear()
+        return self.hook.stop()

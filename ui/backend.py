@@ -23,6 +23,7 @@ from core.config import (
     GENERIC_MOUSE_BUTTON_NAMES, GENERIC_MOUSE_BUTTONS,
     PROFILE_BUTTON_NAMES, set_mapping, create_profile, delete_profile,
     get_icon_for_exe, long_press_mapping_key, supports_multi_action,
+    resolve_windows_xbutton_mapping_key,
 )
 from core import app_catalog
 from core.device_layouts import get_device_layout, get_manual_layout_choices
@@ -1703,8 +1704,16 @@ class Backend(QObject):
         if not self._mouse_connected:
             return {"middle", *GENERIC_MOUSE_BUTTONS}
         buttons = set(self._effective_supported_buttons or ())
-        buttons.difference_update({"xbutton1", "xbutton2"})
-        buttons.update(GENERIC_MOUSE_BUTTONS)
+        for physical_key in ("xbutton1", "xbutton2"):
+            mapping_key = resolve_windows_xbutton_mapping_key(
+                physical_key,
+                generic_mouse_enabled=True,
+                platform_name=sys.platform,
+            )
+            buttons.discard(physical_key)
+            buttons.discard(f"generic_{physical_key}")
+            if mapping_key:
+                buttons.add(mapping_key)
         return buttons
 
     @Slot(result=str)
