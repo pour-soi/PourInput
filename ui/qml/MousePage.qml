@@ -2212,7 +2212,7 @@ Item {
                                               + (backend.gestureMoveSource ? backend.gestureMoveSource : (s["mouse.not_available"] || "n/a"))
                                               + " | dx: " + backend.gestureMoveDx
                                               + " | dy: " + backend.gestureMoveDy
-                                        font { family: "Menlo"; pixelSize: 11 }
+                                        font { family: uiState.monospaceFontFamily; pixelSize: 11 }
                                         color: theme.textSecondary
                                     }
 
@@ -2250,7 +2250,7 @@ Item {
                                                ? theme.textPrimary
                                                : theme.textSecondary
                                         font.pixelSize: 11
-                                        font.family: "Menlo"
+                                        font.family: uiState.monospaceFontFamily
                                         background: null
                                         padding: 10
 
@@ -2285,7 +2285,7 @@ Item {
                                                ? theme.textPrimary
                                                : theme.textSecondary
                                         font.pixelSize: 11
-                                        font.family: "Menlo"
+                                        font.family: uiState.monospaceFontFamily
                                         background: null
                                         padding: 10
                                     }

@@ -57,7 +57,7 @@ os.environ["QT_QUICK_CONTROLS_MATERIAL_ACCENT"] = "#5d8ff3"
 
 _t1 = _time.perf_counter()
 from PySide6.QtWidgets import QApplication, QSystemTrayIcon, QMenu, QFileIconProvider, QMessageBox
-from PySide6.QtGui import QAction, QColor, QGuiApplication, QIcon, QPainter, QPixmap, QWindow
+from PySide6.QtGui import QAction, QColor, QFont, QFontDatabase, QGuiApplication, QIcon, QPainter, QPixmap, QWindow
 from PySide6.QtCore import QObject, Property, QCoreApplication, QRectF, Qt, QUrl, Signal, QFileInfo, QEvent, QTimer
 from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtQuick import QQuickImageProvider
@@ -85,6 +85,7 @@ from core.version import (
     MAINTAINER,
 )
 from ui.backend import Backend
+from ui.font_policy import apply_application_font, resolve_monospace_font_family
 from ui.locale_manager import LocaleManager
 _t4 = _time.perf_counter()
 
@@ -913,19 +914,16 @@ class UiState(QObject):
     appearanceModeChanged = Signal()
     systemAppearanceChanged = Signal()
     darkModeChanged = Signal()
+    fontFamilyChanged = Signal()
 
-    def __init__(self, app: QApplication, parent=None):
+    def __init__(self, app: QApplication, language="en", parent=None):
         super().__init__(parent)
         self._app = app
         self._appearance_mode = "system"
-        self._font_family = app.font().family()
-        if self._font_family in {"", "Sans Serif"}:
-            if sys.platform == "darwin":
-                self._font_family = ".AppleSystemUIFont"
-            elif sys.platform == "win32":
-                self._font_family = "Segoe UI"
-            else:
-                self._font_family = "Noto Sans"
+        self._base_font = QFont(app.font())
+        self._font_family = ""
+        self._monospace_font_family = ""
+        self.setLanguage(language)
         self._system_dark_mode = False
         self._sync_system_appearance()
 
@@ -968,9 +966,31 @@ class UiState(QObject):
             return False
         return self._system_dark_mode
 
-    @Property(str, constant=True)
+    @Property(str, notify=fontFamilyChanged)
     def fontFamily(self):
         return self._font_family
+
+    @Property(str, notify=fontFamilyChanged)
+    def monospaceFontFamily(self):
+        return self._monospace_font_family
+
+    @Slot(str)
+    def setLanguage(self, language):
+        family = apply_application_font(self._app, language, self._base_font)
+        monospace_family = resolve_monospace_font_family(
+            language,
+            platform_name=sys.platform,
+            available_families=set(QFontDatabase.families()),
+            primary_family=family,
+        )
+        if (
+            family == self._font_family
+            and monospace_family == self._monospace_font_family
+        ):
+            return
+        self._font_family = family
+        self._monospace_font_family = monospace_family
+        self.fontFamilyChanged.emit()
 
 
 class AppIconProvider(QQuickImageProvider):
@@ -1098,6 +1118,7 @@ def main():
     argv, hid_backend, start_hidden, force_show = _parse_cli_args(sys.argv)
     cfg = load_config()
     cfg_settings = cfg.get("settings", {})
+    initial_lang = cfg_settings.get("language", "en")
     launch_hidden = (
         not force_show
         and (start_hidden or bool(cfg_settings.get("start_minimized", False)))
@@ -1129,15 +1150,17 @@ def main():
     app.setQuitOnLastWindowClosed(False)
     _configure_macos_app_mode()
     _install_macos_dock_icon()
-    ui_state = UiState(app)
+    ui_state = UiState(app, language=initial_lang)
 
     print(f"[PourInput] Version: {APP_VERSION} ({APP_BUILD_MODE})")
     print(f"[PourInput] Commit: {APP_COMMIT_DISPLAY}")
     print(f"[PourInput] Launch path: {_runtime_launch_path()}")
 
     # ── Locale Manager ─────────────────────────────────────────
-    initial_lang = cfg_settings.get("language", "en")
     locale_mgr = LocaleManager(language=initial_lang)
+    locale_mgr.languageChanged.connect(
+        lambda: ui_state.setLanguage(locale_mgr.language)
+    )
 
     # macOS: allow Ctrl+C in terminal to quit the app
     signal.signal(signal.SIGINT, signal.SIG_DFL)

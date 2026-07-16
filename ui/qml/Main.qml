@@ -21,11 +21,6 @@ ApplicationWindow {
                                     || (appearanceMode === "system"
                                         && uiState.systemDarkMode)
     readonly property var theme: Theme.palette(darkMode)
-    readonly property string monoFontFamily: Qt.platform.os === "osx"
-                                               ? "Menlo"
-                                               : (Qt.platform.os === "windows"
-                                                  ? "Consolas"
-                                                  : "monospace")
     property var s: lm.strings
     readonly property string displayBuildMode: appBuildMode === "Packaged app"
                                                 ? (s["about.build_mode.packaged"] || appBuildMode)
@@ -473,7 +468,7 @@ ApplicationWindow {
 
                         Text {
                             text: (lm.strings["about.commit"] || "Commit") + ": " + appCommit
-                            font { family: root.monoFontFamily; pixelSize: 12 }
+                            font { family: uiState.monospaceFontFamily; pixelSize: 12 }
                             color: root.theme.textSecondary
                         }
                     }
@@ -547,7 +542,7 @@ ApplicationWindow {
                                 anchors.rightMargin: 18
                                 anchors.verticalCenter: parent.verticalCenter
                                 text: appCommit
-                                font { family: root.monoFontFamily; pixelSize: 13 }
+                                font { family: uiState.monospaceFontFamily; pixelSize: 13 }
                                 color: theme.textPrimary
                             }
                         }
@@ -581,7 +576,7 @@ ApplicationWindow {
                                 anchors.rightMargin: 18
                                 anchors.verticalCenter: parent.verticalCenter
                                 text: appMaintainer
-                                font { family: root.monoFontFamily; pixelSize: 13 }
+                                font { family: uiState.monospaceFontFamily; pixelSize: 13 }
                                 color: theme.textPrimary
                             }
                         }
@@ -619,7 +614,7 @@ ApplicationWindow {
                                 anchors.topMargin: 18
                                 text: appLaunchPath
                                 wrapMode: Text.WrapAnywhere
-                                font { family: root.monoFontFamily; pixelSize: 12 }
+                                font { family: uiState.monospaceFontFamily; pixelSize: 12 }
                                 color: theme.textPrimary
                             }
                         }
