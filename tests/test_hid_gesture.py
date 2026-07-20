@@ -859,5 +859,164 @@ class HidReconnectInvariantTests(unittest.TestCase):
         extra_up.assert_called_once_with()
 
 
+class HidSideButtonHoldStateTests(unittest.TestCase):
+    @staticmethod
+    def _report(*cids):
+        params = []
+        for cid in cids:
+            params.extend(((cid >> 8) & 0xFF, cid & 0xFF))
+        params.extend((0x00, 0x00))
+        return [0x11, 0xFF, 0x09, 0x00, *params]
+
+    @staticmethod
+    def _listener():
+        callbacks = {
+            0x0053: {"on_down": Mock(), "on_up": Mock()},
+            0x0056: {"on_down": Mock(), "on_up": Mock()},
+        }
+        listener = hid_gesture.HidGestureListener(extra_diverts=callbacks)
+        listener._feat_idx = 0x09
+        return listener, callbacks
+
+    def test_temporary_empty_and_returning_cid_remain_one_logical_hold(self):
+        listener, callbacks = self._listener()
+        with patch.object(hid_gesture.time, "monotonic", return_value=100.0):
+            listener._on_report(self._report(0x0056))
+        with patch.object(hid_gesture.time, "monotonic", return_value=102.0):
+            listener._on_report(self._report())
+        with patch.object(hid_gesture.time, "monotonic", return_value=102.7):
+            listener._on_report(self._report(0x0056))
+
+        callbacks[0x0056]["on_down"].assert_called_once_with()
+        callbacks[0x0056]["on_up"].assert_not_called()
+        self.assertTrue(listener._extra_diverts[0x0056]["held"])
+        self.assertIsNone(
+            listener._extra_diverts[0x0056]["tentative_empty_since"]
+        )
+
+    def test_stream_idle_does_not_confirm_tentative_release(self):
+        listener, callbacks = self._listener()
+        with patch.object(hid_gesture.time, "monotonic", return_value=100.0):
+            listener._on_report(self._report(0x0056))
+        with patch.object(hid_gesture.time, "monotonic", return_value=102.0):
+            listener._on_report(self._report())
+
+        listener._force_release_stale_holds()
+        callbacks[0x0056]["on_up"].assert_not_called()
+        self.assertTrue(listener._extra_diverts[0x0056]["held"])
+
+    def test_repeated_empty_report_remains_tentative(self):
+        listener, callbacks = self._listener()
+        with patch.object(hid_gesture.time, "monotonic", return_value=100.0):
+            listener._on_report(self._report(0x0056))
+        with patch.object(hid_gesture.time, "monotonic", return_value=102.0):
+            listener._on_report(self._report())
+        with patch.object(hid_gesture.time, "monotonic", return_value=102.1):
+            listener._on_report(self._report())
+
+        callbacks[0x0056]["on_up"].assert_not_called()
+        self.assertTrue(listener._extra_diverts[0x0056]["held"])
+
+    def test_matching_physical_release_evidence_dispatches_exactly_one_up(self):
+        listener, callbacks = self._listener()
+        listener._connection_generation = 7
+        with patch.object(hid_gesture.time, "monotonic", return_value=100.0):
+            listener._on_report(self._report(0x0056))
+        hold = listener.active_side_button_hold(0x0056)
+        with patch.object(hid_gesture.time, "monotonic", return_value=112.0):
+            listener._on_report(self._report())
+
+        self.assertTrue(listener.confirm_side_button_release(0x0056, hold))
+        self.assertFalse(listener.confirm_side_button_release(0x0056, hold))
+
+        callbacks[0x0056]["on_up"].assert_called_once_with()
+
+    def test_stale_or_wrong_hold_evidence_cannot_release_active_hold(self):
+        listener, callbacks = self._listener()
+        with patch.object(hid_gesture.time, "monotonic", return_value=100.0):
+            listener._on_report(self._report(0x0056))
+        hold = listener.active_side_button_hold(0x0056)
+
+        stale = (*hold[:3], hold[3] - 1)
+        self.assertFalse(listener.confirm_side_button_release(0x0056, stale))
+        self.assertFalse(listener.confirm_side_button_release(0x0053, hold))
+
+        callbacks[0x0056]["on_up"].assert_not_called()
+        self.assertTrue(listener._extra_diverts[0x0056]["held"])
+
+    def test_quick_release_and_second_press_produce_two_down_actions(self):
+        listener, callbacks = self._listener()
+        with patch.object(hid_gesture.time, "monotonic", return_value=100.0):
+            listener._on_report(self._report(0x0056))
+        with patch.object(hid_gesture.time, "monotonic", return_value=100.1):
+            listener._on_report(self._report())
+        with patch.object(hid_gesture.time, "monotonic", return_value=100.2):
+            listener._on_report(self._report(0x0056))
+
+        self.assertEqual(callbacks[0x0056]["on_down"].call_count, 2)
+        callbacks[0x0056]["on_up"].assert_called_once_with()
+
+    def test_back_and_forward_tentative_release_states_are_independent(self):
+        listener, callbacks = self._listener()
+        with patch.object(hid_gesture.time, "monotonic", return_value=100.0):
+            listener._on_report(self._report(0x0053, 0x0056))
+        with patch.object(hid_gesture.time, "monotonic", return_value=102.0):
+            listener._on_report(self._report(0x0056))
+        with patch.object(hid_gesture.time, "monotonic", return_value=102.2):
+            listener._on_report(self._report(0x0053, 0x0056))
+
+        callbacks[0x0053]["on_down"].assert_called_once_with()
+        callbacks[0x0056]["on_down"].assert_called_once_with()
+        callbacks[0x0053]["on_up"].assert_not_called()
+        callbacks[0x0056]["on_up"].assert_not_called()
+
+    def test_stale_read_does_not_release_active_side_button_hold(self):
+        listener, callbacks = self._listener()
+        with patch.object(hid_gesture.time, "monotonic", return_value=100.0):
+            listener._on_report(self._report(0x0056))
+
+        listener._force_release_stale_holds()
+
+        callbacks[0x0056]["on_up"].assert_not_called()
+        self.assertTrue(listener._extra_diverts[0x0056]["held"])
+
+    def test_disconnect_or_read_failure_clears_state_without_stuck_button(self):
+        listener, callbacks = self._listener()
+        with patch.object(hid_gesture.time, "monotonic", return_value=100.0):
+            listener._on_report(self._report(0x0056))
+        with patch.object(hid_gesture.time, "monotonic", return_value=102.0):
+            listener._on_report(self._report())
+
+        listener._clear_extra_divert_holds("disconnect or read failure")
+
+        callbacks[0x0056]["on_up"].assert_called_once_with()
+        info = listener._extra_diverts[0x0056]
+        self.assertFalse(info["held"])
+        self.assertIsNone(info["held_since"])
+        self.assertIsNone(info["tentative_empty_since"])
+
+    def test_required_hold_state_diagnostics_are_persistent(self):
+        listener, _callbacks = self._listener()
+        with patch("builtins.print") as log:
+            with patch.object(hid_gesture.time, "monotonic", return_value=100.0):
+                listener._on_report(self._report(0x0056))
+            with patch.object(hid_gesture.time, "monotonic", return_value=102.0):
+                listener._on_report(self._report())
+            with patch.object(hid_gesture.time, "monotonic", return_value=102.7):
+                listener._on_report(self._report(0x0056))
+            with patch.object(hid_gesture.time, "monotonic", return_value=104.0):
+                listener._on_report(self._report())
+            hold = listener.active_side_button_hold(0x0056)
+            listener.confirm_side_button_release(0x0056, hold)
+
+        output = "\n".join(str(call.args[0]) for call in log.call_args_list)
+        self.assertIn("physical hold started", output)
+        self.assertIn("tentative empty state observed", output)
+        self.assertIn("tentative release cancelled because CID returned", output)
+        self.assertIn("repeated DOWN absorbed into active hold", output)
+        self.assertIn("release confirmed", output)
+        self.assertIn("logical UP dispatched", output)
+
+
 if __name__ == "__main__":
     unittest.main()

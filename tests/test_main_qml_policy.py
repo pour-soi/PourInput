@@ -20,6 +20,16 @@ class LinuxInputPolicyTests(unittest.TestCase):
         self.assertNotIn("_sync_linux_ui_passthrough", source)
 
 
+@unittest.skipIf(main_qml is None, "main_qml / PySide6 not available")
+class ScreenshotControllerStartupPolicyTests(unittest.TestCase):
+    def test_windows_controller_is_imported_and_retained_for_packaged_runtime(self):
+        source = inspect.getsource(main_qml.main)
+
+        self.assertIn("from ui.windows_screenshot import WindowsScreenshotController", source)
+        self.assertIn("app._POURINPUT_screenshot_controller = screenshot_controller", source)
+        self.assertIn("set_screenshot_action_handler(screenshot_controller.request_action)", source)
+
+
 class LanguageSwitchingQmlPolicyTests(unittest.TestCase):
     def test_settings_language_selector_uses_locale_manager(self):
         source = (ROOT / "ui" / "qml" / "ScrollPage.qml").read_text(encoding="utf-8")

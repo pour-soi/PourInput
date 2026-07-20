@@ -11,11 +11,11 @@
 PourInput is an independent Windows app that gives one mouse button separate Click and Long Press actions, helping you perform more work with fewer buttons.
 
 <p>
-  <a href="https://github.com/pour-soi/PourInput/releases/download/v1.3.3/PourInput-v1.3.3-Windows.zip">
-    <img src="https://img.shields.io/badge/Download_for_Windows-v1.3.3-0078D4?style=for-the-badge&logo=windows11&logoColor=white" alt="Download for Windows">
+  <a href="https://github.com/pour-soi/PourInput/releases/download/v1.3.4/PourInput-v1.3.4-Windows.zip">
+    <img src="https://img.shields.io/badge/Download_for_Windows-v1.3.4-0078D4?style=for-the-badge&logo=windows11&logoColor=white" alt="Download for Windows">
   </a>
-  <a href="https://github.com/pour-soi/PourInput/releases/tag/v1.3.3">
-    <img src="https://img.shields.io/badge/Release_Notes-v1.3.3-555555?style=for-the-badge" alt="Release Notes">
+  <a href="https://github.com/pour-soi/PourInput/releases/tag/v1.3.4">
+    <img src="https://img.shields.io/badge/Release_Notes-v1.3.4-555555?style=for-the-badge" alt="Release Notes">
   </a>
 </p>
 
@@ -72,11 +72,11 @@ A press shorter than 300 ms runs the Click Action. A press held for at least 300
 
 Download the official Windows package:
 
-[**PourInput-v1.3.3-Windows.zip**](https://github.com/pour-soi/PourInput/releases/download/v1.3.3/PourInput-v1.3.3-Windows.zip) · [Release Notes](https://github.com/pour-soi/PourInput/releases/tag/v1.3.3)
+[**PourInput-v1.3.4-Windows.zip**](https://github.com/pour-soi/PourInput/releases/download/v1.3.4/PourInput-v1.3.4-Windows.zip) · [Release Notes](https://github.com/pour-soi/PourInput/releases/tag/v1.3.4)
 
 1. Download the ZIP archive.
 2. Extract it to a normal folder.
-3. Run `PourInput-v1.3.3/PourInput.exe`.
+3. Run `PourInput-v1.3.4/PourInput.exe`.
 4. Quit any other PourInput build before launching this one.
 
 The package includes its required runtime files and creates its configuration automatically on first launch. Windows is the only official public release target. macOS support is planned but not officially available; Linux remains validation-only.
@@ -84,9 +84,9 @@ The package includes its required runtime files and creates its configuration au
 <details>
 <summary>Official release files</summary>
 
-- `PourInput-v1.3.3-Windows.zip`
-- `PourInput-v1.3.3-Windows.zip.sha256`
-- `pourinput-v1.3.3-update.json`
+- `PourInput-v1.3.4-Windows.zip`
+- `PourInput-v1.3.4-Windows.zip.sha256`
+- `pourinput-v1.3.4-update.json`
 
 </details>
 

@@ -70,10 +70,15 @@ def request_screenshot_action(action_id):
         print(f"[KeySimulator] screenshot action unavailable: {action_id}")
         return False
     try:
-        _screenshot_action_handler(action_id)
+        queued = _screenshot_action_handler(action_id)
     except Exception as exc:
         print(f"[KeySimulator] screenshot action handler failed: {exc}")
         import traceback; traceback.print_exc()
+        return False
+    if queued is False:
+        print(f"[KeySimulator] screenshot request not queued: {action_id}")
+        return False
+    print(f"[KeySimulator] screenshot request queued: {action_id}")
     return True
 
 
@@ -647,30 +652,37 @@ if sys.platform == "win32":
 
     def execute_action(action_id):
         try:
-            print(f"[KeySimulator] execute_action({action_id})")
+            print(f"[KeySimulator] action executor entered: {action_id}")
             if action_id.startswith("custom:"):
                 keys = _parse_custom_combo(action_id, _KEY_NAME_TO_CODE)
                 if keys:
                     send_key_combo(keys)
+                    print(f"[KeySimulator] action input sequence completed: {action_id}")
+                else:
+                    print(f"[KeySimulator] action execution failed: {action_id} (invalid shortcut)")
                 return
             if is_mouse_button_action(action_id):
                 print(f"[KeySimulator] execute_action: mouse click for {action_id}")
                 inject_mouse_down(action_id)
                 inject_mouse_up(action_id)
+                print(f"[KeySimulator] action input sequence completed: {action_id}")
                 return
-            if request_screenshot_action(action_id):
+            if is_screenshot_action(action_id):
+                if not request_screenshot_action(action_id):
+                    print(f"[KeySimulator] action execution failed: {action_id}")
                 return
             action = ACTIONS.get(action_id)
             if not action or not action["keys"]:
-                print(f"[KeySimulator] execute_action: no keys for '{action_id}'")
+                print(f"[KeySimulator] action execution failed: {action_id} (no input sequence)")
                 return
             arrow_vk = _BROWSER_NAV_ARROW.get(action_id)
             if arrow_vk is not None:
                 _send_phased_alt_arrow(arrow_vk)
             else:
                 send_key_combo(action["keys"])
+            print(f"[KeySimulator] action input sequence completed: {action_id}")
         except Exception as exc:
-            print(f"[KeySimulator] execute_action EXCEPTION: {exc}")
+            print(f"[KeySimulator] action execution failed: {action_id}: {exc}")
             import traceback; traceback.print_exc()
 
 

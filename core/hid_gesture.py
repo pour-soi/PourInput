@@ -25,6 +25,17 @@ from core.logi_devices import (
     resolve_device,
 )
 
+_LISTENER_ID_LOCK = threading.Lock()
+_NEXT_LISTENER_ID = 0
+_ACTIVE_LISTENER_IDS = set()
+
+
+def _allocate_listener_id():
+    global _NEXT_LISTENER_ID
+    with _LISTENER_ID_LOCK:
+        _NEXT_LISTENER_ID += 1
+        return _NEXT_LISTENER_ID
+
 _HID_MODULE_NAME = None
 try:
     # The PyPI hidapi Linux wheels expose `hid` as the libusb backend and
@@ -641,6 +652,13 @@ KNOWN_CID_NAMES = {
     0x00FD: "DPI Switch",
 }
 
+_LOGITECH_SIDE_BUTTON_CIDS = frozenset((0x0053, 0x0056))
+# MX Master 3 can briefly publish an empty divertedButtonsEvent during an
+# established side-button hold, then restore the same CID.  Quick clicks are
+# authoritative immediately; established holds get one bounded report-stream
+# confirmation window so that transient state split does not create a new DOWN.
+_SIDE_BUTTON_ESTABLISHED_HOLD_S = 0.300
+
 KEY_FLAG_BITS = (
     (0x0001, "mse"),
     (0x0002, "fn"),
@@ -718,8 +736,19 @@ class HidGestureListener:
         self._on_move       = on_move
         self._on_connect    = on_connect
         self._on_disconnect = on_disconnect
+        self._listener_id = _allocate_listener_id()
+        self._connection_generation = 0
+        self._report_counter = 0
+        self._active_device_path = ""
+        self._callback_registration_id = id(self)
         self._extra_diverts = {
-            cid: {**info, "held": False}
+            cid: {
+                **info,
+                "held": False,
+                "held_since": None,
+                "tentative_empty_since": None,
+                "hold_generation": 0,
+            }
             for cid, info in (extra_diverts or {}).items()
         }
         self._extra_diverts_lock = threading.RLock()
@@ -756,6 +785,12 @@ class HidGestureListener:
         self._connected_device_info = None
         self._last_controls = []   # REPROG_V4 controls from last connection
         self._consecutive_request_timeouts = 0
+        print(
+            "[HidGesture] Listener created: "
+            f"listener={self._listener_id} registration={self._callback_registration_id} "
+            f"callbacks={sum(cb is not None for cb in (on_down, on_up, on_move, on_connect, on_disconnect))} "
+            f"extra_callbacks={sum(bool(info.get('on_down')) + bool(info.get('on_up')) for info in self._extra_diverts.values())}"
+        )
 
     # ── public API ────────────────────────────────────────────────
 
@@ -777,6 +812,13 @@ class HidGestureListener:
                     "Logitech HID++ devices may not enumerate"
                 )
         self._running = True
+        with _LISTENER_ID_LOCK:
+            _ACTIVE_LISTENER_IDS.add(self._listener_id)
+            active_ids = tuple(sorted(_ACTIVE_LISTENER_IDS))
+        print(
+            "[HidGesture] Listener starting: "
+            f"listener={self._listener_id} active={active_ids}"
+        )
         self._thread = threading.Thread(
             target=self._main_loop, daemon=True, name="HidGesture")
         self._thread.start()
@@ -794,6 +836,13 @@ class HidGestureListener:
         self._connected_device_info = None
         if self._thread:
             self._thread.join(timeout=3)
+        with _LISTENER_ID_LOCK:
+            _ACTIVE_LISTENER_IDS.discard(self._listener_id)
+            active_ids = tuple(sorted(_ACTIVE_LISTENER_IDS))
+        print(
+            "[HidGesture] Listener stopped: "
+            f"listener={self._listener_id} active={active_ids}"
+        )
 
     @property
     def connected_device(self):
@@ -811,7 +860,13 @@ class HidGestureListener:
         such as CID 0x00C4 (Mode Shift / Smart Shift) are actually diverted.
         """
         next_extra = {
-            cid: {**info, "held": False}
+            cid: {
+                **info,
+                "held": False,
+                "held_since": None,
+                "tentative_empty_since": None,
+                "hold_generation": 0,
+            }
             for cid, info in (extra_diverts or {}).items()
         }
         with self._extra_diverts_lock:
@@ -820,7 +875,13 @@ class HidGestureListener:
             next_keys = set(next_extra)
             if old_keys == next_keys:
                 for cid, info in next_extra.items():
-                    info["held"] = old_extra[cid].get("held", False)
+                    old_info = old_extra[cid]
+                    info["held"] = old_info.get("held", False)
+                    info["held_since"] = old_info.get("held_since")
+                    info["tentative_empty_since"] = old_info.get(
+                        "tentative_empty_since"
+                    )
+                    info["hold_generation"] = old_info.get("hold_generation", 0)
                 self._extra_diverts = next_extra
                 if not self._connected or next_keys == self._applied_extra_divert_cids:
                     return False
@@ -1064,7 +1125,21 @@ class HidGestureListener:
         if dev is None:
             return None
         d = dev.read(64, timeout_ms)
-        return list(d) if d else None
+        if not d:
+            return None
+        raw = list(d)
+        self._report_counter += 1
+        device = self._connected_device_info
+        identity = getattr(device, "key", "") or "unknown"
+        print(
+            "[HidGesture] Raw report: "
+            f"mono_ms={time.monotonic() * 1000:.3f} "
+            f"listener={self._listener_id} generation={self._connection_generation} "
+            f"report={self._report_counter} thread={threading.get_ident()} "
+            f"device={identity} path={self._active_device_path or '-'} "
+            f"bytes=[{_hex_bytes(raw)}]"
+        )
+        return raw
 
     def _request(self, feat, func, params, timeout_ms=2000):
         """Send a long HID++ request, wait for matching response."""
@@ -1648,14 +1723,80 @@ class HidGestureListener:
             items = list(self._extra_diverts.items())
         for cid, info in items:
             if info["held"]:
-                info["held"] = False
-                cb = info.get("on_up")
-                if cb:
-                    print(f"[HidGesture] Extra {_format_cid(cid)} force-released (stale hold)")
-                    try:
-                        cb()
-                    except Exception:
-                        pass
+                # A divertedButtonsEvent is emitted on state changes, so an
+                # established side-button hold normally has no traffic.  An
+                # ordinary read timeout is not evidence of physical release.
+                if cid in _LOGITECH_SIDE_BUTTON_CIDS:
+                    continue
+                self._dispatch_extra_up(cid, info, "stale hold", forced=True)
+
+    def _clear_extra_divert_holds(self, reason):
+        """Release all extra controls after a real transport lifecycle break."""
+        with self._extra_diverts_lock:
+            items = list(self._extra_diverts.items())
+        for cid, info in items:
+            if info.get("held"):
+                self._dispatch_extra_up(cid, info, reason, forced=True)
+
+    def _dispatch_extra_up(self, cid, info, reason, forced=False):
+        """Clear one diverted control hold and publish exactly one logical UP."""
+        if not info.get("held"):
+            info["tentative_empty_since"] = None
+            info["held_since"] = None
+            return False
+        info["held"] = False
+        info["tentative_empty_since"] = None
+        info["held_since"] = None
+        if cid in _LOGITECH_SIDE_BUTTON_CIDS:
+            print(
+                f"[HidGesture] Extra {_format_cid(cid)} release confirmed: {reason}"
+            )
+        elif forced:
+            print(f"[HidGesture] Extra {_format_cid(cid)} force-released ({reason})")
+        else:
+            print(f"[HidGesture] Extra {_format_cid(cid)} UP")
+        cb = info.get("on_up")
+        if cb:
+            try:
+                cb()
+            except Exception as e:
+                print(f"[HidGesture] extra up callback error: {e}")
+        if cid in _LOGITECH_SIDE_BUTTON_CIDS:
+            print(f"[HidGesture] Extra {_format_cid(cid)} logical UP dispatched")
+        return True
+
+    def active_side_button_hold(self, cid):
+        """Return the immutable identity of the current device-specific hold."""
+        if cid not in _LOGITECH_SIDE_BUTTON_CIDS:
+            return None
+        with self._extra_diverts_lock:
+            info = self._extra_diverts.get(cid)
+            if not info or not info.get("held"):
+                return None
+            return (
+                self._listener_id,
+                self._connection_generation,
+                cid,
+                info.get("hold_generation", 0),
+            )
+
+    def confirm_side_button_release(self, cid, hold_identity,
+                                    source="Windows XBUTTON UP"):
+        """Publish UP only when independent evidence matches the active hold."""
+        with self._extra_diverts_lock:
+            info = self._extra_diverts.get(cid)
+            current = self.active_side_button_hold(cid)
+            if info is None or current is None or current != hold_identity:
+                print(
+                    f"[HidGesture] Extra {_format_cid(cid)} release evidence ignored: "
+                    f"source={source} expected={current} received={hold_identity}"
+                )
+                return False
+            print(
+                f"[HidGesture] Extra {_format_cid(cid)} matching physical release "
+                f"evidence: source={source} hold={current}"
+            )
+            return self._dispatch_extra_up(cid, info, source)
 
     def _on_report(self, raw):
         """Inspect an incoming HID++ report for diverted button / raw XY events."""
@@ -1694,6 +1835,25 @@ class HidGestureListener:
             cids.add(c)
             i += 2
 
+        with self._extra_diverts_lock:
+            prior_states = {
+                cid: bool(info.get("held"))
+                for cid, info in self._extra_diverts.items()
+            }
+        device = self._connected_device_info
+        identity = getattr(device, "key", "") or "unknown"
+        tracked = sorted(set(prior_states) | {self._gesture_cid})
+        print(
+            "[HidGesture] REPROG notification: "
+            f"mono_ms={time.monotonic() * 1000:.3f} "
+            f"listener={self._listener_id} generation={self._connection_generation} "
+            f"report={self._report_counter} registration={self._callback_registration_id} "
+            f"thread={threading.get_ident()} device={identity} "
+            f"path={self._active_device_path or '-'} func={func} sw=0x{_sw:X} "
+            f"cids={[f'0x{cid:04X}' for cid in sorted(cids)]} "
+            f"states={[(f'0x{cid:04X}', prior_states.get(cid, self._held), cid in cids) for cid in tracked]}"
+        )
+
         gesture_now = self._gesture_cid in cids
 
         if gesture_now and not self._held:
@@ -1719,8 +1879,29 @@ class HidGestureListener:
             items = list(self._extra_diverts.items())
         for cid, info in items:
             btn_now = cid in cids
-            if btn_now and not info["held"]:
+            if btn_now and info["held"]:
+                if info.get("tentative_empty_since") is not None:
+                    info["tentative_empty_since"] = None
+                    print(
+                        f"[HidGesture] Extra {_format_cid(cid)} tentative release "
+                        "cancelled because CID returned"
+                    )
+                    print(
+                        f"[HidGesture] Extra {_format_cid(cid)} repeated DOWN "
+                        "absorbed into active hold"
+                    )
+            elif btn_now and not info["held"]:
                 info["held"] = True
+                info["held_since"] = time.monotonic()
+                info["tentative_empty_since"] = None
+                info["hold_generation"] = info.get("hold_generation", 0) + 1
+                if cid in _LOGITECH_SIDE_BUTTON_CIDS:
+                    print(
+                        f"[HidGesture] Extra {_format_cid(cid)} physical hold started: "
+                        f"listener={self._listener_id} "
+                        f"connection_generation={self._connection_generation} "
+                        f"hold_generation={info['hold_generation']}"
+                    )
                 print(f"[HidGesture] Extra {_format_cid(cid)} DOWN")
                 cb = info.get("on_down")
                 if cb:
@@ -1729,14 +1910,27 @@ class HidGestureListener:
                     except Exception as e:
                         print(f"[HidGesture] extra down callback error: {e}")
             elif not btn_now and info["held"]:
-                info["held"] = False
-                print(f"[HidGesture] Extra {_format_cid(cid)} UP")
-                cb = info.get("on_up")
-                if cb:
-                    try:
-                        cb()
-                    except Exception as e:
-                        print(f"[HidGesture] extra up callback error: {e}")
+                now = time.monotonic()
+                held_since = info.get("held_since")
+                held_for = now - held_since if held_since is not None else 0.0
+                tentative_since = info.get("tentative_empty_since")
+                if (
+                    cid in _LOGITECH_SIDE_BUTTON_CIDS
+                    and held_for >= _SIDE_BUTTON_ESTABLISHED_HOLD_S
+                    and tentative_since is None
+                ):
+                    info["tentative_empty_since"] = now
+                    print(
+                        f"[HidGesture] Extra {_format_cid(cid)} tentative empty "
+                        f"state observed after {held_for * 1000:.0f}ms hold"
+                    )
+                elif tentative_since is not None:
+                    print(
+                        f"[HidGesture] Extra {_format_cid(cid)} repeated tentative "
+                        "empty state retained pending physical release evidence"
+                    )
+                else:
+                    self._dispatch_extra_up(cid, info, "authoritative quick release")
 
     # ── connect / main loop ───────────────────────────────────────
 
@@ -1952,6 +2146,7 @@ class HidGestureListener:
                                 "device_path": opened_path,
                             },
                         )
+                        self._active_device_path = opened_path
                         return True
                     continue     # divert failed — try next receiver slot
             if not reprog_found:
@@ -1994,6 +2189,13 @@ class HidGestureListener:
             retry_logged = False
 
             self._connected = True
+            self._connection_generation += 1
+            print(
+                "[HidGesture] Connection generation active: "
+                f"listener={self._listener_id} generation={self._connection_generation} "
+                f"registration={self._callback_registration_id} "
+                f"path={self._active_device_path or '-'} thread={threading.get_ident()}"
+            )
             self._preserve_device_identity_on_reconnect = False
             if self._on_connect:
                 try:
@@ -2068,22 +2270,12 @@ class HidGestureListener:
                         self._on_up()
                     except Exception:
                         pass
-            with self._extra_diverts_lock:
-                items = list(self._extra_diverts.items())
-            for cid, info in items:
-                if info["held"]:
-                    info["held"] = False
-                    cb = info.get("on_up")
-                    if cb:
-                        print(f"[HidGesture] Extra {_format_cid(cid)} force-released on disconnect")
-                        try:
-                            cb()
-                        except Exception:
-                            pass
+            self._clear_extra_divert_holds("disconnect or read failure")
             self._gesture_cid = DEFAULT_GESTURE_CID
             self._gesture_candidates = list(DEFAULT_GESTURE_CIDS)
             self._rawxy_enabled = False
             self._connected_device_info = None
+            self._active_device_path = ""
             self._reconnect_requested = False
             self._applied_extra_divert_cids = set()
             if self._connected:

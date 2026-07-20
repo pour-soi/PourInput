@@ -408,7 +408,37 @@ class MouseHook(BaseMouseHook):
                     except Exception:
                         pass
 
+            windows_xbutton_event = None
+            if wParam == WM_XBUTTONDOWN:
+                xbutton = hiword(mouse_data)
+                if xbutton == XBUTTON1:
+                    windows_xbutton_event = MouseEvent.XBUTTON1_DOWN
+                elif xbutton == XBUTTON2:
+                    windows_xbutton_event = MouseEvent.XBUTTON2_DOWN
+            elif wParam == WM_XBUTTONUP:
+                xbutton = hiword(mouse_data)
+                if xbutton == XBUTTON1:
+                    windows_xbutton_event = MouseEvent.XBUTTON1_UP
+                elif xbutton == XBUTTON2:
+                    windows_xbutton_event = MouseEvent.XBUTTON2_UP
+            if windows_xbutton_event:
+                self._observe_windows_xbutton_event(
+                    windows_xbutton_event,
+                    bool(flags & INJECTED_FLAG),
+                    flags,
+                )
+
             if flags & INJECTED_FLAG:
+                injected_xbutton_event = windows_xbutton_event
+                if (
+                    injected_xbutton_event
+                    and self._consume_logi_xbutton_suppression(injected_xbutton_event)
+                ):
+                    self._emit_debug(
+                        "Suppressed duplicate Logitech native event "
+                        f"button={injected_xbutton_event}"
+                    )
+                    return 1
                 return CallNextHookEx(self._hook, nCode, wParam, lParam)
 
             if wParam == WM_XBUTTONDOWN:

@@ -129,8 +129,54 @@ class BaseMouseHookRuntimeStateTests(unittest.TestCase):
 
         hook.set_status_callback(messages.append)
         hook._emit_status("Linux evdev remapping restored.")
-
         self.assertEqual(messages, ["Linux evdev remapping restored."])
+
+
+class LogitechHidEdgeDeduplicationTests(unittest.TestCase):
+    def _hook(self):
+        hook = BaseMouseHook()
+        hook._connected_device = SimpleNamespace(key="mx_master_3")
+        hook._dispatch = Mock()
+        return hook
+
+    def test_repeated_down_before_up_is_ignored(self):
+        hook = self._hook()
+
+        self.assertTrue(hook._on_hid_xbutton2_down())
+        self.assertFalse(hook._on_hid_xbutton2_down())
+
+        self.assertEqual(hook._dispatch.call_count, 1)
+        self.assertEqual(
+            hook._dispatch.call_args.args[0].event_type,
+            MouseEvent.LOGI_XBUTTON2_DOWN,
+        )
+
+    def test_repeated_up_after_release_is_ignored(self):
+        hook = self._hook()
+        hook._on_hid_xbutton2_down()
+        hook._on_hid_xbutton2_up()
+
+        self.assertFalse(hook._on_hid_xbutton2_up())
+        self.assertEqual(hook._dispatch.call_count, 2)
+
+    def test_back_and_forward_pressed_state_are_independent(self):
+        hook = self._hook()
+
+        self.assertTrue(hook._on_hid_xbutton1_down())
+        self.assertTrue(hook._on_hid_xbutton2_down())
+        self.assertFalse(hook._on_hid_xbutton1_down())
+        self.assertTrue(hook._on_hid_xbutton2_up())
+
+        self.assertEqual(hook._dispatch.call_count, 3)
+
+    def test_disconnect_clears_pressed_state(self):
+        hook = self._hook()
+        hook._on_hid_xbutton2_down()
+
+        hook._set_device_connected(False)
+
+        self.assertTrue(hook._on_hid_xbutton2_down())
+        self.assertEqual(hook._dispatch.call_count, 2)
 
     def test_sync_hid_extra_diverts_pushes_mode_shift_to_listener(self):
         hook = BaseMouseHook()
@@ -362,6 +408,208 @@ class WindowsXButtonHookTests(unittest.TestCase):
 
     def _xbutton_pointer(self, module, xbutton):
         return self._event_pointer(module, mouse_data=xbutton << 16)
+
+    def _configure_logitech_side_buttons(self, hook):
+        hook._connected_device = SimpleNamespace(key="mx_master_3")
+        hook.divert_logi_xbutton1 = True
+        hook.divert_logi_xbutton2 = True
+        builder = hook.new_binding_builder()
+        for event_type, logical in (
+            (MouseEvent.LOGI_XBUTTON1_DOWN, "xbutton1"),
+            (MouseEvent.LOGI_XBUTTON1_UP, "xbutton1"),
+            (MouseEvent.LOGI_XBUTTON2_DOWN, "xbutton2"),
+            (MouseEvent.LOGI_XBUTTON2_UP, "xbutton2"),
+        ):
+            builder.set_route(event_type, logical)
+        return hook.publish_bindings(builder)
+
+    def _injected_xbutton_pointer(self, module, xbutton):
+        return self._event_pointer(
+            module,
+            mouse_data=xbutton << 16,
+            flags=module.INJECTED_FLAG,
+        )
+
+    def test_logitech_hid_xbutton_down_and_up_suppress_matching_native_events(self):
+        module = self._windows_module()
+        hook = module.MouseHook()
+        self._configure_logitech_side_buttons(hook)
+
+        with patch.object(module, "CallNextHookEx", return_value=123):
+            hook._on_hid_xbutton1_down()
+            down_result = hook._low_level_handler_inner(
+                module.HC_ACTION,
+                module.WM_XBUTTONDOWN,
+                self._injected_xbutton_pointer(module, module.XBUTTON1),
+            )
+            hook._on_hid_xbutton1_up()
+            up_result = hook._low_level_handler_inner(
+                module.HC_ACTION,
+                module.WM_XBUTTONUP,
+                self._injected_xbutton_pointer(module, module.XBUTTON1),
+            )
+
+        self.assertEqual((down_result, up_result), (1, 1))
+
+    def test_injected_windows_up_confirms_active_hid_hold_before_suppression(self):
+        module = self._windows_module()
+        hook = module.MouseHook()
+        self._configure_logitech_side_buttons(hook)
+        hold = (11, 4, 0x0056, 9)
+        listener = SimpleNamespace(
+            active_side_button_hold=Mock(return_value=hold),
+            confirm_side_button_release=Mock(
+                side_effect=lambda *_args, **_kwargs: hook._on_hid_xbutton2_up()
+            ),
+        )
+        hook._hid_gesture = listener
+        hook._on_hid_xbutton2_down()
+
+        with patch.object(module, "CallNextHookEx", return_value=123):
+            down_result = hook._low_level_handler_inner(
+                module.HC_ACTION,
+                module.WM_XBUTTONDOWN,
+                self._injected_xbutton_pointer(module, module.XBUTTON2),
+            )
+            up_result = hook._low_level_handler_inner(
+                module.HC_ACTION,
+                module.WM_XBUTTONUP,
+                self._injected_xbutton_pointer(module, module.XBUTTON2),
+            )
+
+        self.assertEqual((down_result, up_result), (1, 1))
+        listener.confirm_side_button_release.assert_called_once_with(
+            0x0056,
+            hold,
+            source="injected xbutton2_up",
+        )
+
+    def test_wrong_button_windows_up_cannot_release_active_forward_hold(self):
+        module = self._windows_module()
+        hook = module.MouseHook()
+        self._configure_logitech_side_buttons(hook)
+        hold = (11, 4, 0x0056, 9)
+        listener = SimpleNamespace(
+            active_side_button_hold=Mock(
+                side_effect=lambda cid: hold if cid == 0x0056 else None
+            ),
+            confirm_side_button_release=Mock(),
+        )
+        hook._hid_gesture = listener
+        hook._on_hid_xbutton2_down()
+
+        with patch.object(module, "CallNextHookEx", return_value=123):
+            hook._low_level_handler_inner(
+                module.HC_ACTION,
+                module.WM_XBUTTONDOWN,
+                self._injected_xbutton_pointer(module, module.XBUTTON2),
+            )
+            wrong_up = hook._low_level_handler_inner(
+                module.HC_ACTION,
+                module.WM_XBUTTONUP,
+                self._injected_xbutton_pointer(module, module.XBUTTON1),
+            )
+
+        self.assertEqual(wrong_up, 123)
+        listener.confirm_side_button_release.assert_not_called()
+
+    def test_logitech_forward_suppression_is_independent_from_back(self):
+        module = self._windows_module()
+        hook = module.MouseHook()
+        self._configure_logitech_side_buttons(hook)
+
+        with patch.object(module, "CallNextHookEx", return_value=123):
+            hook._on_hid_xbutton2_down()
+            wrong_result = hook._low_level_handler_inner(
+                module.HC_ACTION,
+                module.WM_XBUTTONDOWN,
+                self._injected_xbutton_pointer(module, module.XBUTTON1),
+            )
+            matching_result = hook._low_level_handler_inner(
+                module.HC_ACTION,
+                module.WM_XBUTTONDOWN,
+                self._injected_xbutton_pointer(module, module.XBUTTON2),
+            )
+
+        self.assertEqual(wrong_result, 123)
+        self.assertEqual(matching_result, 1)
+
+    def test_stale_logitech_suppression_does_not_swallow_later_event(self):
+        module = self._windows_module()
+        hook = module.MouseHook()
+        self._configure_logitech_side_buttons(hook)
+        hook._on_hid_xbutton1_down()
+        hook._logi_xbutton_suppression[MouseEvent.XBUTTON1_DOWN]["expires_at"] = 0
+
+        with patch.object(module, "CallNextHookEx", return_value=123):
+            result = hook._low_level_handler_inner(
+                module.HC_ACTION,
+                module.WM_XBUTTONDOWN,
+                self._injected_xbutton_pointer(module, module.XBUTTON1),
+            )
+
+        self.assertEqual(result, 123)
+
+    def test_unmatched_injected_xbutton_and_other_mouse_input_pass_through(self):
+        module = self._windows_module()
+        hook = module.MouseHook()
+        self._configure_logitech_side_buttons(hook)
+
+        with patch.object(module, "CallNextHookEx", return_value=123):
+            xbutton_result = hook._low_level_handler_inner(
+                module.HC_ACTION,
+                module.WM_XBUTTONDOWN,
+                self._injected_xbutton_pointer(module, module.XBUTTON1),
+            )
+            left_result = hook._low_level_handler_inner(
+                module.HC_ACTION,
+                0x0201,
+                self._event_pointer(module, flags=module.INJECTED_FLAG),
+            )
+
+        self.assertEqual((xbutton_result, left_result), (123, 123))
+
+    def test_binding_replacement_and_disconnect_clear_suppression(self):
+        module = self._windows_module()
+        hook = module.MouseHook()
+        self._configure_logitech_side_buttons(hook)
+        hook._on_hid_xbutton1_down()
+        self.assertTrue(hook._logi_xbutton_suppression)
+
+        hook.publish_bindings(hook.new_binding_builder())
+        self.assertFalse(hook._logi_xbutton_suppression)
+
+        self._configure_logitech_side_buttons(hook)
+        hook._on_hid_xbutton2_down()
+        hook._on_hid_disconnect()
+        self.assertFalse(hook._logi_xbutton_suppression)
+
+    def test_generic_route_does_not_arm_logitech_suppression(self):
+        module = self._windows_module()
+        hook = module.MouseHook()
+        hook._connected_device = SimpleNamespace(key="mx_master_3")
+        builder = hook.new_binding_builder()
+        builder.set_route(MouseEvent.XBUTTON1_DOWN, "generic_xbutton1")
+        builder.block(MouseEvent.XBUTTON1_DOWN)
+        hook.publish_bindings(builder)
+
+        self.assertFalse(
+            hook._arm_logi_xbutton_suppression(MouseEvent.LOGI_XBUTTON1_DOWN)
+        )
+        with patch.object(module, "CallNextHookEx", return_value=123):
+            injected_result = hook._low_level_handler_inner(
+                module.HC_ACTION,
+                module.WM_XBUTTONDOWN,
+                self._injected_xbutton_pointer(module, module.XBUTTON1),
+            )
+            physical_result = hook._low_level_handler_inner(
+                module.HC_ACTION,
+                module.WM_XBUTTONDOWN,
+                self._xbutton_pointer(module, module.XBUTTON1),
+            )
+
+        self.assertEqual(injected_result, 123)
+        self.assertEqual(physical_result, 1)
 
     def test_xbutton1_down_up_are_enqueued_and_pass_through_by_default(self):
         module = self._windows_module()

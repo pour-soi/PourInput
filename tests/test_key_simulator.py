@@ -194,11 +194,64 @@ class WindowsScreenshotActionTests(unittest.TestCase):
         calls = []
         module.set_screenshot_action_handler(calls.append)
 
-        with patch.object(module, "send_key_combo") as send_key_combo:
+        with (
+            patch.object(module, "send_key_combo") as send_key_combo,
+            patch("builtins.print") as print_mock,
+        ):
             module.execute_action("screenshot_full_clip")
 
         self.assertEqual(calls, ["screenshot_full_clip"])
         send_key_combo.assert_not_called()
+        messages = [str(call.args[0]) for call in print_mock.call_args_list]
+        self.assertTrue(any("screenshot request queued: screenshot_full_clip" in m for m in messages))
+        self.assertFalse(any("action input sequence completed: screenshot_full_clip" in m for m in messages))
+
+    def test_windows_screenshot_handler_exception_is_reported_as_failure(self):
+        module = self._reload_for_windows()
+
+        def fail(_action_id):
+            raise RuntimeError("queue unavailable")
+
+        module.set_screenshot_action_handler(fail)
+        with patch("builtins.print") as print_mock:
+            module.execute_action("screenshot_full_clip")
+
+        messages = [str(call.args[0]) for call in print_mock.call_args_list]
+        self.assertTrue(any("screenshot action handler failed: queue unavailable" in m for m in messages))
+        self.assertTrue(any("action execution failed: screenshot_full_clip" in m for m in messages))
+
+    def test_windows_screenshot_handler_can_reject_overlapping_request(self):
+        module = self._reload_for_windows()
+        module.set_screenshot_action_handler(lambda _action_id: False)
+
+        with patch("builtins.print") as print_mock:
+            self.assertFalse(module.request_screenshot_action("screenshot_full_clip"))
+
+        messages = [str(call.args[0]) for call in print_mock.call_args_list]
+        self.assertTrue(any("screenshot request not queued" in m for m in messages))
+
+    def test_windows_action_logging_distinguishes_completion_and_failure(self):
+        module = self._reload_for_windows()
+
+        with (
+            patch.object(module, "send_key_combo") as send_key_combo,
+            patch("builtins.print") as print_mock,
+        ):
+            module.execute_action("alt_tab")
+
+        send_key_combo.assert_called_once()
+        messages = [str(call.args[0]) for call in print_mock.call_args_list]
+        self.assertTrue(any("action executor entered: alt_tab" in m for m in messages))
+        self.assertTrue(any("action input sequence completed: alt_tab" in m for m in messages))
+
+        with (
+            patch.object(module, "send_key_combo", side_effect=RuntimeError("boom")),
+            patch("builtins.print") as print_mock,
+        ):
+            module.execute_action("alt_tab")
+
+        messages = [str(call.args[0]) for call in print_mock.call_args_list]
+        self.assertTrue(any("action execution failed: alt_tab: boom" in m for m in messages))
 
 
 class MacOSZoomActionTests(unittest.TestCase):

@@ -13,7 +13,7 @@ APP_NAME = "PourInput"
 APP_EXECUTABLE_NAME = "PourInput.exe"
 MAINTAINER = "pour-soi"
 
-_DEFAULT_APP_VERSION = "1.3.3"
+_DEFAULT_APP_VERSION = "1.3.4"
 _BUILD_INFO_FILENAME = "POURINPUT_build_info.json"
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 

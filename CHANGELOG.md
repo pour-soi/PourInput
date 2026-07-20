@@ -6,6 +6,23 @@ This project uses Semantic Versioning.
 
 ## Unreleased
 
+## v1.3.4 - 2026-07-19
+
+### Fixed
+
+- Fixed MX Master 3 Back and Forward mappings still allowing native browser navigation.
+- Added targeted suppression of matching Windows XBUTTON events while preserving Generic Mouse Mode separation.
+- Fixed transient HID++ empty-state reports splitting one physical hold into multiple logical presses.
+- Physical release is now confirmed using the matching Windows XBUTTON UP event.
+- Fixed full-screen screenshot-to-clipboard delivery in packaged Windows builds using durable native `CF_DIB`.
+- Prevented duplicate screenshot actions during a continuous side-button hold.
+- Improved persistent diagnostics for HID++, suppression, action execution, screenshot capture, and clipboard delivery.
+
+### Validation
+
+- Verified with a real Logitech MX Master 3 connected over Bluetooth and Generic Mouse Mode disabled.
+- Confirmed native Back/Forward suppression, immediate mapping execution, durable screenshot clipboard delivery, and correlated physical release in a packaged Windows build.
+
 ## v1.3.3 - 2026-07-19
 
 ### Fixed
