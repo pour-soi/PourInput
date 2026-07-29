@@ -23,6 +23,7 @@ class MacOSExperimentalWorkflowTests(unittest.TestCase):
         for expected in (
             "macos-latest",
             "macos-15-intel",
+            'branches: ["main", "feature/macos-experimental"]',
             "target_arch: arm64",
             "target_arch: x86_64",
             "python -m venv .venv",

@@ -15,7 +15,7 @@ on:
       - "PourInput-mac.spec"
       - "build_macos_app.sh"
   push:
-    branches: ["main"]
+    branches: ["main", "feature/macos-experimental"]
     paths:
       - ".github/workflows/macos-experimental.yml"
       - "core/**"
