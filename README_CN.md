@@ -14,6 +14,9 @@ PourInput 是一款独立的 Windows 应用，让同一个鼠标按键分别执�
   <a href="https://github.com/pour-soi/PourInput/releases/download/v1.3.4/PourInput-v1.3.4-Windows.zip">
     <img src="https://img.shields.io/badge/%E4%B8%8B%E8%BD%BD_Windows_%E7%89%88-v1.3.4-0078D4?style=for-the-badge&logo=windows11&logoColor=white" alt="下载 Windows 版">
   </a>
+  <a href="https://github.com/pour-soi/PourInput/releases/tag/v1.3.4-macos.1">
+    <img src="https://img.shields.io/badge/%E2%AC%86%EF%B8%8F%20MacBook-v1.3.4%20Preview-000000?style=for-the-badge&logo=apple&logoColor=white" alt="⬆️ MacBook">
+  </a>
   <a href="https://github.com/pour-soi/PourInput/releases/tag/v1.3.4">
     <img src="https://img.shields.io/badge/%E7%89%88%E6%9C%AC%E8%AF%B4%E6%98%8E-v1.3.4-555555?style=for-the-badge" alt="版本说明">
   </a>
@@ -79,7 +82,7 @@ PourInput 是一款在 Windows 上运行的本地鼠标按键自定义工具。�
 3. 运行 `PourInput-v1.3.4/PourInput.exe`。
 4. 启动前先退出正在运行的其他 PourInput 构建。
 
-发布包已经包含所需运行文件，并会在首次启动时自动创建配置。Windows 是唯一的官方公开发布目标。macOS 支持已规划但尚未正式提供；Linux 仍仅用于构建验证。
+发布包已经包含所需运行文件，并会在首次启动时自动创建配置。Windows 仍是稳定的公开发布目标；同时提供未签名、未公证的 [macOS 实验预览版](https://github.com/pour-soi/PourInput/releases/tag/v1.3.4-macos.1)。Linux 仍仅用于构建验证。
 
 <details>
 <summary>官方发布文件</summary>

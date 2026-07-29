@@ -14,6 +14,9 @@ PourInput is an independent Windows app that gives one mouse button separate Cli
   <a href="https://github.com/pour-soi/PourInput/releases/download/v1.3.4/PourInput-v1.3.4-Windows.zip">
     <img src="https://img.shields.io/badge/Download_for_Windows-v1.3.4-0078D4?style=for-the-badge&logo=windows11&logoColor=white" alt="Download for Windows">
   </a>
+  <a href="https://github.com/pour-soi/PourInput/releases/tag/v1.3.4-macos.1">
+    <img src="https://img.shields.io/badge/%E2%AC%86%EF%B8%8F%20MacBook-v1.3.4%20Preview-000000?style=for-the-badge&logo=apple&logoColor=white" alt="⬆️ MacBook">
+  </a>
   <a href="https://github.com/pour-soi/PourInput/releases/tag/v1.3.4">
     <img src="https://img.shields.io/badge/Release_Notes-v1.3.4-555555?style=for-the-badge" alt="Release Notes">
   </a>
@@ -79,7 +82,7 @@ Download the official Windows package:
 3. Run `PourInput-v1.3.4/PourInput.exe`.
 4. Quit any other PourInput build before launching this one.
 
-The package includes its required runtime files and creates its configuration automatically on first launch. Windows is the only official public release target. macOS support is planned but not officially available; Linux remains validation-only.
+The package includes its required runtime files and creates its configuration automatically on first launch. Windows remains the stable public release target. An unsigned, unnotarized [experimental macOS preview](https://github.com/pour-soi/PourInput/releases/tag/v1.3.4-macos.1) is also available; Linux remains validation-only.
 
 <details>
 <summary>Official release files</summary>
