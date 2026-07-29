@@ -8,7 +8,7 @@
 
 [English](README.md) | **简体中文**
 
-PourInput 是一款独立的 Windows 应用，让同一个鼠标按键分别执行单击与长按操作，以更少的按键完成更多工作。
+PourInput 是一款面向 Windows 的本地鼠标按键自定义应用，同时提供 macOS 实验预览版。它让同一个鼠标按键分别执行单击与长按操作，以更少的按键完成更多工作。
 
 <p>
   <a href="https://github.com/pour-soi/PourInput/releases/download/v1.3.4/PourInput-v1.3.4-Windows.zip">
@@ -36,7 +36,7 @@ PourInput 是一款独立的 Windows 应用，让同一个鼠标按键分别执�
 
 ## PourInput 是什么？
 
-PourInput 是一款在 Windows 上运行的本地鼠标按键自定义工具。它可以将受支持的按键映射到内置操作，将设置保存在本机，并通过按应用切换的配置文件自动选择不同映射。
+PourInput 是一款在 Windows 和 macOS 上运行的本地鼠标按键自定义工具。Windows 是稳定发布目标，macOS 则提供实验预览支持。它可以将受支持的按键映射到内置操作，将设置保存在本机，并通过按应用切换的配置文件自动选择不同映射。
 
 多操作模式让一个按键承担两种实用功能：单击时执行一个操作，长按时执行另一个操作。通用鼠标模式还可以把这套工作方式扩展到 Windows 标准中键和侧键事件。
 
@@ -45,7 +45,7 @@ PourInput 是一款在 Windows 上运行的本地鼠标按键自定义工具。�
 - **充分利用每个按键**：分别设置单击与长按操作。
 - **配置保存在本地**：无需依赖专有设备软件。
 - **适应不同应用**：通过自动选择的配置文件切换映射。
-- **专注实用工作流**：使用清晰、独立的 Windows 应用管理鼠标操作。
+- **专注实用工作流**：使用清晰、独立的桌面应用管理鼠标操作。
 
 ## 主要功能
 
@@ -54,7 +54,7 @@ PourInput 是一款在 Windows 上运行的本地鼠标按键自定义工具。�
 - **按应用切换配置文件**：针对不同应用自动切换鼠标按键映射。
 - **内置截图操作**：将全屏或选区截图保存到剪贴板或文件。
 - **多语言界面**：在 English 与简体中文之间切换界面，不改变已有映射。
-- **Windows 便携发布包**：无需单独安装 Python 即可使用打包应用。
+- **桌面发布包**：无需单独安装 Python，即可使用 Windows 便携版或单独提供的 Apple Silicon / Intel macOS 预览版。
 
 ## 工作方式
 
@@ -73,6 +73,8 @@ PourInput 是一款在 Windows 上运行的本地鼠标按键自定义工具。�
 
 ## 下载与安装
 
+### Windows（稳定版）
+
 下载官方 Windows 发布包：
 
 [**PourInput-v1.3.4-Windows.zip**](https://github.com/pour-soi/PourInput/releases/download/v1.3.4/PourInput-v1.3.4-Windows.zip) · [版本说明](https://github.com/pour-soi/PourInput/releases/tag/v1.3.4)
@@ -82,7 +84,7 @@ PourInput 是一款在 Windows 上运行的本地鼠标按键自定义工具。�
 3. 运行 `PourInput-v1.3.4/PourInput.exe`。
 4. 启动前先退出正在运行的其他 PourInput 构建。
 
-发布包已经包含所需运行文件，并会在首次启动时自动创建配置。Windows 仍是稳定的公开发布目标；同时提供未签名、未公证的 [macOS 实验预览版](https://github.com/pour-soi/PourInput/releases/tag/v1.3.4-macos.1)。Linux 仍仅用于构建验证。
+发布包已经包含所需运行文件，并会在首次启动时自动创建配置。
 
 <details>
 <summary>官方发布文件</summary>
@@ -92,6 +94,33 @@ PourInput 是一款在 Windows 上运行的本地鼠标按键自定义工具。�
 - `pourinput-v1.3.4-update.json`
 
 </details>
+
+### macOS（实验预览版）
+
+根据 Mac 机型选择下载：
+
+- [**Apple Silicon（M1 或更新机型）**](https://github.com/pour-soi/PourInput/releases/download/v1.3.4-macos.1/PourInput-1.3.4-macOS-arm64.zip)
+- [**Intel Mac**](https://github.com/pour-soi/PourInput/releases/download/v1.3.4-macos.1/PourInput-1.3.4-macOS-x86_64.zip)
+- [版本说明](https://github.com/pour-soi/PourInput/releases/tag/v1.3.4-macos.1)
+
+1. 下载适合机型的 ZIP 压缩包并解压。
+2. 如有需要，将 `PourInput.app` 移到“应用程序”文件夹。
+3. 首次启动时，右键点击 `PourInput.app`，然后选择“打开”。
+4. 按提示前往“系统设置 → 隐私与安全性 → 辅助功能”，允许 PourInput。
+
+此预览版尚未签名和公证，因此 macOS 可能显示安全警告。Intel 版已在配合 MX Master 3 的 MacBook Air 上完成手动测试；Apple Silicon 发布包已通过自动构建验证，但尚未在 Apple Silicon 实机上测试。通用鼠标模式仍仅支持 Windows。
+
+<details>
+<summary>macOS 预览版文件</summary>
+
+- `PourInput-1.3.4-macOS-arm64.zip`
+- `PourInput-1.3.4-macOS-arm64.zip.sha256`
+- `PourInput-1.3.4-macOS-x86_64.zip`
+- `PourInput-1.3.4-macOS-x86_64.zip.sha256`
+
+</details>
+
+Linux 仍仅用于构建验证。
 
 ## 兼容性
 
