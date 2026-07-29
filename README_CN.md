@@ -8,14 +8,14 @@
 
 [English](README.md) | **简体中文**
 
-PourInput 是一款面向 Windows 的本地鼠标按键自定义应用，同时提供 macOS 实验预览版。它让同一个鼠标按键分别执行单击与长按操作，以更少的按键完成更多工作。
+PourInput 是一款面向 Windows 和 macOS 的本地鼠标按键自定义应用。它让同一个鼠标按键分别执行单击与长按操作，以更少的按键完成更多工作。
 
 <p>
   <a href="https://github.com/pour-soi/PourInput/releases/download/v1.3.4/PourInput-v1.3.4-Windows.zip">
     <img src="https://img.shields.io/badge/%E4%B8%8B%E8%BD%BD_Windows_%E7%89%88-v1.3.4-0078D4?style=for-the-badge&logo=windows11&logoColor=white" alt="下载 Windows 版">
   </a>
   <a href="https://github.com/pour-soi/PourInput/releases/tag/v1.3.4-macos.1">
-    <img src="https://img.shields.io/badge/%E4%B8%8B%E8%BD%BD_macOS_%E7%89%88-v1.3.4_%E9%A2%84%E8%A7%88%E7%89%88-000000?style=for-the-badge&logo=apple&logoColor=white" alt="下载 macOS 版">
+    <img src="https://img.shields.io/badge/%E4%B8%8B%E8%BD%BD_macOS_%E7%89%88-v1.3.4-000000?style=for-the-badge&logo=apple&logoColor=white" alt="下载 macOS 版">
   </a>
   <a href="https://github.com/pour-soi/PourInput/releases/tag/v1.3.4">
     <img src="https://img.shields.io/badge/%E7%89%88%E6%9C%AC%E8%AF%B4%E6%98%8E-v1.3.4-555555?style=for-the-badge" alt="版本说明">
@@ -36,7 +36,7 @@ PourInput 是一款面向 Windows 的本地鼠标按键自定义应用，同时�
 
 ## PourInput 是什么？
 
-PourInput 是一款在 Windows 和 macOS 上运行的本地鼠标按键自定义工具。Windows 是稳定发布目标，macOS 则提供实验预览支持。它可以将受支持的按键映射到内置操作，将设置保存在本机，并通过按应用切换的配置文件自动选择不同映射。
+PourInput 是一款在 Windows 和 macOS 上运行的本地鼠标按键自定义工具。它可以将受支持的按键映射到内置操作，将设置保存在本机，并通过按应用切换的配置文件自动选择不同映射。
 
 多操作模式让一个按键承担两种实用功能：单击时执行一个操作，长按时执行另一个操作。通用鼠标模式还可以把这套工作方式扩展到 Windows 标准中键和侧键事件。
 
@@ -54,7 +54,7 @@ PourInput 是一款在 Windows 和 macOS 上运行的本地鼠标按键自定义
 - **按应用切换配置文件**：针对不同应用自动切换鼠标按键映射。
 - **内置截图操作**：将全屏或选区截图保存到剪贴板或文件。
 - **多语言界面**：在 English 与简体中文之间切换界面，不改变已有映射。
-- **桌面发布包**：无需单独安装 Python，即可使用 Windows 便携版或单独提供的 Apple Silicon / Intel macOS 预览版。
+- **桌面发布包**：无需单独安装 Python，即可使用 Windows 便携版或单独提供的 Apple Silicon / Intel macOS 版本。
 
 ## 工作方式
 
@@ -95,7 +95,7 @@ PourInput 是一款在 Windows 和 macOS 上运行的本地鼠标按键自定义
 
 </details>
 
-### macOS（实验预览版）
+### macOS
 
 根据 Mac 机型选择下载：
 
@@ -108,10 +108,10 @@ PourInput 是一款在 Windows 和 macOS 上运行的本地鼠标按键自定义
 3. 首次启动时，右键点击 `PourInput.app`，然后选择“打开”。
 4. 按提示前往“系统设置 → 隐私与安全性 → 辅助功能”，允许 PourInput。
 
-此预览版尚未签名和公证，因此 macOS 可能显示安全警告。Intel 版已在配合 MX Master 3 的 MacBook Air 上完成手动测试；Apple Silicon 发布包已通过自动构建验证，但尚未在 Apple Silicon 实机上测试。通用鼠标模式仍仅支持 Windows。
+此 macOS 正式版尚未签名和公证，因此 macOS 可能显示安全警告。Intel 版已在配合 MX Master 3 的 MacBook Air 上完成手动测试；Apple Silicon 发布包已通过自动构建验证，但尚未在 Apple Silicon 实机上测试。通用鼠标模式仍仅支持 Windows。
 
 <details>
-<summary>macOS 预览版文件</summary>
+<summary>macOS 正式版文件</summary>
 
 - `PourInput-1.3.4-macOS-arm64.zip`
 - `PourInput-1.3.4-macOS-arm64.zip.sha256`
