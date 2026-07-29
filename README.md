@@ -15,7 +15,7 @@ PourInput is an independent Windows app that gives one mouse button separate Cli
     <img src="https://img.shields.io/badge/Download_for_Windows-v1.3.4-0078D4?style=for-the-badge&logo=windows11&logoColor=white" alt="Download for Windows">
   </a>
   <a href="https://github.com/pour-soi/PourInput/releases/tag/v1.3.4-macos.1">
-    <img src="https://img.shields.io/badge/%E6%94%AF%E6%8C%81macOS-v1.3.4%20Preview-000000?style=for-the-badge&logo=apple&logoColor=white" alt="支持macOS">
+    <img src="https://img.shields.io/badge/Download_for_macOS-v1.3.4_Preview-000000?style=for-the-badge&logo=apple&logoColor=white" alt="Download for macOS">
   </a>
   <a href="https://github.com/pour-soi/PourInput/releases/tag/v1.3.4">
     <img src="https://img.shields.io/badge/Release_Notes-v1.3.4-555555?style=for-the-badge" alt="Release Notes">
