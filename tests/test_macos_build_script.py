@@ -150,6 +150,7 @@ class MacOSBuildScriptTests(unittest.TestCase):
         for key in (
             "POURINPUT_PYTHON",
             "POURINPUT_SIGN_IDENTITY",
+            "POURINPUT_SKIP_CODESIGN",
             "POURINPUT_FAKE_NO_PYINSTALLER",
             "POURINPUT_CODESIGN_VERIFY_FAIL",
             "POURINPUT_PREFER_PYENV",
@@ -276,6 +277,13 @@ class MacOSBuildScriptTests(unittest.TestCase):
         codesign = self._codesign_lines()
         self.assertEqual(len(codesign), 1)
         self.assertIn("--force --deep --sign -", codesign[0])
+
+    def test_signing_can_be_explicitly_skipped_for_ci_artifacts(self):
+        result = self._run_script(POURINPUT_SKIP_CODESIGN="true")
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("Signing mode: skipped (unsigned build)", result.stdout)
+        self.assertEqual(self._codesign_lines(), [])
 
     def test_identity_signing_order_and_verify_failure(self):
         result = self._run_script(POURINPUT_SIGN_IDENTITY="IDENTITY")

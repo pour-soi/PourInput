@@ -299,17 +299,29 @@ The script reuses `images/AppIcon.icns` when present, otherwise generates one fr
 Signing is driven by `POURINPUT_SIGN_IDENTITY`:
 
 - Unset: the bundle is ad-hoc signed (`codesign --sign -`). The bundle's code identity can change on rebuild, so macOS may ask for Accessibility permission again. Fine for one-off builds.
+- Set `POURINPUT_SKIP_CODESIGN=true`: skip the build script's explicit signing step. The experimental GitHub Actions workflow uses this path and does not configure an Apple signing identity.
 - Set to a codesigning identity SHA-1 (list with `security find-identity -v -p codesigning`): the script signs nested `.dylib` / `.so` / `.framework` files depth-first with `--options runtime`, then signs the outer bundle with the hardened-runtime exceptions at `build_resources/PourInput.entitlements` (`allow-jit`, `allow-unsigned-executable-memory`, `disable-library-validation`), then runs `codesign --verify --deep --strict --verbose=2` and aborts the build if verification fails. This local developer signing path can reduce macOS Accessibility permission churn across repeated builds when the source, resolved Python interpreter, dependency versions, architecture, signing identity, entitlements, and timestamp policy stay the same.
 
 The script picks the Python interpreter in this order: `POURINPUT_PYTHON` env override → active `$VIRTUAL_ENV/bin/python3` or `bin/python` → `./.venv/bin/python3` or `bin/python` → `python3` or `python` on `PATH`. It fails fast with an explicit error if the selected interpreter is missing PyInstaller, so a half-set-up environment can't silently produce a different bundle layout. pyenv, uv, Conda, asdf, Poetry, and similar tools are supported through the active virtualenv, normal `PATH`, or `POURINPUT_PYTHON`; the script does not call those tools directly. pyenv users should initialize shims in the shell so `python3` resolves through pyenv, or set `POURINPUT_PYTHON` explicitly.
 
 `PYTHONHASHSEED=0` is pinned for the PyInstaller invocation so set iteration during the analysis stage produces byte-identical `base_library.zip` output across rebuilds (otherwise the outer `cdhash` drifts even with a stable signing identity).
 
-The `POURINPUT_SIGN_IDENTITY` path is not a notarized release-signing workflow. Public macOS release zips remain ad-hoc signed until a separate Developer ID Application signing, secure timestamp, notarization, stapling, and Gatekeeper assessment workflow exists.
+The `POURINPUT_SIGN_IDENTITY` path is not a notarized release-signing workflow. Experimental workflow artifacts remain unsigned/unnotarized until a separate Developer ID Application signing, secure timestamp, notarization, stapling, and Gatekeeper assessment workflow exists.
 
 - Build on the architecture you want to ship. `arm64` Python → Apple Silicon, `x86_64` Python → Intel.
 - Set `PYINSTALLER_TARGET_ARCH=arm64|x86_64|universal2` to override (when your Python supports the target).
-- Release CI publishes both `PourInput-macOS.zip` and `PourInput-macOS-intel.zip`.
+- The `macOS Experimental Build` workflow tests and packages
+  `PourInput-<version>-macOS-arm64.zip` and
+  `PourInput-<version>-macOS-x86_64.zip` as workflow artifacts. It does not
+  publish a GitHub Release.
+- Trigger it from **Actions → macOS Experimental Build → Run workflow** after
+  the workflow exists on the selected GitHub branch.
+- The packaged startup smoke mode is enabled only when
+  `POURINPUT_STARTUP_SMOKE_TEST=true`; it loads the QML root and exits before
+  permissions, hooks, or tray services are started.
+- See [`readme_mac_osx.md`](readme_mac_osx.md) and
+  [`docs/MACOS_COMPATIBILITY_AUDIT.md`](docs/MACOS_COMPATIBILITY_AUDIT.md) for
+  the experimental-install instructions and the real-device validation gaps.
 
 ### Linux
 

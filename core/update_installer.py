@@ -21,6 +21,7 @@ import urllib.request
 import zipfile
 
 from core.version import APP_EXECUTABLE_NAME, APP_NAME, APP_VERSION
+from core.platform_paths import update_data_dir
 
 
 APP_ID = "io.github.pour_soi.pourinput"
@@ -581,10 +582,10 @@ def locate_runtime(
     exe = Path(executable or sys.executable).resolve()
     system = sys_platform or sys.platform
     is_frozen = bool(getattr(sys, "frozen", False) if frozen is None else frozen)
-    if app_data_dir is None and (sys_platform or sys.platform).startswith("win"):
-        base = os.environ.get("LOCALAPPDATA") or str(Path.home() / "AppData" / "Local")
-        app_data_dir = Path(base) / "PourInput" / "updates"
-    data_dir = Path(app_data_dir or Path.home() / ".PourInput" / "updates").resolve()
+    data_dir = Path(
+        app_data_dir
+        or update_data_dir(platform_name=system)
+    ).resolve()
     key = platform_key(system)
     if not is_frozen:
         return RuntimeLocation(exe, exe.parent, data_dir, False, key, False, "source run")

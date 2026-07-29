@@ -79,7 +79,7 @@ Download the official Windows package:
 3. Run `PourInput-v1.3.4/PourInput.exe`.
 4. Quit any other PourInput build before launching this one.
 
-The package includes its required runtime files and creates its configuration automatically on first launch. Windows is the only official public release target. macOS support is planned but not officially available; Linux remains validation-only.
+The package includes its required runtime files and creates its configuration automatically on first launch. Windows is the only official public release target. macOS support is experimental and available only as an unsigned GitHub Actions artifact; Linux remains validation-only.
 
 <details>
 <summary>Official release files</summary>
@@ -89,6 +89,26 @@ The package includes its required runtime files and creates its configuration au
 - `pourinput-v1.3.4-update.json`
 
 </details>
+
+### Experimental macOS build
+
+PourInput now has an experimental, unsigned macOS `.app` build produced by the
+**macOS Experimental Build** GitHub Actions workflow. It is not an official
+stable release, is not notarized, and has not yet completed testing on physical
+Mac hardware.
+
+After a maintainer runs the workflow from the repository's **Actions** tab,
+download the `arm64` artifact for Apple Silicon or the `x86_64` artifact for an
+Intel Mac from the completed workflow run. Extract the ZIP, then use
+**Right-click → Open** in Finder. Gatekeeper may warn about or block the
+unsigned application. Accessibility permission is required for input
+remapping, and some features remain unavailable or need real-device
+validation.
+
+See [Experimental macOS support](readme_mac_osx.md) for workflow instructions,
+artifact testing, limitations, required permissions, and the macOS issue
+reporting checklist. The detailed platform audit is in
+[macOS compatibility audit](docs/MACOS_COMPATIBILITY_AUDIT.md).
 
 ## Compatibility
 

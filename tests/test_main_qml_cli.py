@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import patch
 
 try:
     import main_qml
@@ -25,6 +26,17 @@ class MainQmlCliTests(unittest.TestCase):
                 False,
             ),
         )
+
+    def test_startup_smoke_mode_is_explicitly_opt_in(self):
+        with patch.dict(
+            main_qml.os.environ,
+            {"POURINPUT_STARTUP_SMOKE_TEST": "true"},
+            clear=False,
+        ):
+            self.assertTrue(main_qml._smoke_test_requested())
+
+        with patch.dict(main_qml.os.environ, {}, clear=True):
+            self.assertFalse(main_qml._smoke_test_requested())
 
 
 if __name__ == "__main__":

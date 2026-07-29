@@ -133,6 +133,11 @@ def _parse_cli_args(argv):
     return qt_argv, hid_backend, start_hidden, force_show
 
 
+def _smoke_test_requested() -> bool:
+    value = os.environ.get("POURINPUT_STARTUP_SMOKE_TEST", "")
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
 _SINGLE_INSTANCE_ACTIVATE_MSG = b"show"
 
 
@@ -1318,6 +1323,14 @@ def main():
     print(f"[Startup] Engine create:    {(_t7-_t6)*1000:7.1f} ms")
     print(f"[Startup] QML load:         {(_t8-_t7)*1000:7.1f} ms")
     print(f"[Startup] TOTAL to window:  {(_t8-_t0)*1000:7.1f} ms")
+
+    if _smoke_test_requested():
+        print("[Smoke] QML root initialized; platform services intentionally not started")
+        QTimer.singleShot(0, app.quit)
+        try:
+            return app.exec()
+        finally:
+            engine.stop()
 
     # ── Accessibility check (macOS) ──────────────────────────────
     accessibility_granted = _check_accessibility(locale_mgr)

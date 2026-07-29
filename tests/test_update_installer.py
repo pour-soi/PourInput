@@ -509,6 +509,25 @@ class UpdateInstallerTests(unittest.TestCase):
             self.assertFalse(mac_runtime.update_supported)
             self.assertEqual(mac_runtime.reason, "manual install required")
 
+    def test_locate_runtime_uses_macos_application_support_for_update_state(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            expected = root / "Library" / "Application Support" / "PourInput" / "updates"
+            executable = root / "PourInput.app" / "Contents" / "MacOS" / "PourInput"
+
+            with patch(
+                "core.update_installer.update_data_dir",
+                return_value=expected,
+            ) as path_resolver:
+                runtime = locate_runtime(
+                    executable=executable,
+                    sys_platform="darwin",
+                    frozen=True,
+                )
+
+            path_resolver.assert_called_once_with(platform_name="darwin")
+            self.assertEqual(runtime.app_data_dir, expected.resolve())
+
     def test_locate_runtime_rejects_unsupported_windows_layout(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

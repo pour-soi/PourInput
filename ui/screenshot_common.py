@@ -7,6 +7,8 @@ from pathlib import Path
 from PIL import Image
 from PySide6.QtGui import QGuiApplication, QImage
 
+from core.platform_paths import screenshots_dir as platform_screenshots_dir
+
 
 SCREENSHOT_REGION_CLIP = "screenshot_region_clip"
 SCREENSHOT_REGION_FILE = "screenshot_region_file"
@@ -59,7 +61,7 @@ def copy_image_to_clipboard(image: Image.Image, clipboard=None) -> None:
 
 def screenshots_dir(home: Path | None = None) -> Path:
     root = home or Path.home()
-    primary = root / "Pictures" / "Screenshots"
+    primary = platform_screenshots_dir(home=root)
     try:
         primary.mkdir(parents=True, exist_ok=True)
         return primary

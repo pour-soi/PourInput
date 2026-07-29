@@ -1,0 +1,159 @@
+name: macOS Experimental Build
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/macos-experimental.yml"
+      - "core/**"
+      - "ui/**"
+      - "tests/**"
+      - "tools/**"
+      - "images/**"
+      - "main_qml.py"
+      - "requirements.txt"
+      - "PourInput-mac.spec"
+      - "build_macos_app.sh"
+  push:
+    branches: ["main"]
+    paths:
+      - ".github/workflows/macos-experimental.yml"
+      - "core/**"
+      - "ui/**"
+      - "tests/**"
+      - "tools/**"
+      - "images/**"
+      - "main_qml.py"
+      - "requirements.txt"
+      - "PourInput-mac.spec"
+      - "build_macos_app.sh"
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  build-macos:
+    name: macOS ${{ matrix.target_arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-latest
+            python_architecture: arm64
+            target_arch: arm64
+          - runner: macos-15-intel
+            python_architecture: x64
+            target_arch: x86_64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          architecture: ${{ matrix.python_architecture }}
+
+      - name: Create isolated Python environment
+        run: |
+          python -m venv .venv
+          .venv/bin/python -m pip install --upgrade pip
+          .venv/bin/python -m pip install -r requirements.txt
+
+      - name: Record application version
+        id: version
+        run: |
+          version="$(.venv/bin/python -c 'from core.version import APP_VERSION; print(APP_VERSION)')"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "archive=PourInput-${version}-macOS-${{ matrix.target_arch }}.zip" >> "$GITHUB_OUTPUT"
+
+      - name: Compile Python sources
+        run: .venv/bin/python -m compileall -q main_qml.py core ui tools
+
+      - name: Run automated test suite
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: .venv/bin/python -m unittest discover -s tests -p "test_*.py"
+
+      - name: Lint QML
+        run: |
+          .venv/bin/python - <<'PY'
+          import subprocess
+          from pathlib import Path
+          import PySide6
+
+          qml_files = sorted(str(path) for path in Path("ui/qml").glob("*.qml"))
+          qmllint = Path(PySide6.__file__).resolve().parent / "qmllint"
+          subprocess.run([str(qmllint), *qml_files], check=True)
+          PY
+
+      - name: Run macOS import and development-resource smoke checks
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: .venv/bin/python tools/macos_import_smoke.py
+
+      - name: Build unsigned macOS app bundle
+        env:
+          POURINPUT_GIT_COMMIT: ${{ github.sha }}
+          POURINPUT_GIT_DIRTY: "false"
+          POURINPUT_SKIP_CODESIGN: "true"
+          PYINSTALLER_TARGET_ARCH: ${{ matrix.target_arch }}
+        run: |
+          chmod +x build_macos_app.sh
+          POURINPUT_PYTHON="$PWD/.venv/bin/python" ./build_macos_app.sh
+
+      - name: Verify app bundle structure and metadata
+        run: |
+          .venv/bin/python tools/verify_macos_bundle.py \
+            dist/PourInput.app \
+            --expected-version "${{ steps.version.outputs.version }}" \
+            --expected-architecture "${{ matrix.target_arch }}" \
+            | tee build/macos/bundle-verification.json
+          file dist/PourInput.app/Contents/MacOS/PourInput \
+            | tee build/macos/executable-file.txt
+          grep -q "${{ matrix.target_arch }}" build/macos/executable-file.txt
+
+      - name: Smoke-test packaged QML startup
+        env:
+          QT_QPA_PLATFORM: offscreen
+          POURINPUT_STARTUP_SMOKE_TEST: "true"
+        run: |
+          .venv/bin/python - <<'PY'
+          import os
+          import subprocess
+
+          executable = "dist/PourInput.app/Contents/MacOS/PourInput"
+          subprocess.run([executable], env=os.environ.copy(), check=True, timeout=30)
+          PY
+          cp "$HOME/Library/Logs/PourInput/PourInput.log" \
+            build/macos/packaged-startup.log
+          grep -q "QML root initialized" build/macos/packaged-startup.log
+
+      - name: Package app bundle
+        run: |
+          cd dist
+          ditto -c -k --sequesterRsrc --keepParent \
+            PourInput.app "../${{ steps.version.outputs.archive }}"
+          cd ..
+          unzip -t "${{ steps.version.outputs.archive }}"
+          unzip -l "${{ steps.version.outputs.archive }}" \
+            | grep -q "PourInput.app/Contents/MacOS/PourInput"
+
+      - name: Upload macOS application artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: PourInput-${{ steps.version.outputs.version }}-macOS-${{ matrix.target_arch }}
+          path: ${{ steps.version.outputs.archive }}
+          if-no-files-found: error
+
+      - name: Upload macOS build diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: PourInput-${{ steps.version.outputs.version }}-macOS-${{ matrix.target_arch }}-logs
+          path: build/macos/
+          if-no-files-found: warn

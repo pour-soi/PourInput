@@ -10,16 +10,9 @@ import sys
 import tempfile
 from urllib.parse import quote
 from core import app_catalog
+from core.platform_paths import config_dir
 
-if sys.platform == "darwin":
-    CONFIG_DIR = os.path.join(os.path.expanduser("~"), "Library", "Application Support", "PourInput")
-elif sys.platform == "linux":
-    CONFIG_DIR = os.path.join(
-        os.environ.get("XDG_CONFIG_HOME", os.path.join(os.path.expanduser("~"), ".config")),
-        "PourInput",
-    )
-else:
-    CONFIG_DIR = os.path.join(os.environ.get("APPDATA", os.path.expanduser("~")), "PourInput")
+CONFIG_DIR = str(config_dir())
 CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
 
 # Which mouse events map to which friendly button names

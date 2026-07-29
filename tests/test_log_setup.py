@@ -3,6 +3,7 @@ import os
 import sys
 import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 from core import log_setup
@@ -20,7 +21,10 @@ class GetLogDirTests(unittest.TestCase):
             patch.dict(os.environ, {"XDG_STATE_HOME": "/custom/state"}, clear=False),
         ):
             result = log_setup._get_log_dir()
-        self.assertEqual(result, os.path.join("/custom/state", "PourInput", "logs"))
+        self.assertEqual(
+            Path(result),
+            Path(os.path.join("/custom/state", "PourInput", "logs")),
+        )
 
     def test_linux_defaults_to_dot_local_state(self):
         env = {k: v for k, v in os.environ.items() if k != "XDG_STATE_HOME"}

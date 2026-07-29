@@ -1,6 +1,7 @@
 import subprocess
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 from PIL import Image
@@ -11,6 +12,7 @@ from ui.macos_screenshot import (
     PERMISSION_FALLBACK_STATUS,
     MacDisplayInfo,
     MacScreenshotController,
+    _temporary_png_path,
     compose_display_images,
 )
 from ui.screenshot_common import (
@@ -315,6 +317,18 @@ class MacScreenshotControllerTests(unittest.TestCase):
 
 
 class MacScreenshotCompositionTests(unittest.TestCase):
+    def test_temporary_capture_uses_application_scoped_temp_directory(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp) / "PourInput"
+            with patch(
+                "ui.macos_screenshot.temporary_dir",
+                return_value=directory,
+            ):
+                path = _temporary_png_path()
+
+            self.assertEqual(path.parent, directory)
+            self.assertTrue(path.is_file())
+
     def test_compose_display_images_uses_white_max_dpi_canvas(self):
         captures = [
             (

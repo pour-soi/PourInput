@@ -10,19 +10,11 @@ import os
 import sys
 import threading
 
+from core.platform_paths import log_dir
+
 
 def _get_log_dir() -> str:
-    if sys.platform == "darwin":
-        return os.path.join(os.path.expanduser("~"), "Library", "Logs", "PourInput")
-    elif sys.platform == "linux":
-        xdg_state = os.environ.get(
-            "XDG_STATE_HOME",
-            os.path.join(os.path.expanduser("~"), ".local", "state"),
-        )
-        return os.path.join(xdg_state, "PourInput", "logs")
-    else:  # Windows
-        appdata = os.environ.get("APPDATA", os.path.expanduser("~"))
-        return os.path.join(appdata, "PourInput", "logs")
+    return str(log_dir())
 
 
 class _StreamToLogger:

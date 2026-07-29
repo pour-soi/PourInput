@@ -15,6 +15,7 @@ from PySide6.QtCore import QObject, Qt, Signal, Slot
 from PySide6.QtGui import QGuiApplication
 from PIL import Image
 
+from core.platform_paths import temporary_dir
 from ui.screenshot_common import (
     SCREENSHOT_ACTIONS,
     SCREENSHOT_CLIPBOARD_ACTIONS,
@@ -410,9 +411,12 @@ def _ordered_screens(app: QGuiApplication):
 
 
 def _temporary_png_path() -> Path:
+    directory = temporary_dir()
+    directory.mkdir(parents=True, exist_ok=True)
     handle = tempfile.NamedTemporaryFile(
         prefix="pourinput-screenshot-display-",
         suffix=".png",
+        dir=directory,
         delete=False,
     )
     try:

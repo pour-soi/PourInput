@@ -1,141 +1,149 @@
-# PourInput macOS Support
+# Experimental macOS support
 
-PourInput includes experimental macOS support alongside its primary Windows application. This document covers macOS-specific setup and known differences.
+PourInput has an experimental macOS implementation and an automated `.app`
+bundle build. Windows remains the only official stable release target.
 
-## Requirements
+The macOS bundle is not code-signed with an Apple Developer ID, is not
+notarized, and has not yet completed validation on physical macOS hardware.
+A successful GitHub Actions build proves that the code imports, tests, starts
+in a non-interactive smoke mode, and can be packaged. It does not prove that
+mouse interception, permissions, notifications, menu-bar behavior, or every
+GUI interaction works correctly on a real Mac.
 
-- **macOS 12 (Monterey)** or later recommended
-- **Python 3.11+** (via Homebrew or python.org)
-- **Apple Silicon / M1+**: use an `arm64` Python interpreter if you want a native Apple Silicon app bundle
-- **Intel Macs**: use an `x86_64` Python interpreter if you want a native Intel app bundle
-- **Accessibility permission** — required for CGEventTap to intercept mouse events
+## Automated build
 
-### Python Dependencies
+The `macOS Experimental Build` workflow builds separate Apple Silicon and
+Intel artifacts:
 
-```bash
-pip install -r requirements.txt
-```
+- `PourInput-<version>-macOS-arm64.zip`
+- `PourInput-<version>-macOS-x86_64.zip`
 
-On macOS, this will also install:
-- `pyobjc-framework-Quartz` — for CGEventTap (mouse hooking) and CGEvent (key simulation)
-- `pyobjc-framework-Cocoa` — for NSWorkspace (app detection) and NSEvent (media keys)
+To run it after the workflow file is committed to GitHub:
 
-## Granting Accessibility Permission
+1. Open the repository's **Actions** tab.
+2. Select **macOS Experimental Build**.
+3. Choose **Run workflow** and the branch to test.
+4. Wait for both architecture jobs to finish.
+5. Open the completed run and download the application artifact for the
+   target architecture. Diagnostic logs are uploaded separately.
 
-PourInput uses a **CGEventTap** to intercept and suppress mouse button events. macOS requires Accessibility permission for this:
+The workflow installs dependencies in a fresh virtual environment, runs the
+full automated test suite and QML linter, checks platform imports and data
+paths, builds `PourInput.app`, verifies bundle metadata and required
+resources, initializes the packaged QML window in smoke mode, archives the
+bundle with `ditto`, and uploads the ZIP. It has read-only repository
+permissions and does not publish a GitHub Release, push code, create tags,
+sign with an Apple identity, or notarize the app.
 
-1. Open **System Settings → Privacy & Security → Accessibility**
-2. Click the **+** button
-3. Add either:
-  - **Terminal.app** / **iTerm2** (if running from terminal)
-  - The Python binary (e.g. `/usr/local/bin/python3`)
-  - The built `.app` bundle (if packaged)
-4. Ensure the checkbox is **enabled**
-5. Restart PourInput if it was already running
+## Trying an artifact
 
-If Accessibility is not granted, PourInput will print:
-```
-[MouseHook] ERROR: Failed to create CGEventTap!
-```
+1. Download the ZIP that matches the Mac:
+   - Apple Silicon (M1 or later): `arm64`
+   - Intel: `x86_64`
+2. Extract the ZIP in Finder.
+3. Move `PourInput.app` to `/Applications` if desired.
+4. Right-click `PourInput.app` and choose **Open**.
+5. Confirm the Gatekeeper prompt. An unsigned, unnotarized experimental build
+   may produce a warning or be blocked by local security policy.
+6. Grant Accessibility permission when prompted:
+   **System Settings → Privacy & Security → Accessibility**.
+7. If custom screenshot-file delivery is tested, also grant Screen Recording
+   permission.
 
-## Platform Differences
+Do not remove quarantine attributes or weaken system security settings as a
+routine installation step. If local policy prevents opening the artifact,
+report the exact Gatekeeper message.
 
-| Feature | Windows | macOS |
-|---------|---------|-------|
-| Mouse hook | SetWindowsHookExW (LL hook) | CGEventTap |
-| Key simulation | SendInput (VK codes) | CGEvent (CGKeyCodes) |
-| Media keys | VK_MEDIA_* constants | NSEvent (NX key IDs) |
-| App detection | GetForegroundWindow | NSWorkspace.frontmostApplication |
-| Gesture button | HID++ + Raw Input fallback | HID++ + event-tap movement |
-| Scroll inversion | Coalesced SendInput | CGEventCreateScrollWheelEvent |
-| Modifier key | Ctrl | Cmd (⌘) |
-| Config location | `%APPDATA%\\PourInput` | `~/Library/Application Support/PourInput` |
-| Auto-reconnect | Device change notification | HID++ reconnect loop |
+## Data locations
 
-### Key Mapping Differences
+| Data | macOS location |
+|---|---|
+| Configuration and persisted application state | `~/Library/Application Support/PourInput/` |
+| Logs | `~/Library/Logs/PourInput/` |
+| Update-check working state | `~/Library/Application Support/PourInput/updates/` |
+| Temporary screenshot composition files | the system temporary directory under `PourInput/` |
+| User-created screenshots | `~/Pictures/Screenshots/` or the folder selected in Settings |
+| Login item | `~/Library/LaunchAgents/io.github.pour_soi.pourinput.plist` |
 
-Actions that use **Ctrl** on Windows automatically use **Cmd (⌘)** on macOS:
-- Copy → Cmd+C
-- Paste → Cmd+V
-- Cut → Cmd+X
-- Undo → Cmd+Z
-- etc.
+PourInput currently has no local database or persistent application cache.
+Automatic in-place update installation and installation backups are
+Windows-only; macOS update checks direct the user to manual installation.
 
-Desktop/navigation actions are also remapped to native macOS behavior:
-- **Alt+Tab** becomes **Cmd+Tab**
-- Compatibility entries like **Win+D** / **Task View** resolve to native macOS navigation shortcuts
-- PourInput also exposes macOS-specific actions such as **Mission Control**, **App Expose**, **Previous Desktop**, **Next Desktop**, **Show Desktop**, and **Launchpad**
+## Implemented platform equivalents
 
-### HID Access
+| Capability | macOS behavior | Validation level |
+|---|---|---|
+| Mouse interception | Quartz `CGEventTap` | automated logic tests; real input still required |
+| Keyboard actions | Quartz/AppKit events with Command-aware shortcuts | automated logic tests; real input still required |
+| Foreground app detection | `NSWorkspace.frontmostApplication` | automated/static checks |
+| Device-specific Logitech HID++ | non-exclusive hidapi/I/O Kit access | automated logic tests; real device required |
+| Start at login | per-user LaunchAgent | automated unit tests; real login session required |
+| Menu-bar operation | native AppKit status item with Qt fallback | automated unit tests; visual testing required |
+| Screenshots | native shortcuts and `/usr/sbin/screencapture` for custom folders | automated tests; permission and clipboard testing required |
+| App profiles | macOS bundle identifiers and executable identities | automated tests |
+| Configuration and logs | native `~/Library` locations | automated tests |
+| Packaging | PyInstaller `.app` with `.icns` branding | GitHub Actions build validation |
 
-On macOS, the HID gesture listener uses non-exclusive access (`hid_darwin_set_open_exclusive(0)`)
-so the mouse continues to function normally while PourInput reads HID++ reports.
+## Windows-only or deliberately unavailable features
 
-### Trackpad and Magic Mouse Scroll
+- **Generic Mouse Mode** is Windows-only and remains hidden on macOS. Adding a
+  macOS equivalent requires separate input-routing and hardware validation.
+- **Windows Registry startup**, Win32 hooks, Raw Input, XBUTTON suppression,
+  `SendInput`, native `CF_DIB`, Windows AppUserModelID, and `.exe` update
+  replacement are never executed on macOS.
+- **Automatic update installation** is disabled on macOS. Update checking and
+  opening the release page remain available.
+- Windows PowerShell and batch build commands are not used by the macOS
+  workflow.
 
-PourInput ignores trackpad and Magic Mouse continuous scroll events by default so two-finger gestures and macOS natural scrolling keep working normally while mouse wheel mappings stay active.
+## Source development on a Mac
 
-You can change this in **Point & Scroll → Scroll Direction → Ignore trackpad**. Leave it enabled for built-in trackpads and most Logitech mouse setups. Disable it only if you intentionally want PourInput to handle Magic Mouse or trackpad scroll events.
+Requirements:
 
-## Building a Native macOS App
-
-The repository now includes a dedicated macOS bundle flow:
-
-```bash
-python3 -m pip install -r requirements.txt pyinstaller
-./build_macos_app.sh
-```
-
-This produces:
-
-```text
-dist/PourInput.app
-```
-
-Notes:
-
-- Build on the target architecture. On an M1/M2/M3 Mac, use an `arm64` Python to produce an Apple Silicon app; on an Intel Mac, use an `x86_64` Python to produce an Intel app.
-- You can also set `PYINSTALLER_TARGET_ARCH=arm64` or `PYINSTALLER_TARGET_ARCH=x86_64` before running `./build_macos_app.sh` when your macOS Python environment supports that target.
-- The build flow uses the committed `images/AppIcon.icns` when present; otherwise the script generates an `.icns` icon from `images/logo_icon.png`, then runs PyInstaller with `PourInput-mac.spec`.
-- Signing path depends on `POURINPUT_SIGN_IDENTITY`. Unset: the bundle is ad-hoc signed (`codesign --sign -`), which is fine for one-off builds but can rotate the code identity on every rebuild, so macOS Accessibility grants may reset. Set to a codesigning identity (list with `security find-identity -v -p codesigning`, SHA-1 form preferred): the script signs nested `.dylib` / `.so` / `.framework` files depth-first with `--options runtime`, then signs the outer bundle with `build_resources/PourInput.entitlements`, then runs `codesign --verify --deep --strict` and aborts the build if it fails. Stable permission behavior depends on unchanged source, resolved Python interpreter, dependencies, architecture, signing identity, entitlements, and timestamp policy.
-- This signed path is for local repeated developer builds. It is not a notarized release-signing workflow; public macOS release zips remain ad-hoc signed until a separate Developer ID signing, secure timestamp, notarization, stapling, and Gatekeeper assessment workflow exists.
-- The app can then be moved to `/Applications/PourInput.app` and launched directly from Finder, Spotlight, or Dock.
-- `pyinstaller PourInput.spec` remains available as a simpler cross-platform build path, but the dedicated macOS script is the preferred bundle flow.
-- Release builds publish `PourInput-macOS.zip` for Apple Silicon and `PourInput-macOS-intel.zip` for Intel Macs.
-
-The packaged app runs as an `LSUIElement`, so it lives in the menu bar instead of showing a Dock icon.
-
-## Running
+- macOS 12 or newer
+- Python 3.12 recommended
+- `arm64` Python for Apple Silicon or `x86_64` Python for Intel
 
 ```bash
-python main_qml.py
-python main_qml.py --start-hidden
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements.txt
+.venv/bin/python -m unittest discover -s tests
+.venv/bin/python main_qml.py
 ```
 
-Use `--start-hidden` to launch straight into the menu bar without opening the settings window.
+Build locally on macOS only:
 
-## Start at Login
-
-PourInput can manage **Start at login** from the app UI on macOS.
-
-- The toggle writes a LaunchAgent plist to `~/Library/LaunchAgents/io.github.pour_soi.pourinput.plist`
-- The setting is designed for the packaged `.app`, but it also works in a source checkout by launching the current Python interpreter directly
-- If **Start minimized** is enabled in PourInput, the app still launches tray-first after login because that preference is read from config at startup
-- Turning **Start at login** back off removes that LaunchAgent plist again
-
-## Accessibility for the Packaged App
-
-If you switch from Terminal-based startup to `PourInput.app`, re-grant Accessibility for the app bundle:
-
-1. Open **System Settings → Privacy & Security → Accessibility**
-2. Remove old Terminal / Python entries if needed
-3. Add **PourInput.app**
-4. Ensure it is enabled
-5. Restart PourInput
-
-## Debugging
-
-Send SIGUSR1 to dump all thread stack traces:
 ```bash
-kill -USR1 $(pgrep -f main_qml.py)
+POURINPUT_PYTHON="$PWD/.venv/bin/python" ./build_macos_app.sh
 ```
+
+The script uses `images/AppIcon.icns`, falling back to generating an `.icns`
+from the existing logo source when necessary. By default it applies an ad-hoc
+signature for local development. Set `POURINPUT_SKIP_CODESIGN=true` for the
+same unsigned path used by experimental CI. `POURINPUT_SIGN_IDENTITY` remains
+an optional local developer path and is not used by the experimental
+workflow.
+
+## Real-Mac validation still required
+
+Before official macOS support or a public macOS release is claimed, test:
+
+1. First launch, Gatekeeper behavior, and Accessibility permission recovery.
+2. Apple Silicon and Intel startup from Finder and `/Applications`.
+3. Logitech HID++ discovery, reconnect, every mapped control, suppression,
+   rapid clicks, and long holds using physical devices.
+4. Command-based custom shortcuts and media/system actions in several apps.
+5. Per-app profile switching using Safari, Chrome, Finder, and another app.
+6. Menu-bar icon visibility, menus, notifications, Dock activation, Cmd+Tab,
+   Cmd+W, explicit Quit, logout, restart, and login startup.
+7. Full-screen and region screenshots, clipboard paste, custom folders,
+   multiple displays, Retina scaling, and Screen Recording denial/recovery.
+8. Native file dialogs, opening URLs, clipboard ownership, dark mode, fonts,
+   full-screen windows, and multiple displays.
+9. Sleep/wake, device disconnect/reconnect, and long-running memory use.
+10. Update notifications and manual-install messaging.
+
+Report problems with the macOS version and architecture, macOS version,
+connection type, device model, exact steps, visible result, and the relevant
+log excerpt from `~/Library/Logs/PourInput/PourInput.log`. Do not include
+private configuration contents or unrelated system information.

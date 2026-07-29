@@ -79,7 +79,7 @@ PourInput 是一款在 Windows 上运行的本地鼠标按键自定义工具。�
 3. 运行 `PourInput-v1.3.4/PourInput.exe`。
 4. 启动前先退出正在运行的其他 PourInput 构建。
 
-发布包已经包含所需运行文件，并会在首次启动时自动创建配置。Windows 是唯一的官方公开发布目标。macOS 支持已规划但尚未正式提供；Linux 仍仅用于构建验证。
+发布包已经包含所需运行文件，并会在首次启动时自动创建配置。Windows 是唯一的官方公开发布目标。macOS 支持目前处于实验阶段，只通过 GitHub Actions 提供未签名构建；Linux 仍仅用于构建验证。
 
 <details>
 <summary>官方发布文件</summary>
@@ -89,6 +89,22 @@ PourInput 是一款在 Windows 上运行的本地鼠标按键自定义工具。�
 - `pourinput-v1.3.4-update.json`
 
 </details>
+
+### 实验性 macOS 构建
+
+PourInput 现在可以通过 GitHub Actions 的 **macOS Experimental Build**
+工作流生成实验性的 macOS `.app`。该构建未使用 Apple Developer ID
+签名、尚未公证、不是正式稳定版本，并且尚未在真实 Mac 硬件上完成验证。
+
+维护者从仓库的 **Actions** 页面手动运行工作流后，可以在完成的运行页面中
+下载构建产物：Apple Silicon 使用 `arm64`，Intel Mac 使用 `x86_64`。
+解压 ZIP 后，请在 Finder 中对 `PourInput.app` 使用
+**右键 → 打开**。Gatekeeper 可能会警告或阻止未签名应用。输入重映射需要
+“辅助功能”权限，部分功能仍不可用或需要真实设备验证。
+
+工作流触发方式、构建产物下载与测试步骤、权限要求、已知限制和问题报告方式
+请参阅[实验性 macOS 支持说明](readme_mac_osx.md)。详细的平台审计见
+[macOS 兼容性审计](docs/MACOS_COMPATIBILITY_AUDIT.md)。
 
 ## 兼容性
 

@@ -11,6 +11,7 @@ SOURCE_ICON="$ROOT_DIR/images/logo_icon.png"
 ENTITLEMENTS="$ROOT_DIR/build_resources/PourInput.entitlements"
 TARGET_ARCH="${PYINSTALLER_TARGET_ARCH:-}"
 SIGN_IDENTITY="${POURINPUT_SIGN_IDENTITY:-}"
+SKIP_CODESIGN="${POURINPUT_SKIP_CODESIGN:-}"
 export PYINSTALLER_CONFIG_DIR="$BUILD_DIR/pyinstaller"
 PYTHON=""
 PYTHON_SOURCE=""
@@ -193,6 +194,13 @@ sign_with_identity() {
 }
 
 sign_app() {
+  case "${SKIP_CODESIGN:l}" in
+    1|true|yes|on)
+      echo "Signing mode: skipped (unsigned build)"
+      return
+      ;;
+  esac
+
   if ! command -v codesign >/dev/null 2>&1; then
     echo "warning: codesign not available, bundle is unsigned"
     return
