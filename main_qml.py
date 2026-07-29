@@ -1326,6 +1326,8 @@ def main():
 
     if _smoke_test_requested():
         print("[Smoke] QML root initialized; platform services intentionally not started")
+        if _MACOS_QUIT_FILTER is not None:
+            _MACOS_QUIT_FILTER.allow_quit()
         QTimer.singleShot(0, app.quit)
         try:
             return app.exec()
