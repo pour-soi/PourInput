@@ -15,7 +15,7 @@ PourInput 是一款独立的 Windows 应用，让同一个鼠标按键分别执�
     <img src="https://img.shields.io/badge/%E4%B8%8B%E8%BD%BD_Windows_%E7%89%88-v1.3.4-0078D4?style=for-the-badge&logo=windows11&logoColor=white" alt="下载 Windows 版">
   </a>
   <a href="https://github.com/pour-soi/PourInput/releases/tag/v1.3.4-macos.1">
-    <img src="https://img.shields.io/badge/%E2%AC%86%EF%B8%8F%20MacBook-v1.3.4%20Preview-000000?style=for-the-badge&logo=apple&logoColor=white" alt="⬆️ MacBook">
+    <img src="https://img.shields.io/badge/%E6%94%AF%E6%8C%81macOS-v1.3.4%20Preview-000000?style=for-the-badge&logo=apple&logoColor=white" alt="支持macOS">
   </a>
   <a href="https://github.com/pour-soi/PourInput/releases/tag/v1.3.4">
     <img src="https://img.shields.io/badge/%E7%89%88%E6%9C%AC%E8%AF%B4%E6%98%8E-v1.3.4-555555?style=for-the-badge" alt="版本说明">
