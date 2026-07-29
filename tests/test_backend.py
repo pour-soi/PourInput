@@ -9,6 +9,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from core.config import DEFAULT_CONFIG
+from core.key_simulator import ACTIONS
 from core.mouse_hook import MouseEvent
 from core.mouse_hook_types import BindingBuilder, BindingSnapshot, HidRuntimeState
 from core.updater import UpdateCheckState
@@ -945,12 +946,13 @@ class BackendDeviceLayoutTests(unittest.TestCase):
             ]
 
         action_ids = [button["actionId"] for button in backend.buttons]
+        shortcut_modifier = "Cmd" if "Cmd+" in ACTIONS["copy"]["label"] else "Ctrl"
         self.assertEqual(
             visible_labels(),
             [
                 ("Middle Button", "Screenshot Region → Clipboard"),
-                ("Side Button 1 — Back", "Copy (Ctrl+C)"),
-                ("Side Button 2 — Forward", "Paste (Ctrl+V)"),
+                ("Side Button 1 — Back", f"Copy ({shortcut_modifier}+C)"),
+                ("Side Button 2 — Forward", f"Paste ({shortcut_modifier}+V)"),
             ],
         )
         self.assertFalse(
@@ -968,8 +970,14 @@ class BackendDeviceLayoutTests(unittest.TestCase):
             visible_labels(),
             [
                 ("\u4e2d\u952e", "\u533a\u57df\u622a\u56fe → \u526a\u8d34\u677f"),
-                ("\u4fa7\u952e 1 — \u540e\u9000", "\u590d\u5236 (Ctrl+C)"),
-                ("\u4fa7\u952e 2 — \u524d\u8fdb", "\u7c98\u8d34 (Ctrl+V)"),
+                (
+                    "\u4fa7\u952e 1 — \u540e\u9000",
+                    f"\u590d\u5236 ({shortcut_modifier}+C)",
+                ),
+                (
+                    "\u4fa7\u952e 2 — \u524d\u8fdb",
+                    f"\u7c98\u8d34 ({shortcut_modifier}+V)",
+                ),
             ],
         )
         self.assertEqual(
