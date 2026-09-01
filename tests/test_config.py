@@ -196,6 +196,97 @@ class ConfigMigrationTests(unittest.TestCase):
             config.DEFAULT_LONG_PRESS_THRESHOLD_MS,
         )
 
+    def test_malformed_existing_config_fails_strict_and_falls_back_non_strict(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            config_file = Path(temp_dir) / "config.json"
+            malformed = "{not-valid-json"
+            config_file.write_text(malformed, encoding="utf-8")
+
+            with (
+                patch.object(config, "CONFIG_DIR", temp_dir),
+                patch.object(config, "CONFIG_FILE", str(config_file)),
+            ):
+                with self.assertRaises(config.ConfigLoadError):
+                    config.load_config(strict=True)
+                loaded = config.load_config()
+                with patch.object(config.tempfile, "mkstemp") as mkstemp:
+                    with self.assertRaises(config.ConfigWriteBlockedError):
+                        config.save_config(loaded)
+                mkstemp.assert_not_called()
+                self.assertEqual(config_file.read_text(encoding="utf-8"), malformed)
+
+        self.assertEqual(loaded, config.DEFAULT_CONFIG)
+        self.assertIsNot(loaded, config.DEFAULT_CONFIG)
+
+    def test_wrong_type_mapping_is_read_only_and_preserves_original(self):
+        for profile_name in ("default", "custom"):
+            with self.subTest(profile=profile_name), tempfile.TemporaryDirectory() as temp_dir:
+                config_file = Path(temp_dir) / "config.json"
+                saved = json.loads(json.dumps(config.DEFAULT_CONFIG))
+                if profile_name == "custom":
+                    saved["profiles"][profile_name] = {
+                        "label": "Custom",
+                        "apps": [],
+                        "mappings": {"middle": None},
+                    }
+                else:
+                    saved["profiles"][profile_name]["mappings"]["middle"] = 123
+                original = json.dumps(saved, indent=2)
+                config_file.write_text(original, encoding="utf-8")
+
+                with (
+                    patch.object(config, "CONFIG_DIR", temp_dir),
+                    patch.object(config, "CONFIG_FILE", str(config_file)),
+                ):
+                    with self.assertRaises(config.ConfigLoadError):
+                        config.load_config(strict=True)
+                    loaded = config.load_config()
+                    try:
+                        self.assertFalse(config.config_is_verified(loaded))
+                        with patch.object(config.tempfile, "mkstemp") as mkstemp:
+                            with self.assertRaises(config.ConfigWriteBlockedError):
+                                config.save_config(loaded)
+                        mkstemp.assert_not_called()
+                    finally:
+                        config.mark_config_verified_writable(loaded)
+
+                self.assertEqual(config_file.read_text(encoding="utf-8"), original)
+
+    def test_missing_first_run_defaults_can_be_saved(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            config_file = Path(temp_dir) / "config.json"
+            with (
+                patch.object(config, "CONFIG_DIR", temp_dir),
+                patch.object(config, "CONFIG_FILE", str(config_file)),
+            ):
+                loaded = config.load_config()
+                loaded["settings"]["start_minimized"] = False
+                config.save_config(loaded)
+
+            persisted = json.loads(config_file.read_text(encoding="utf-8"))
+
+        self.assertFalse(persisted["settings"]["start_minimized"])
+
+    def test_merge_defaults_deep_copies_missing_mutable_subtrees(self):
+        merged = config._merge_defaults(
+            {"version": config.DEFAULT_CONFIG["version"], "settings": {}},
+            config.DEFAULT_CONFIG,
+        )
+
+        self.assertIsNot(merged["profiles"], config.DEFAULT_CONFIG["profiles"])
+        self.assertIsNot(
+            merged["profiles"]["default"]["apps"],
+            config.DEFAULT_CONFIG["profiles"]["default"]["apps"],
+        )
+        self.assertIsNot(
+            merged["settings"]["device_layout_overrides"],
+            config.DEFAULT_CONFIG["settings"]["device_layout_overrides"],
+        )
+        self.assertIsNot(
+            merged["settings"]["update_check_state"],
+            config.DEFAULT_CONFIG["settings"]["update_check_state"],
+        )
+
     def test_load_config_preserves_saved_language_and_mappings(self):
         saved = {
             "version": 11,

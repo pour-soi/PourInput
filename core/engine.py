@@ -4,6 +4,7 @@ current configuration.  Sits between the hook layer and the UI.
 Supports per-application auto-switching of profiles.
 """
 
+from dataclasses import replace
 import sys
 import threading
 import time
@@ -14,6 +15,7 @@ from core.key_simulator import (
 )
 from core.config import (
     load_config, get_active_mappings, get_profile_for_app,
+    ConfigLoadError, config_is_verified, mark_config_verified_writable,
     BUTTON_TO_EVENTS, DEFAULT_LONG_PRESS_THRESHOLD_MS,
     GENERIC_MOUSE_BUTTONS,
     GESTURE_DIRECTION_BUTTONS, save_config,
@@ -21,7 +23,7 @@ from core.config import (
     resolve_windows_xbutton_mapping_key, WINDOWS_XBUTTON_KEYS,
 )
 from core.app_detector import AppDetector
-from core.mouse_hook_types import HidRuntimeState
+from core.mouse_hook_types import HidRuntimeState, HookHealth
 from core.linux_permissions import (
     linux_permission_log_message,
     linux_permission_report,
@@ -31,6 +33,8 @@ from core.logi_devices import clamp_dpi, get_reprogrammable_buttons
 
 HSCROLL_ACTION_COOLDOWN_S = 0.35
 HSCROLL_VOLUME_COOLDOWN_S = 0.06
+BACKEND_HEALTH_INTERVAL_S = 2.0
+BACKEND_RECOVERY_BACKOFF_S = (0.0, 1.0, 3.0)
 _VOLUME_ACTIONS = {"volume_up", "volume_down"}
 _LOGI_XBUTTON_CIDS = {"xbutton1": 0x0053, "xbutton2": 0x0056}
 _LOGI_XBUTTON_EVENTS = {
@@ -44,9 +48,9 @@ class Engine:
     and auto-switches profiles when the foreground app changes.
     """
 
-    def __init__(self):
+    def __init__(self, initial_config=None):
         self.hook = MouseHook()
-        self.cfg = load_config()
+        self.cfg = initial_config if initial_config is not None else load_config()
         self._enabled = True
         self._hscroll_state = {
             MouseEvent.HSCROLL_LEFT: {"accum": 0.0, "last_fire_at": 0.0},
@@ -77,7 +81,12 @@ class Engine:
         self._mouse_release_timers = {}   # action_id → Timer for safety auto-release
         self._multi_action_down_at = {}
         self._binding_state_lock = threading.Lock()
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
+        self._backend_watchdog_stop = threading.Event()
+        self._backend_watchdog_thread = None
+        self._backend_recovery_lock = threading.Lock()
+        self._backend_recovery_attempts = 0
+        self._backend_recovery_exhausted = False
         self.hook.set_debug_callback(self._emit_debug)
         self.hook.set_gesture_callback(self._emit_gesture_event)
         self.hook.set_status_callback(self._emit_status)
@@ -112,6 +121,16 @@ class Engine:
             for field in ("key", "product_id", "transport", "source")
         )
 
+    def _reset_backend_identity_tracking(self):
+        """Forget stopped-backend identity without publishing new bindings."""
+        self._last_connection_state = False
+        self._last_hid_features_ready = False
+        self._last_binding_route_identity = None
+        self._battery_poll_stop.set()
+        if self._battery_poll_thread is not None:
+            self._battery_poll_thread.join(timeout=5)
+            self._battery_poll_thread = None
+
     # ------------------------------------------------------------------
     # Hook wiring
     # ------------------------------------------------------------------
@@ -120,6 +139,27 @@ class Engine:
         mappings = get_active_mappings(self.cfg)
         bindings.set_lifecycle_invalidator(self._invalidate_press_lifecycle)
         generic_mouse_enabled = self._generic_mouse_enabled()
+        hid_route_keys = {
+            "gesture",
+            *GESTURE_DIRECTION_BUTTONS,
+            "mode_shift",
+            long_press_mapping_key("mode_shift"),
+            "dpi_switch",
+        }
+        if not generic_mouse_enabled:
+            for button in WINDOWS_XBUTTON_KEYS:
+                hid_route_keys.add(button)
+                hid_route_keys.add(long_press_mapping_key(button))
+        configured_hid_required = bool(
+            sys.platform == "win32"
+            and any(
+                profile.get("mappings", {}).get(key, "none") != "none"
+                for profile in self.cfg.get("profiles", {}).values()
+                for key in hid_route_keys
+            )
+        )
+        if hasattr(self.hook, "set_hid_listener_required"):
+            self.hook.set_hid_listener_required(configured_hid_required)
 
         # Apply scroll inversion settings to the hook
         settings = self.cfg.get("settings", {})
@@ -338,7 +378,207 @@ class Engine:
         self._emit_debug(
             f"Bindings replaced generation={snapshot.generation} reason={reason}"
         )
+        health = self.input_health()
+        print(
+            "[InputRuntime] HOOK_REBUILD "
+            f"reason={reason} generation={snapshot.generation}"
+        )
+        print(
+            "[InputRuntime] MAPPING_CONFIGURED_COUNT "
+            f"count={health.configured_mapping_count} profile={self._current_profile}"
+        )
+        print(
+            "[InputRuntime] MAPPING_BOUND_COUNT "
+            f"count={health.bound_mapping_count} profile={self._current_profile}"
+        )
         return snapshot
+
+    def _reload_config_in_place(self, *, strict=True):
+        """Refresh the shared config object without breaking Backend authority."""
+        current = load_config(strict=strict)
+        self.cfg.clear()
+        self.cfg.update(current)
+        mark_config_verified_writable(self.cfg)
+        self._current_profile = self.cfg.get("active_profile", "default")
+
+    def input_health(self):
+        """Return explicit configuration, binding, and backend health state."""
+        health_getter = getattr(self.hook, "health_snapshot", None)
+        if health_getter is None:
+            health = HookHealth(backend=sys.platform, healthy=True)
+        else:
+            health = health_getter()
+        mappings = get_active_mappings(self.cfg)
+        configured = {
+            key for key, action in mappings.items() if action != "none"
+        }
+        snapshot = self.hook.capture_binding_snapshot()
+        bound_routes = {
+            snapshot.routes.get(event_type)
+            for event_type, callbacks in snapshot.callbacks.items()
+            if callbacks and snapshot.routes.get(event_type)
+        }
+        bound = sum(
+            1
+            for key in configured
+            if (key[:-5] if key.endswith("_long") else key) in bound_routes
+        )
+        return replace(
+            health,
+            configured_mapping_count=len(configured),
+            bound_mapping_count=bound,
+        )
+
+    def _recover_backend_once(self, reason):
+        """Stop and rebuild only the input backend from authoritative config."""
+        with self._backend_recovery_lock:
+            print(f"[InputRuntime] HOOK_RECOVERY phase=start reason={reason}")
+            stopped = self.hook.stop()
+            if stopped is False:
+                print(
+                    "[InputRuntime] HOOK_FAILURE phase=stop "
+                    f"reason={reason} error=backend-did-not-stop"
+                )
+                return False
+            self._reset_backend_identity_tracking()
+            self._release_active_mouse_holds("hook-recovery")
+            with self._lock:
+                # Engine.cfg is shared with Backend and is the current
+                # authoritative document. Recovery is runtime-only: it must
+                # neither replace that object nor write config.json.
+                self.hook.reset_bindings(wait_timeout=1.0)
+                with self._binding_state_lock:
+                    self._multi_action_down_at.clear()
+                self._replace_bindings("hook-recovery")
+            recovered = False
+            try:
+                started = self.hook.start()
+                health = self.input_health()
+                recovered = started is not False and health.healthy
+            except Exception as exc:
+                import traceback
+
+                print(
+                    "[InputRuntime] BACKEND_EXCEPTION "
+                    f"context=recovery-start reason={reason} error={exc!r} "
+                    f"traceback={traceback.format_exc().strip()}"
+                )
+            finally:
+                if not recovered:
+                    try:
+                        cleanup_stopped = self.hook.stop()
+                    except Exception as exc:
+                        import traceback
+
+                        cleanup_stopped = False
+                        print(
+                            "[InputRuntime] BACKEND_EXCEPTION "
+                            f"context=recovery-cleanup reason={reason} "
+                            f"error={exc!r} "
+                            f"traceback={traceback.format_exc().strip()}"
+                        )
+                    if cleanup_stopped is False:
+                        print(
+                            "[InputRuntime] HOOK_FAILURE phase=recovery-cleanup "
+                            f"reason={reason} error=backend-did-not-stop"
+                        )
+                    else:
+                        self._reset_backend_identity_tracking()
+            print(
+                "[InputRuntime] HOOK_RECOVERY "
+                f"phase=complete reason={reason} healthy={recovered}"
+            )
+            return recovered
+
+    def _release_active_mouse_holds(self, reason):
+        timers = list(self._mouse_release_timers.items())
+        self._mouse_release_timers.clear()
+        for action_id, timer in timers:
+            timer.cancel()
+            try:
+                inject_mouse_up(action_id)
+            except Exception as exc:
+                import traceback
+
+                print(
+                    "[InputRuntime] BACKEND_EXCEPTION "
+                    f"context=mouse-hold-release reason={reason} "
+                    f"action={action_id} error={exc!r} "
+                    f"traceback={traceback.format_exc().strip()}"
+                )
+
+    def _check_backend_health_once(self):
+        """Check once and perform at most one bounded recovery attempt."""
+        health = self.input_health()
+        if health.healthy:
+            self._backend_recovery_attempts = 0
+            self._backend_recovery_exhausted = False
+            return True
+        if self._backend_recovery_exhausted:
+            return False
+        self._backend_recovery_attempts += 1
+        attempt = self._backend_recovery_attempts
+        reason = health.last_backend_exception or "backend-unhealthy"
+        print(
+            "[InputRuntime] HOOK_FAILURE "
+            f"attempt={attempt} reason={reason} backend={health.backend}"
+        )
+        if self._recover_backend_once(reason):
+            self._backend_recovery_attempts = 0
+            return True
+        if attempt >= len(BACKEND_RECOVERY_BACKOFF_S):
+            self._backend_recovery_exhausted = True
+            print(
+                "[InputRuntime] HOOK_FAILURE phase=hard-failure "
+                f"attempts={attempt} backend={health.backend}"
+            )
+        return False
+
+    def _backend_watchdog_loop(self):
+        while not self._backend_watchdog_stop.wait(BACKEND_HEALTH_INTERVAL_S):
+            if self._backend_recovery_attempts:
+                delay = BACKEND_RECOVERY_BACKOFF_S[
+                    min(
+                        self._backend_recovery_attempts,
+                        len(BACKEND_RECOVERY_BACKOFF_S) - 1,
+                    )
+                ]
+                if delay and self._backend_watchdog_stop.wait(delay):
+                    return
+            try:
+                self._check_backend_health_once()
+            except Exception as exc:
+                import traceback
+
+                print(
+                    "[InputRuntime] BACKEND_EXCEPTION context=health-watchdog "
+                    f"error={exc!r} traceback={traceback.format_exc().strip()}"
+                )
+
+    def _start_backend_watchdog(self):
+        if self._backend_watchdog_thread and self._backend_watchdog_thread.is_alive():
+            return
+        self._backend_watchdog_stop.clear()
+        self._backend_watchdog_thread = threading.Thread(
+            target=self._backend_watchdog_loop,
+            daemon=True,
+            name="InputHealthWatchdog",
+        )
+        self._backend_watchdog_thread.start()
+
+    def _stop_backend_watchdog(self):
+        self._backend_watchdog_stop.set()
+        thread = self._backend_watchdog_thread
+        if thread and thread is not threading.current_thread():
+            thread.join(timeout=10)
+        if thread and thread.is_alive():
+            print(
+                "[InputRuntime] HOOK_FAILURE phase=watchdog-stop "
+                "error=watchdog-did-not-stop"
+            )
+            return False
+        self._backend_watchdog_thread = None
+        return True
 
     def _invalidate_press_lifecycle(self, generation, route):
         with self._binding_state_lock:
@@ -391,7 +631,7 @@ class Engine:
                     self._execute_mapped_action(action_id, event.event_type)
             except Exception as exc:
                 print(f"[Engine] _make_handler EXCEPTION for {action_id}: {exc}")
-                import traceback; traceback.print_exc()
+                raise
         return handler
 
     def _multi_action_threshold_s(self):
@@ -423,7 +663,7 @@ class Engine:
                     )
             except Exception as exc:
                 print(f"[Engine] multi_action_down_handler EXCEPTION for {button_key}: {exc}")
-                import traceback; traceback.print_exc()
+                raise
         return handler
 
     def _make_multi_action_up_handler(self, button_key, click_action_id, long_action_id):
@@ -463,7 +703,7 @@ class Engine:
                     self._execute_mapped_action(click_action_id, event.event_type)
             except Exception as exc:
                 print(f"[Engine] multi_action_up_handler EXCEPTION for {button_key}: {exc}")
-                import traceback; traceback.print_exc()
+                raise
         return handler
 
     def _make_mouse_down_handler(self, action_id):
@@ -474,8 +714,13 @@ class Engine:
                 self._mouse_release_timers.pop(action_id, None)
                 inject_mouse_up(action_id)
             except Exception as exc:
-                print(f"[Engine] _safety_release EXCEPTION for {action_id}: {exc}")
-                import traceback; traceback.print_exc()
+                import traceback
+
+                print(
+                    "[InputRuntime] BACKEND_EXCEPTION "
+                    f"context=safety-release action={action_id} error={exc!r} "
+                    f"traceback={traceback.format_exc().strip()}"
+                )
 
         def handler(event):
             try:
@@ -495,7 +740,7 @@ class Engine:
                     t.start()
             except Exception as exc:
                 print(f"[Engine] mouse_down_handler EXCEPTION for {action_id}: {exc}")
-                import traceback; traceback.print_exc()
+                raise
         return handler
 
     def _make_mouse_up_handler(self, action_id):
@@ -513,7 +758,7 @@ class Engine:
                     inject_mouse_up(action_id)
             except Exception as exc:
                 print(f"[Engine] mouse_up_handler EXCEPTION for {action_id}: {exc}")
-                import traceback; traceback.print_exc()
+                raise
         return handler
 
     def _toggle_smart_shift(self):
@@ -525,13 +770,14 @@ class Engine:
         3-second timeout seen in the logs.  Config and UI are updated synchronously;
         the device write is dispatched to a separate thread.
         """
-        settings = self.cfg.get("settings", {})
-        new_enabled = not settings.get("smart_shift_enabled", False)
-        mode = settings.get("smart_shift_mode", "ratchet")
-        threshold = settings.get("smart_shift_threshold", 25)
-        print(f"[Engine] toggle_smart_shift -> enabled={new_enabled}")
-        settings["smart_shift_enabled"] = new_enabled
-        save_config(self.cfg)
+        with self._lock:
+            settings = self.cfg.get("settings", {})
+            new_enabled = not settings.get("smart_shift_enabled", False)
+            mode = settings.get("smart_shift_mode", "ratchet")
+            threshold = settings.get("smart_shift_threshold", 25)
+            print(f"[Engine] toggle_smart_shift -> enabled={new_enabled}")
+            settings["smart_shift_enabled"] = new_enabled
+            save_config(self.cfg)
         if self._smart_shift_read_cb:
             try:
                 self._smart_shift_read_cb({"mode": mode, "enabled": new_enabled, "threshold": threshold})
@@ -553,14 +799,15 @@ class Engine:
         SmartShift auto-switching is disabled so the chosen fixed mode takes effect.
         Same deadlock caveat as _toggle_smart_shift — device write runs off-thread.
         """
-        settings = self.cfg.get("settings", {})
-        current_mode = settings.get("smart_shift_mode", "ratchet")
-        new_mode = "freespin" if current_mode == "ratchet" else "ratchet"
-        threshold = settings.get("smart_shift_threshold", 25)
-        print(f"[Engine] switch_scroll_mode -> {new_mode}")
-        settings["smart_shift_mode"] = new_mode
-        settings["smart_shift_enabled"] = False
-        save_config(self.cfg)
+        with self._lock:
+            settings = self.cfg.get("settings", {})
+            current_mode = settings.get("smart_shift_mode", "ratchet")
+            new_mode = "freespin" if current_mode == "ratchet" else "ratchet"
+            threshold = settings.get("smart_shift_threshold", 25)
+            print(f"[Engine] switch_scroll_mode -> {new_mode}")
+            settings["smart_shift_mode"] = new_mode
+            settings["smart_shift_enabled"] = False
+            save_config(self.cfg)
         if self._smart_shift_read_cb:
             try:
                 self._smart_shift_read_cb({"mode": new_mode, "enabled": False, "threshold": threshold})
@@ -585,20 +832,21 @@ class Engine:
         match any preset, jumps to the first one.  Updates config, notifies
         the UI, and writes to the device off-thread.
         """
-        settings = self.cfg.setdefault("settings", {})
-        presets = settings.get("dpi_presets") or list(self._DEFAULT_DPI_PRESETS)
-        if not presets:
-            return
-        current_dpi = settings.get("dpi", 1000)
-        try:
-            idx = presets.index(current_dpi)
-            next_idx = (idx + 1) % len(presets)
-        except ValueError:
-            next_idx = 0
-        new_dpi = clamp_dpi(presets[next_idx], self.connected_device)
-        print(f"[Engine] cycle_dpi {current_dpi} -> {new_dpi} (preset {next_idx + 1}/{len(presets)})")
-        settings["dpi"] = new_dpi
-        save_config(self.cfg)
+        with self._lock:
+            settings = self.cfg.setdefault("settings", {})
+            presets = settings.get("dpi_presets") or list(self._DEFAULT_DPI_PRESETS)
+            if not presets:
+                return
+            current_dpi = settings.get("dpi", 1000)
+            try:
+                idx = presets.index(current_dpi)
+                next_idx = (idx + 1) % len(presets)
+            except ValueError:
+                next_idx = 0
+            new_dpi = clamp_dpi(presets[next_idx], self.connected_device)
+            print(f"[Engine] cycle_dpi {current_dpi} -> {new_dpi} (preset {next_idx + 1}/{len(presets)})")
+            settings["dpi"] = new_dpi
+            save_config(self.cfg)
         if self._dpi_read_cb:
             try:
                 self._dpi_read_cb(new_dpi)
@@ -1091,8 +1339,9 @@ class Engine:
     def set_dpi(self, dpi_value):
         """Send DPI change to the mouse via HID++."""
         dpi = clamp_dpi(dpi_value, self.connected_device)
-        self.cfg.setdefault("settings", {})["dpi"] = dpi
-        save_config(self.cfg)
+        with self._lock:
+            self.cfg.setdefault("settings", {})["dpi"] = dpi
+            save_config(self.cfg)
         # Try via the hook's HidGestureListener
         hg = self.hook._hid_gesture
         if hg:
@@ -1110,11 +1359,12 @@ class Engine:
         smart_shift_enabled: True to enable auto SmartShift
         threshold: 1-50 sensitivity when SmartShift is enabled"""
         print(f"[Engine] set_smart_shift({mode}, enabled={smart_shift_enabled}, threshold={threshold}) called")
-        settings = self.cfg.setdefault("settings", {})
-        settings["smart_shift_mode"] = mode
-        settings["smart_shift_enabled"] = smart_shift_enabled
-        settings["smart_shift_threshold"] = threshold
-        save_config(self.cfg)
+        with self._lock:
+            settings = self.cfg.setdefault("settings", {})
+            settings["smart_shift_mode"] = mode
+            settings["smart_shift_enabled"] = smart_shift_enabled
+            settings["smart_shift_threshold"] = threshold
+            save_config(self.cfg)
         hg = self.hook._hid_gesture
         if hg:
             if not self._device_supports_smart_shift(
@@ -1144,8 +1394,13 @@ class Engine:
         Re-wire callbacks without tearing down the hook or HID++.
         """
         with self._lock:
-            self.cfg = load_config()
-            self._current_profile = self.cfg.get("active_profile", "default")
+            try:
+                self._reload_config_in_place()
+            except ConfigLoadError as exc:
+                print(
+                    "[InputRuntime] HOOK_FAILURE phase=mapping-reload "
+                    f"error={exc!r} action=preserve-current-config"
+                )
             snapshot = self._replace_bindings("mapping-reload")
             self._emit_debug(f"reload_mappings profile={self._current_profile}")
             return snapshot
@@ -1172,7 +1427,55 @@ class Engine:
 
     def start(self):
         self._emit_linux_permission_warning()
-        self.hook.start()
+        with self._lock:
+            try:
+                self._reload_config_in_place()
+            except ConfigLoadError as exc:
+                if not config_is_verified(self.cfg):
+                    print(
+                        "[InputRuntime] HOOK_FAILURE phase=engine-start-config "
+                        f"error={exc!r} action=abort-unverified-config"
+                    )
+                    self._emit_status("Configuration unavailable; input remapping was not started")
+                    return False
+                print(
+                    "[InputRuntime] HOOK_FAILURE phase=engine-start-config "
+                    f"error={exc!r} action=preserve-current-config"
+                )
+            self._replace_bindings("engine-start")
+        start_error = None
+        try:
+            started = self.hook.start()
+        except Exception as exc:
+            import traceback
+
+            start_error = f"{type(exc).__name__}: {exc}"
+            print(
+                "[InputRuntime] BACKEND_EXCEPTION context=engine-start "
+                f"error={start_error} traceback={traceback.format_exc().strip()}"
+            )
+            started = False
+        if started is False:
+            try:
+                cleanup_stopped = self.hook.stop()
+            except Exception as exc:
+                import traceback
+
+                cleanup_stopped = False
+                print(
+                    "[InputRuntime] BACKEND_EXCEPTION context=engine-start-cleanup "
+                    f"error={type(exc).__name__}: {exc} "
+                    f"traceback={traceback.format_exc().strip()}"
+            )
+            if cleanup_stopped is not False:
+                self._reset_backend_identity_tracking()
+            print(
+                "[InputRuntime] HOOK_FAILURE phase=start "
+                f"error={start_error or 'registration-failed'}"
+            )
+            return False
+        print("[InputRuntime] HOOK_START healthy=true")
+        self._start_backend_watchdog()
         self._app_detector.start()
         # Temporary safety-net: keep the old delayed replay path until the
         # hid-ready transition path has proven out in the field.
@@ -1182,6 +1485,7 @@ class Engine:
                 return
             self._request_saved_settings_replay(startup_fallback=True)
         threading.Thread(target=_startup_replay_fallback, daemon=True).start()
+        return True
 
     def set_dpi_read_callback(self, cb):
         """Register a callback ``cb(dpi_value)`` invoked when DPI is read from device."""
@@ -1192,12 +1496,20 @@ class Engine:
         self._smart_shift_read_cb = cb
 
     def stop(self):
-        self._battery_poll_stop.set()
-        if self._battery_poll_thread is not None:
-            self._battery_poll_thread.join(timeout=5)
-            self._battery_poll_thread = None
-        self._app_detector.stop()
-        self.hook.reset_bindings(wait_timeout=1.0)
-        with self._binding_state_lock:
-            self._multi_action_down_at.clear()
-        return self.hook.stop()
+        if self._stop_backend_watchdog() is False:
+            return False
+        with self._backend_recovery_lock:
+            self._battery_poll_stop.set()
+            if self._battery_poll_thread is not None:
+                self._battery_poll_thread.join(timeout=5)
+                self._battery_poll_thread = None
+            self._app_detector.stop()
+            self.hook.reset_bindings(wait_timeout=1.0)
+            with self._binding_state_lock:
+                self._multi_action_down_at.clear()
+            stopped = self.hook.stop()
+            if stopped is not False:
+                self._reset_backend_identity_tracking()
+                self._release_active_mouse_holds("engine-stop")
+            print(f"[InputRuntime] HOOK_STOP stopped={stopped is not False}")
+            return stopped

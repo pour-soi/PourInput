@@ -1,4 +1,8 @@
 import copy
+from contextlib import contextmanager
+import json
+from pathlib import Path
+import tempfile
 import unittest
 from types import MappingProxyType
 from types import SimpleNamespace
@@ -6,7 +10,12 @@ from unittest.mock import Mock, call, patch
 
 from core.config import DEFAULT_CONFIG
 from core.mouse_hook import MouseEvent
-from core.mouse_hook_types import BindingBuilder, BindingSnapshot, HidRuntimeState
+from core.mouse_hook_types import (
+    BindingBuilder,
+    BindingSnapshot,
+    HidRuntimeState,
+    HookHealth,
+)
 
 
 class _FakeMouseHook:
@@ -19,11 +28,43 @@ class _FakeMouseHook:
         self._hid_gesture = None
         self.start_called = False
         self.stop_called = False
+        self.start_calls = 0
+        self.stop_calls = 0
+        self.start_result = True
         self.sync_hid_extra_diverts_calls = 0
+        self.hid_listener_required = False
         self.blocked_events = []
         self.registered_events = []
         self.callbacks = {}
         self._binding_snapshot = BindingSnapshot.empty()
+        self._health = self._make_health()
+
+    def _make_health(self, **overrides):
+        values = {
+            "backend": "fake",
+            "running": True,
+            "hook_registered": True,
+            "hook_thread_alive": True,
+            "raw_input_active": True,
+            "dispatch_worker_alive": True,
+            "listener_alive": True,
+            "device_available": True,
+            "configured_mapping_count": 0,
+            "bound_mapping_count": 0,
+            "last_input_event_at": None,
+            "last_backend_exception": None,
+            "last_backend_exception_at": None,
+            "last_hook_event_at": None,
+            "last_raw_input_at": None,
+            "last_dispatch_event_at": None,
+            "recovery_required": False,
+            "healthy": True,
+        }
+        values.update(overrides)
+        return HookHealth(**values)
+
+    def health_snapshot(self):
+        return self._health
 
     def set_debug_callback(self, cb):
         self._debug_callback = cb
@@ -39,6 +80,9 @@ class _FakeMouseHook:
 
     def configure_gestures(self, **kwargs):
         self._gesture_config = kwargs
+
+    def set_hid_listener_required(self, required):
+        self.hid_listener_required = bool(required)
 
     def block(self, event_type):
         self.blocked_events.append(event_type)
@@ -91,9 +135,44 @@ class _FakeMouseHook:
 
     def start(self):
         self.start_called = True
+        self.start_calls += 1
+        if self.start_result:
+            self._health = self._make_health(
+                configured_mapping_count=sum(
+                    1 for callbacks in self.callbacks.values() if callbacks
+                ),
+                bound_mapping_count=sum(
+                    1 for callbacks in self.callbacks.values() if callbacks
+                ),
+            )
+        return self.start_result
 
     def stop(self):
         self.stop_called = True
+        self.stop_calls += 1
+        self.device_connected = False
+        self.connected_device = None
+        self._health = self._make_health(
+            running=False,
+            hook_registered=False,
+            hook_thread_alive=False,
+            raw_input_active=False,
+            dispatch_worker_alive=False,
+            listener_alive=False,
+            device_available=False,
+            recovery_required=False,
+            healthy=False,
+        )
+        return True
+
+
+class _RequiredHidFailureMouseHook(_FakeMouseHook):
+    def start(self):
+        if self.hid_listener_required:
+            self.start_called = True
+            self.start_calls += 1
+            return False
+        return super().start()
 
 
 class _FakeAppDetector:
@@ -247,7 +326,10 @@ class EngineHorizontalScrollTests(unittest.TestCase):
         )
 
         with (
-            patch("core.engine.load_config", return_value=engine.cfg),
+            patch(
+                "core.engine.load_config",
+                side_effect=lambda **_: copy.deepcopy(engine.cfg),
+            ),
             patch("core.engine.sys.platform", "linux"),
         ):
             engine.reload_mappings()
@@ -264,7 +346,10 @@ class EngineHorizontalScrollTests(unittest.TestCase):
         )
 
         with (
-            patch("core.engine.load_config", return_value=engine.cfg),
+            patch(
+                "core.engine.load_config",
+                side_effect=lambda **_: copy.deepcopy(engine.cfg),
+            ),
             patch("core.engine.sys.platform", "linux"),
         ):
             engine.reload_mappings()
@@ -280,7 +365,10 @@ class EngineHorizontalScrollTests(unittest.TestCase):
             capabilities=SimpleNamespace(gesture_button=False),
         )
 
-        with patch("core.engine.load_config", return_value=engine.cfg):
+        with patch(
+            "core.engine.load_config",
+            side_effect=lambda **_: copy.deepcopy(engine.cfg),
+        ):
             engine.reload_mappings()
 
         self.assertTrue(engine.hook._gesture_config["enabled"])
@@ -298,7 +386,10 @@ class EngineHorizontalScrollTests(unittest.TestCase):
             capability_inventory=SimpleNamespace(has_reprog_controls=True),
         )
 
-        with patch("core.engine.load_config", return_value=engine.cfg):
+        with patch(
+            "core.engine.load_config",
+            side_effect=lambda **_: copy.deepcopy(engine.cfg),
+        ):
             engine.reload_mappings()
 
         self.assertTrue(engine.hook.divert_mode_shift)
@@ -321,7 +412,10 @@ class EngineHorizontalScrollTests(unittest.TestCase):
         with (
             patch("core.engine.MouseHook", _FakeMouseHook),
             patch("core.engine.AppDetector", _FakeAppDetector),
-            patch("core.engine.load_config", return_value=cfg_enabled),
+            patch(
+                "core.engine.load_config",
+                side_effect=lambda **_: copy.deepcopy(cfg_enabled),
+            ),
             patch("core.engine.sys.platform", "win32"),
         ):
             engine = Engine()
@@ -348,7 +442,10 @@ class EngineHorizontalScrollTests(unittest.TestCase):
         self.assertIn(MouseEvent.XBUTTON1_UP, engine.hook.blocked_events)
 
         with (
-            patch("core.engine.load_config", return_value=cfg_disabled),
+            patch(
+                "core.engine.load_config",
+                side_effect=lambda **_: copy.deepcopy(cfg_disabled),
+            ),
             patch("core.engine.sys.platform", "win32"),
         ):
             engine.reload_mappings()
@@ -367,7 +464,10 @@ class EngineHorizontalScrollTests(unittest.TestCase):
         self.assertNotIn(MouseEvent.XBUTTON1_UP, engine.hook.callbacks)
 
         with (
-            patch("core.engine.load_config", return_value=cfg_enabled),
+            patch(
+                "core.engine.load_config",
+                side_effect=lambda **_: copy.deepcopy(cfg_enabled),
+            ),
             patch("core.engine.sys.platform", "win32"),
         ):
             engine.reload_mappings()
@@ -418,7 +518,10 @@ class EngineHorizontalScrollTests(unittest.TestCase):
         )
 
         with (
-            patch("core.engine.load_config", return_value=engine.cfg),
+            patch(
+                "core.engine.load_config",
+                side_effect=lambda **_: copy.deepcopy(engine.cfg),
+            ),
             patch("core.engine.sys.platform", "win32"),
         ):
             engine.reload_mappings()
@@ -456,7 +559,10 @@ class EngineHorizontalScrollTests(unittest.TestCase):
         )
 
         with (
-            patch("core.engine.load_config", return_value=engine.cfg),
+            patch(
+                "core.engine.load_config",
+                side_effect=lambda **_: copy.deepcopy(engine.cfg),
+            ),
             patch("core.engine.sys.platform", "win32"),
         ):
             engine.reload_mappings()
@@ -485,7 +591,10 @@ class EngineHorizontalScrollTests(unittest.TestCase):
         )
 
         with (
-            patch("core.engine.load_config", return_value=engine.cfg),
+            patch(
+                "core.engine.load_config",
+                side_effect=lambda **_: copy.deepcopy(engine.cfg),
+            ),
             patch("core.engine.sys.platform", "win32"),
         ):
             engine.reload_mappings()
@@ -505,7 +614,10 @@ class EngineHorizontalScrollTests(unittest.TestCase):
         )
 
         with (
-            patch("core.engine.load_config", return_value=engine.cfg),
+            patch(
+                "core.engine.load_config",
+                side_effect=lambda **_: copy.deepcopy(engine.cfg),
+            ),
             patch("core.engine.sys.platform", "win32"),
         ):
             engine.reload_mappings()
@@ -523,7 +635,10 @@ class EngineHorizontalScrollTests(unittest.TestCase):
         mappings["generic_xbutton1_long"] = "copy"
 
         with (
-            patch("core.engine.load_config", return_value=engine.cfg),
+            patch(
+                "core.engine.load_config",
+                side_effect=lambda **_: copy.deepcopy(engine.cfg),
+            ),
             patch("core.engine.sys.platform", "win32"),
         ):
             engine.reload_mappings()
@@ -777,7 +892,10 @@ class EngineHorizontalScrollTests(unittest.TestCase):
 
         with (
             patch("core.engine.sys.platform", "win32"),
-            patch("core.engine.load_config", return_value=engine.cfg),
+            patch(
+                "core.engine.load_config",
+                side_effect=lambda **_: copy.deepcopy(engine.cfg),
+            ),
         ):
             for _ in range(10):
                 engine.reload_mappings()
@@ -1005,7 +1123,10 @@ class EngineHorizontalScrollTests(unittest.TestCase):
         engine = self._make_engine()
         initial_calls = engine.hook.sync_hid_extra_diverts_calls
 
-        with patch("core.engine.load_config", return_value=engine.cfg):
+        with patch(
+            "core.engine.load_config",
+            side_effect=lambda **_: copy.deepcopy(engine.cfg),
+        ):
             engine.reload_mappings()
 
         self.assertEqual(
@@ -1152,8 +1273,14 @@ class EngineHorizontalScrollTests(unittest.TestCase):
         )
         seen = []
         engine.set_dpi_read_callback(seen.append)
+        saved_cfg = copy.deepcopy(engine.cfg)
 
         with (
+            patch(
+                "core.engine.load_config",
+                side_effect=lambda **_: copy.deepcopy(saved_cfg),
+            ),
+            patch.object(engine, "_start_backend_watchdog"),
             patch("core.engine.threading.Thread", _ImmediateThread),
             patch("time.sleep", return_value=None),
         ):
@@ -1333,8 +1460,14 @@ class EngineReplayPhaseOneTests(unittest.TestCase):
         engine = self._make_engine()
         engine.hook._hid_gesture = self._make_hid(connected_device=None)
         threads = []
+        saved_cfg = copy.deepcopy(engine.cfg)
 
         with (
+            patch(
+                "core.engine.load_config",
+                side_effect=lambda **_: copy.deepcopy(saved_cfg),
+            ),
+            patch.object(engine, "_start_backend_watchdog"),
             patch("core.engine.threading.Thread", side_effect=self._thread_factory(threads)),
             patch("core.engine.time.sleep", return_value=None),
         ):
@@ -1528,6 +1661,508 @@ class EngineReplayPhaseOneTests(unittest.TestCase):
         engine._battery_poll_loop(stop_event)
 
         engine.hook._hid_gesture.read_battery.assert_called_once_with()
+
+
+class EngineBackendRecoveryTests(unittest.TestCase):
+    @staticmethod
+    def _physical_xbutton_only_cfg(*, generic_mouse_enabled=False):
+        cfg = copy.deepcopy(DEFAULT_CONFIG)
+        cfg["settings"]["generic_mouse_enabled"] = generic_mouse_enabled
+        mappings = cfg["profiles"]["default"]["mappings"]
+        for key in (
+            "gesture",
+            "gesture_left",
+            "gesture_right",
+            "gesture_up",
+            "gesture_down",
+            "mode_shift",
+            "mode_shift_long",
+            "dpi_switch",
+            "xbutton1",
+            "xbutton1_long",
+            "xbutton2",
+            "xbutton2_long",
+            "generic_xbutton1",
+            "generic_xbutton1_long",
+            "generic_xbutton2",
+            "generic_xbutton2_long",
+        ):
+            mappings[key] = "none"
+        if generic_mouse_enabled:
+            mappings["generic_xbutton1"] = "browser_back"
+        else:
+            mappings["xbutton1"] = "browser_back"
+        return cfg
+
+    @staticmethod
+    def _configured_windows_cfg():
+        cfg = copy.deepcopy(DEFAULT_CONFIG)
+        cfg["settings"]["generic_mouse_enabled"] = True
+        cfg["profiles"]["default"]["mappings"]["generic_xbutton1"] = (
+            "browser_back"
+        )
+        cfg["profiles"]["default"]["mappings"]["generic_xbutton1_long"] = (
+            "copy"
+        )
+        return cfg
+
+    @contextmanager
+    def _engine_patches(self, cfg):
+        with (
+            patch("core.engine.MouseHook", _FakeMouseHook),
+            patch("core.engine.AppDetector", _FakeAppDetector),
+            patch(
+                "core.engine.load_config",
+                side_effect=lambda **_: copy.deepcopy(cfg),
+            ),
+            patch("core.engine.sys.platform", "win32"),
+        ):
+            yield
+
+    def test_cold_start_saved_logitech_xbutton_requires_hid_without_identity(self):
+        from core.engine import Engine
+
+        cfg = self._physical_xbutton_only_cfg()
+        with (
+            patch("core.engine.MouseHook", _RequiredHidFailureMouseHook),
+            patch("core.engine.AppDetector", _FakeAppDetector),
+            patch(
+                "core.engine.load_config",
+                side_effect=lambda **_: copy.deepcopy(cfg),
+            ),
+            patch("core.engine.sys.platform", "win32"),
+        ):
+            engine = Engine()
+            self.assertIsNone(engine.hook.connected_device)
+            self.assertTrue(engine.hook.hid_listener_required)
+            with (
+                patch.object(engine, "_start_backend_watchdog") as watchdog,
+                patch("core.engine.threading.Thread", _RecordedThread),
+                patch("builtins.print"),
+            ):
+                self.assertFalse(engine.start())
+
+        watchdog.assert_not_called()
+        self.assertEqual(engine.hook.start_calls, 1)
+
+    def test_start_aborts_before_binding_or_hook_when_config_unverified(self):
+        from core import config
+        from core.engine import Engine
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            config_file = Path(temp_dir) / "config.json"
+            malformed = "{not-valid-json"
+            config_file.write_text(malformed, encoding="utf-8")
+            with (
+                patch.object(config, "CONFIG_DIR", temp_dir),
+                patch.object(config, "CONFIG_FILE", str(config_file)),
+                patch("core.engine.MouseHook", _FakeMouseHook),
+                patch("core.engine.AppDetector", _FakeAppDetector),
+                patch("core.engine.sys.platform", "win32"),
+            ):
+                engine = Engine()
+                status_messages = []
+                engine.set_status_callback(status_messages.append)
+                initial_generation = engine.hook.capture_binding_snapshot().generation
+                try:
+                    self.assertFalse(engine.start())
+                    self.assertFalse(config.config_is_verified(engine.cfg))
+                finally:
+                    config.mark_config_verified_writable(engine.cfg)
+
+        self.assertEqual(engine.hook.start_calls, 0)
+        self.assertEqual(
+            engine.hook.capture_binding_snapshot().generation,
+            initial_generation,
+        )
+        self.assertIn(
+            "Configuration unavailable; input remapping was not started",
+            status_messages,
+        )
+
+    def test_start_recovers_unverified_config_when_strict_reload_succeeds(self):
+        from core import config
+        from core.engine import Engine
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            config_file = Path(temp_dir) / "config.json"
+            config_file.write_text("{not-valid-json", encoding="utf-8")
+            with (
+                patch.object(config, "CONFIG_DIR", temp_dir),
+                patch.object(config, "CONFIG_FILE", str(config_file)),
+                patch("core.engine.MouseHook", _FakeMouseHook),
+                patch("core.engine.AppDetector", _FakeAppDetector),
+                patch("core.engine.sys.platform", "win32"),
+            ):
+                engine = Engine()
+                shared_config = engine.cfg
+                initial_generation = engine.hook.capture_binding_snapshot().generation
+                repaired = copy.deepcopy(DEFAULT_CONFIG)
+                repaired["profiles"]["default"]["mappings"]["hscroll_left"] = "copy"
+                config_file.write_text(json.dumps(repaired), encoding="utf-8")
+                with (
+                    patch.object(engine, "_start_backend_watchdog"),
+                    patch("core.engine.threading.Thread", _RecordedThread),
+                ):
+                    self.assertTrue(engine.start())
+
+                self.assertIs(engine.cfg, shared_config)
+                self.assertTrue(config.config_is_verified(engine.cfg))
+
+        self.assertEqual(
+            engine.cfg["profiles"]["default"]["mappings"]["hscroll_left"],
+            "copy",
+        )
+        self.assertEqual(engine.hook.start_calls, 1)
+        snapshot = engine.hook.capture_binding_snapshot()
+        self.assertGreater(snapshot.generation, initial_generation)
+        with patch("core.engine.execute_action") as execute_action:
+            snapshot.callbacks[MouseEvent.HSCROLL_LEFT][0](SimpleNamespace(
+                event_type=MouseEvent.HSCROLL_LEFT,
+                raw_data=1,
+                timestamp=1.0,
+            ))
+        execute_action.assert_called_once_with("copy")
+
+    def test_generic_xbutton_only_config_does_not_require_hid(self):
+        from core.engine import Engine
+
+        cfg = self._physical_xbutton_only_cfg(generic_mouse_enabled=True)
+        with self._engine_patches(cfg):
+            engine = Engine()
+
+        self.assertFalse(engine.hook.hid_listener_required)
+
+    def test_same_device_reconnect_rebinds_route_after_identity_reset_recovery(self):
+        from core.engine import Engine
+
+        cfg = self._physical_xbutton_only_cfg()
+        device = SimpleNamespace(
+            key="mx_master_3",
+            product_id=0xB023,
+            transport="bluetooth",
+            source="hidpp",
+            supported_buttons=("xbutton1",),
+            capabilities=SimpleNamespace(
+                reprogrammable_buttons=("xbutton1",),
+            ),
+            capability_inventory=SimpleNamespace(
+                has_reprog_controls=True,
+                control_cids=(0x0053,),
+            ),
+        )
+        with self._engine_patches(cfg):
+            engine = Engine()
+            engine.hook.device_connected = True
+            engine.hook.connected_device = device
+            with patch("core.engine.threading.Thread", _RecordedThread):
+                engine._on_connection_change(True)
+            self.assertIn(MouseEvent.LOGI_XBUTTON1_DOWN, engine.hook.callbacks)
+
+            engine.hook._health = engine.hook._make_health(
+                running=False,
+                hook_registered=False,
+                hook_thread_alive=False,
+                raw_input_active=False,
+                dispatch_worker_alive=False,
+                listener_alive=False,
+                recovery_required=True,
+                healthy=False,
+            )
+            with (
+                patch("core.engine.threading.Thread", _RecordedThread),
+                patch("builtins.print"),
+            ):
+                self.assertTrue(engine._check_backend_health_once())
+
+            self.assertFalse(engine._last_connection_state)
+            self.assertIsNone(engine._last_binding_route_identity)
+            self.assertNotIn(MouseEvent.LOGI_XBUTTON1_DOWN, engine.hook.callbacks)
+            generation_without_identity = (
+                engine.hook.capture_binding_snapshot().generation
+            )
+
+            engine.hook.device_connected = True
+            engine.hook.connected_device = device
+            with patch("core.engine.threading.Thread", _RecordedThread):
+                engine._on_connection_change(True)
+
+        self.assertGreater(
+            engine.hook.capture_binding_snapshot().generation,
+            generation_without_identity,
+        )
+        self.assertIn(MouseEvent.LOGI_XBUTTON1_DOWN, engine.hook.callbacks)
+
+    def test_start_after_stop_rebuilds_exact_saved_mappings(self):
+        from core.engine import Engine
+
+        cfg = self._configured_windows_cfg()
+        with self._engine_patches(cfg):
+            engine = Engine()
+            engine.stop()
+            self.assertEqual(engine.hook.capture_binding_snapshot().callbacks, {})
+
+            with (
+                patch.object(engine, "_start_backend_watchdog"),
+                patch("core.engine.threading.Thread", _RecordedThread),
+            ):
+                self.assertTrue(engine.start())
+
+        snapshot = engine.hook.capture_binding_snapshot()
+        self.assertEqual(
+            len(snapshot.callbacks[MouseEvent.XBUTTON1_DOWN]),
+            1,
+        )
+        self.assertEqual(
+            len(snapshot.callbacks[MouseEvent.XBUTTON1_UP]),
+            1,
+        )
+        self.assertIn(MouseEvent.XBUTTON1_DOWN, snapshot.blocked_events)
+        self.assertIn(MouseEvent.XBUTTON1_UP, snapshot.blocked_events)
+        self.assertEqual(engine.cfg, cfg)
+        self.assertEqual(engine.hook.start_calls, 1)
+        self.assertTrue(engine._app_detector.start_called)
+
+    def test_start_failure_is_returned_and_does_not_start_dependents(self):
+        from core.engine import Engine
+
+        cfg = self._configured_windows_cfg()
+        with self._engine_patches(cfg):
+            engine = Engine()
+            engine.hook.start_result = False
+            with (
+                patch.object(engine, "_start_backend_watchdog") as watchdog,
+                patch("core.engine.threading.Thread", _RecordedThread),
+                patch("builtins.print") as log,
+            ):
+                self.assertFalse(engine.start())
+
+        watchdog.assert_not_called()
+        self.assertFalse(engine._app_detector.start_called)
+        self.assertEqual(engine.hook.start_calls, 1)
+        self.assertEqual(engine.cfg, cfg)
+        output = "\n".join(str(item.args[0]) for item in log.call_args_list)
+        self.assertIn("HOOK_FAILURE phase=start", output)
+
+    def test_start_exception_is_contained_and_partial_runtime_is_stopped(self):
+        from core.engine import Engine
+
+        cfg = self._configured_windows_cfg()
+        with self._engine_patches(cfg):
+            engine = Engine()
+            with (
+                patch.object(
+                    engine.hook,
+                    "start",
+                    side_effect=RuntimeError("hook start exploded"),
+                ),
+                patch.object(engine, "_start_backend_watchdog") as watchdog,
+                patch("core.engine.threading.Thread", _RecordedThread),
+                patch("builtins.print") as log,
+            ):
+                self.assertFalse(engine.start())
+
+        self.assertTrue(engine.hook.stop_called)
+        watchdog.assert_not_called()
+        self.assertFalse(engine._app_detector.start_called)
+        output = "\n".join(str(item.args[0]) for item in log.call_args_list)
+        self.assertIn("BACKEND_EXCEPTION context=engine-start", output)
+        self.assertIn("hook start exploded", output)
+        self.assertIn("HOOK_FAILURE phase=start", output)
+
+    def test_health_check_recovers_once_without_mutating_or_duplicating_mappings(self):
+        from core.engine import Engine
+
+        cfg = self._configured_windows_cfg()
+        mappings_before = copy.deepcopy(
+            cfg["profiles"]["default"]["mappings"]
+        )
+        with self._engine_patches(cfg):
+            engine = Engine()
+            engine._multi_action_down_at[(999, "generic_xbutton1")] = 10.0
+            engine.hook._health = engine.hook._make_health(
+                running=False,
+                hook_registered=False,
+                hook_thread_alive=False,
+                raw_input_active=False,
+                dispatch_worker_alive=False,
+                listener_alive=False,
+                last_backend_exception="message-pump-exited",
+                recovery_required=True,
+                healthy=False,
+            )
+
+            with patch("builtins.print") as log:
+                self.assertTrue(engine._check_backend_health_once())
+                first_snapshot = engine.hook.capture_binding_snapshot()
+                self.assertTrue(engine._check_backend_health_once())
+
+        self.assertEqual(engine.hook.stop_calls, 1)
+        self.assertEqual(engine.hook.start_calls, 1)
+        self.assertEqual(engine.cfg, cfg)
+        self.assertEqual(
+            engine.cfg["profiles"]["default"]["mappings"],
+            mappings_before,
+        )
+        self.assertEqual(engine._multi_action_down_at, {})
+        self.assertEqual(
+            len(first_snapshot.callbacks[MouseEvent.XBUTTON1_DOWN]),
+            1,
+        )
+        self.assertEqual(
+            len(first_snapshot.callbacks[MouseEvent.XBUTTON1_UP]),
+            1,
+        )
+        self.assertIn(MouseEvent.XBUTTON1_DOWN, first_snapshot.blocked_events)
+        self.assertEqual(
+            engine.hook.capture_binding_snapshot().generation,
+            first_snapshot.generation,
+        )
+        self.assertTrue(engine.input_health().healthy)
+        output = "\n".join(str(item.args[0]) for item in log.call_args_list)
+        self.assertIn("HOOK_RECOVERY phase=start", output)
+        self.assertIn("HOOK_RECOVERY phase=complete", output)
+
+    def test_health_check_stops_after_three_failed_recovery_attempts(self):
+        from core.engine import Engine
+
+        cfg = self._configured_windows_cfg()
+        mappings_before = copy.deepcopy(
+            cfg["profiles"]["default"]["mappings"]
+        )
+        with self._engine_patches(cfg):
+            engine = Engine()
+            engine.hook._health = engine.hook._make_health(
+                running=False,
+                hook_registered=False,
+                hook_thread_alive=False,
+                raw_input_active=False,
+                dispatch_worker_alive=False,
+                listener_alive=False,
+                last_backend_exception="message-pump-exited",
+                recovery_required=True,
+                healthy=False,
+            )
+            stop_states = []
+            original_stop = engine.hook.stop
+
+            def partially_start():
+                engine.hook.start_called = True
+                engine.hook.start_calls += 1
+                engine.hook._health = engine.hook._make_health(
+                    running=True,
+                    hook_registered=True,
+                    hook_thread_alive=True,
+                    raw_input_active=False,
+                    dispatch_worker_alive=True,
+                    recovery_required=True,
+                    healthy=False,
+                )
+                return False
+
+            def tracked_stop():
+                stop_states.append(engine.hook._health.running)
+                return original_stop()
+
+            engine.hook.start = partially_start
+            engine.hook.stop = tracked_stop
+
+            with patch("builtins.print") as log:
+                self.assertFalse(engine._check_backend_health_once())
+                self.assertFalse(engine._check_backend_health_once())
+                self.assertFalse(engine._check_backend_health_once())
+                self.assertFalse(engine._check_backend_health_once())
+
+        self.assertEqual(engine.hook.stop_calls, 6)
+        self.assertEqual(engine.hook.start_calls, 3)
+        self.assertEqual(stop_states, [False, True, False, True, False, True])
+        self.assertFalse(engine.hook._health.running)
+        self.assertTrue(engine._backend_recovery_exhausted)
+        self.assertEqual(
+            engine.cfg["profiles"]["default"]["mappings"],
+            mappings_before,
+        )
+        output = "\n".join(str(item.args[0]) for item in log.call_args_list)
+        self.assertIn("HOOK_FAILURE phase=hard-failure attempts=3", output)
+
+    def test_health_check_contains_raising_partial_start_and_cleans_up(self):
+        from core.engine import Engine
+
+        cfg = self._configured_windows_cfg()
+        with self._engine_patches(cfg):
+            engine = Engine()
+            engine.hook._health = engine.hook._make_health(
+                running=False,
+                hook_registered=False,
+                hook_thread_alive=False,
+                raw_input_active=False,
+                dispatch_worker_alive=False,
+                listener_alive=False,
+                last_backend_exception="message-pump-exited",
+                recovery_required=True,
+                healthy=False,
+            )
+            stop_states = []
+            original_stop = engine.hook.stop
+
+            def raising_partial_start():
+                engine.hook.start_called = True
+                engine.hook.start_calls += 1
+                engine.hook._health = engine.hook._make_health(
+                    running=True,
+                    hook_registered=True,
+                    hook_thread_alive=True,
+                    raw_input_active=False,
+                    dispatch_worker_alive=True,
+                    recovery_required=True,
+                    healthy=False,
+                )
+                raise RuntimeError("partial backend start failed")
+
+            def tracked_stop():
+                stop_states.append(engine.hook._health.running)
+                return original_stop()
+
+            engine.hook.start = raising_partial_start
+            engine.hook.stop = tracked_stop
+
+            with patch("builtins.print") as log:
+                self.assertFalse(engine._check_backend_health_once())
+
+        self.assertEqual(engine.hook.start_calls, 1)
+        self.assertEqual(engine.hook.stop_calls, 2)
+        self.assertEqual(stop_states, [False, True])
+        self.assertFalse(engine.hook._health.running)
+        output = "\n".join(str(item.args[0]) for item in log.call_args_list)
+        self.assertIn("BACKEND_EXCEPTION context=recovery-start", output)
+        self.assertIn("partial backend start failed", output)
+
+    def test_recovery_uses_shared_config_without_disk_io(self):
+        from core.engine import Engine
+
+        cfg = self._configured_windows_cfg()
+        with self._engine_patches(cfg):
+            engine = Engine()
+            shared_cfg = engine.cfg
+            mappings_before = copy.deepcopy(
+                engine.cfg["profiles"]["default"]["mappings"]
+            )
+
+            with (
+                patch("core.engine.load_config") as load_config_mock,
+                patch("core.engine.save_config") as save_config_mock,
+            ):
+                self.assertTrue(engine._recover_backend_once("health-check"))
+
+        load_config_mock.assert_not_called()
+        save_config_mock.assert_not_called()
+        self.assertIs(engine.cfg, shared_cfg)
+        self.assertEqual(engine.hook.stop_calls, 1)
+        self.assertEqual(engine.hook.start_calls, 1)
+        self.assertEqual(
+            engine.cfg["profiles"]["default"]["mappings"],
+            mappings_before,
+        )
 
 
 if __name__ == "__main__":

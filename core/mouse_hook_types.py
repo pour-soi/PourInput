@@ -18,6 +18,30 @@ class HidRuntimeState:
     connected_device: Any = None
 
 
+@dataclass(frozen=True)
+class HookHealth:
+    """Read-only health snapshot for one input backend."""
+
+    backend: str = "unknown"
+    running: bool = False
+    hook_registered: bool = False
+    hook_thread_alive: bool = False
+    raw_input_active: bool = False
+    dispatch_worker_alive: bool = False
+    listener_alive: bool = False
+    device_available: bool = False
+    configured_mapping_count: int = 0
+    bound_mapping_count: int = 0
+    last_input_event_at: float | None = None
+    last_hook_event_at: float | None = None
+    last_raw_input_at: float | None = None
+    last_dispatch_event_at: float | None = None
+    last_backend_exception: str | None = None
+    last_backend_exception_at: float | None = None
+    recovery_required: bool = False
+    healthy: bool = False
+
+
 class DispatchGenerationState:
     """Lease state for one immutable binding generation."""
 

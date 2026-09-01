@@ -381,7 +381,13 @@ class EngineSmartShiftTests(unittest.TestCase):
         })
         hg = Mock(smart_shift_supported=True)
         engine.hook._hid_gesture = hg
+        saved_cfg = copy.deepcopy(engine.cfg)
         with (
+            patch(
+                "core.engine.load_config",
+                side_effect=lambda **_: copy.deepcopy(saved_cfg),
+            ),
+            patch.object(engine, "_start_backend_watchdog"),
             patch("core.engine.threading.Thread", _ImmediateThread),
             patch("time.sleep"),
         ):
@@ -394,7 +400,13 @@ class EngineSmartShiftTests(unittest.TestCase):
         engine = self._make_engine()
         hg = Mock(smart_shift_supported=False)
         engine.hook._hid_gesture = hg
+        saved_cfg = copy.deepcopy(engine.cfg)
         with (
+            patch(
+                "core.engine.load_config",
+                side_effect=lambda **_: copy.deepcopy(saved_cfg),
+            ),
+            patch.object(engine, "_start_backend_watchdog"),
             patch("core.engine.threading.Thread", _ImmediateThread),
             patch("time.sleep"),
         ):

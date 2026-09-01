@@ -8,6 +8,8 @@ import os
 import stat
 import sys
 import tempfile
+import threading
+import traceback
 from urllib.parse import quote
 from core import app_catalog
 
@@ -21,6 +23,40 @@ elif sys.platform == "linux":
 else:
     CONFIG_DIR = os.path.join(os.environ.get("APPDATA", os.path.expanduser("~")), "PourInput")
 CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
+_CONFIG_IO_LOCK = threading.RLock()
+_READ_ONLY_FALLBACK_CONFIGS = {}
+
+
+class ConfigLoadError(RuntimeError):
+    pass
+
+
+class ConfigWriteBlockedError(RuntimeError):
+    pass
+
+
+def _mark_config_read_only(cfg):
+    # Keep a strong reference so a later object cannot inherit the guard through
+    # Python object-id reuse.
+    _READ_ONLY_FALLBACK_CONFIGS[id(cfg)] = cfg
+
+
+def mark_config_verified_writable(cfg):
+    """Unlock a shared fallback document after a successful strict reload."""
+    with _CONFIG_IO_LOCK:
+        guarded = _READ_ONLY_FALLBACK_CONFIGS.get(id(cfg))
+        if guarded is cfg:
+            del _READ_ONLY_FALLBACK_CONFIGS[id(cfg)]
+
+
+def _config_write_is_blocked(cfg):
+    return _READ_ONLY_FALLBACK_CONFIGS.get(id(cfg)) is cfg
+
+
+def config_is_verified(cfg):
+    """Return whether a config may safely drive runtime or OS side effects."""
+    with _CONFIG_IO_LOCK:
+        return not _config_write_is_blocked(cfg)
 
 # Which mouse events map to which friendly button names
 # Stable PourInput display order (top controls, then side controls).
@@ -218,25 +254,76 @@ def ensure_config_dir():
     os.makedirs(CONFIG_DIR, mode=0o700, exist_ok=True)
 
 
-def load_config():
+def _configured_mapping_count(cfg):
+    return sum(
+        action != "none"
+        for profile in cfg.get("profiles", {}).values()
+        for action in profile.get("mappings", {}).values()
+    )
+
+
+def load_config(*, strict=False):
+    with _CONFIG_IO_LOCK:
+        return _load_config_unlocked(strict=strict)
+
+
+def _load_config_unlocked(*, strict=False):
     """Load config from disk, or return defaults if none exists."""
     ensure_config_dir()
-    if os.path.exists(CONFIG_FILE):
+    config_exists = os.path.lexists(CONFIG_FILE)
+    if config_exists:
         try:
             with open(CONFIG_FILE, "r", encoding="utf-8") as f:
                 cfg = json.load(f)
             # Merge any missing keys from default
             cfg = _migrate(cfg)
             cfg = _merge_defaults(cfg, DEFAULT_CONFIG)
+            _validate_mapping_value_types(cfg)
             cfg = _validate_types(cfg, DEFAULT_CONFIG)
+            print(
+                "[Config] CONFIG_LOAD status=ok source=disk "
+                f"profiles={len(cfg.get('profiles', {}))} "
+                f"configured={_configured_mapping_count(cfg)}"
+            )
             return cfg
         except Exception as e:
-            print(f"[Config] Error loading config: {e}")
-    return json.loads(json.dumps(DEFAULT_CONFIG))  # deep copy
+            print(
+                "[Config] CONFIG_LOAD "
+                f"status={'failed' if strict else 'fallback'} "
+                f"source={'disk' if strict else 'defaults'} "
+                f"error={e!r} traceback={traceback.format_exc().strip()}"
+            )
+            if strict:
+                raise ConfigLoadError("existing config could not be loaded") from e
+    elif strict:
+        print("[Config] CONFIG_LOAD status=failed error=config-file-missing")
+        raise ConfigLoadError("config file is missing")
+    cfg = json.loads(json.dumps(DEFAULT_CONFIG))
+    if config_exists:
+        _mark_config_read_only(cfg)
+    print(
+        "[Config] CONFIG_LOAD status=ok source=defaults "
+        f"profiles={len(cfg.get('profiles', {}))} "
+        f"configured={_configured_mapping_count(cfg)}"
+    )
+    return cfg
 
 
 def save_config(cfg):
+    with _CONFIG_IO_LOCK:
+        return _save_config_unlocked(cfg)
+
+
+def _save_config_unlocked(cfg):
     """Persist config to disk via atomic write with restrictive permissions."""
+    if _config_write_is_blocked(cfg):
+        print(
+            "[Config] CONFIG_SAVE status=blocked "
+            "reason=unverified-fallback"
+        )
+        raise ConfigWriteBlockedError(
+            "config loaded from fallback defaults is read-only until a strict reload succeeds"
+        )
     ensure_config_dir()
     fd, tmp_path = tempfile.mkstemp(suffix=".tmp", dir=CONFIG_DIR)
     try:
@@ -247,7 +334,16 @@ def save_config(cfg):
         if sys.platform != "win32":
             os.chmod(tmp_path, stat.S_IRUSR | stat.S_IWUSR)
         os.replace(tmp_path, CONFIG_FILE)
-    except BaseException:
+        print(
+            "[Config] CONFIG_SAVE status=ok "
+            f"profiles={len(cfg.get('profiles', {}))} "
+            f"configured={_configured_mapping_count(cfg)}"
+        )
+    except BaseException as exc:
+        print(
+            "[Config] CONFIG_SAVE status=failed "
+            f"error={exc!r} traceback={traceback.format_exc().strip()}"
+        )
         try:
             os.unlink(tmp_path)
         except OSError:
@@ -456,7 +552,7 @@ def _merge_defaults(cfg, defaults):
     """Recursively merge missing keys from defaults into cfg."""
     for key, val in defaults.items():
         if key not in cfg:
-            cfg[key] = val
+            cfg[key] = json.loads(json.dumps(val))
         elif isinstance(val, dict) and isinstance(cfg.get(key), dict):
             _merge_defaults(cfg[key], val)
     return cfg
@@ -479,4 +575,23 @@ def _validate_types(cfg, defaults, path=""):
                   f"expected {type(default_val).__name__}, "
                   f"got {type(cfg[key]).__name__}")
             cfg[key] = default_val
+    return cfg
+
+
+def _validate_mapping_value_types(cfg):
+    """Reject mappings that cannot be interpreted without losing user intent."""
+    profiles = cfg.get("profiles", {})
+    if not isinstance(profiles, dict):
+        return cfg
+    for profile_name, profile in profiles.items():
+        if not isinstance(profile_name, str) or not isinstance(profile, dict):
+            raise TypeError("profile names and definitions must be objects keyed by strings")
+        mappings = profile.get("mappings", {})
+        if not isinstance(mappings, dict):
+            raise TypeError(f"profile {profile_name!r} mappings must be an object")
+        for button, action in mappings.items():
+            if not isinstance(button, str) or not isinstance(action, str):
+                raise TypeError(
+                    f"profile {profile_name!r} mapping keys and actions must be strings"
+                )
     return cfg

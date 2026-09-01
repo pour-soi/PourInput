@@ -1,5 +1,6 @@
 import copy
 import json
+import os
 from pathlib import Path
 import sys
 import tempfile
@@ -8,10 +9,18 @@ from types import MappingProxyType
 from types import SimpleNamespace
 from unittest.mock import patch
 
+from core import config as core_config
 from core.config import DEFAULT_CONFIG
 from core.mouse_hook import MouseEvent
 from core.mouse_hook_types import BindingBuilder, BindingSnapshot, HidRuntimeState
 from core.updater import UpdateCheckState
+
+
+# Backend update timers can outlive an individual mock context. Keep every
+# delayed save in a process-local sandbox instead of the user's real AppData.
+_CONFIG_SANDBOX = tempfile.TemporaryDirectory(prefix="pourinput-backend-tests-")
+core_config.CONFIG_DIR = os.path.join(_CONFIG_SANDBOX.name, "PourInput")
+core_config.CONFIG_FILE = os.path.join(core_config.CONFIG_DIR, "config.json")
 
 try:
     from PySide6.QtCore import QCoreApplication, Qt, QUrl
@@ -39,7 +48,9 @@ class _FakeEngine:
         connected_device=None,
         hid_features_ready=False,
         smart_shift_supported=False,
+        cfg=None,
     ):
+        self.cfg = copy.deepcopy(cfg or DEFAULT_CONFIG)
         self.device_connected = device_connected
         self.connected_device = connected_device
         self.hid_features_ready = hid_features_ready
@@ -201,6 +212,8 @@ class _FakeAppDetector:
 class BackendDeviceLayoutTests(unittest.TestCase):
     def _make_backend(self, engine=None, root_dir=None, cfg=None, locale_manager=None):
         loaded_config = copy.deepcopy(cfg or DEFAULT_CONFIG)
+        if engine is not None:
+            engine.cfg = loaded_config
         with (
             patch("ui.backend.load_config", return_value=loaded_config),
             patch("ui.backend.save_config"),
@@ -212,15 +225,117 @@ class BackendDeviceLayoutTests(unittest.TestCase):
                 locale_manager=locale_manager,
             )
 
+    def test_backend_rebinds_to_engine_config_after_mapping_reload(self):
+        cfg = copy.deepcopy(DEFAULT_CONFIG)
+        engine = _FakeEngine(cfg=cfg)
+        backend = self._make_backend(engine=engine, cfg=cfg)
+        self.assertIs(backend._cfg, engine.cfg)
+
+        reloaded = copy.deepcopy(engine.cfg)
+        reloaded["profiles"]["default"]["mappings"]["middle"] = "copy"
+
+        def reload_mappings():
+            engine.reload_count += 1
+            engine.cfg = reloaded
+
+        engine.reload_mappings = reload_mappings
+        backend._reload_engine_mappings()
+        backend._cfg["settings"]["start_minimized"] = False
+
+        self.assertIs(backend._cfg, engine.cfg)
+        self.assertEqual(
+            engine.cfg["profiles"]["default"]["mappings"]["middle"],
+            "copy",
+        )
+        self.assertFalse(engine.cfg["settings"]["start_minimized"])
+        self.assertEqual(engine.reload_count, 1)
+
+    def test_engine_setting_save_cannot_revert_new_backend_mapping(self):
+        from core.engine import Engine
+
+        persisted = copy.deepcopy(DEFAULT_CONFIG)
+
+        def load_persisted(**_):
+            return copy.deepcopy(persisted)
+
+        def save_persisted(updated):
+            nonlocal persisted
+            persisted = copy.deepcopy(updated)
+
+        with (
+            patch("ui.backend.load_config", side_effect=load_persisted),
+            patch("ui.backend.save_config", side_effect=save_persisted),
+            patch("ui.backend.supports_login_startup", return_value=False),
+            patch("core.config.save_config", side_effect=save_persisted),
+            patch("core.engine.load_config", side_effect=load_persisted),
+            patch("core.engine.save_config", side_effect=save_persisted),
+            patch("core.engine.MouseHook", _DisconnectedInspectableMouseHook),
+            patch("core.engine.AppDetector", _FakeAppDetector),
+        ):
+            engine = Engine()
+            backend = Backend(engine=engine)
+            self.assertIs(backend._cfg, engine.cfg)
+
+            backend.setProfileMapping("default", "middle", "copy")
+            self.assertIs(backend._cfg, engine.cfg)
+            self.assertEqual(
+                persisted["profiles"]["default"]["mappings"]["middle"],
+                "copy",
+            )
+
+            engine.set_dpi(1600)
+
+        self.assertEqual(
+            persisted["profiles"]["default"]["mappings"]["middle"],
+            "copy",
+        )
+        self.assertEqual(persisted["settings"]["dpi"], 1600)
+
+    def test_malformed_shared_config_stays_read_only_until_engine_strict_reload(self):
+        from core import config
+        from core.engine import Engine
+
+        _ensure_qapp()
+        with tempfile.TemporaryDirectory() as temp_dir:
+            config_file = Path(temp_dir) / "config.json"
+            malformed = "{not-valid-json"
+            config_file.write_text(malformed, encoding="utf-8")
+            with (
+                patch.object(config, "CONFIG_DIR", temp_dir),
+                patch.object(config, "CONFIG_FILE", str(config_file)),
+                patch("ui.backend.supports_login_startup", return_value=False),
+                patch("core.engine.MouseHook", _DisconnectedInspectableMouseHook),
+                patch("core.engine.AppDetector", _FakeAppDetector),
+            ):
+                engine = Engine()
+                backend = Backend(engine=engine)
+                self.assertIs(backend._cfg, engine.cfg)
+
+                with self.assertRaises(config.ConfigWriteBlockedError):
+                    backend.setProfileMapping("default", "middle", "copy")
+                self.assertEqual(config_file.read_text(encoding="utf-8"), malformed)
+
+                repaired = copy.deepcopy(DEFAULT_CONFIG)
+                config_file.write_text(json.dumps(repaired), encoding="utf-8")
+                engine.reload_mappings()
+                self.assertIs(backend._cfg, engine.cfg)
+
+                backend.setProfileMapping("default", "middle", "copy")
+                persisted = json.loads(config_file.read_text(encoding="utf-8"))
+
+        self.assertEqual(
+            persisted["profiles"]["default"]["mappings"]["middle"],
+            "copy",
+        )
+
     @staticmethod
     def _fake_create_profile(cfg, name, label=None, copy_from="default", apps=None):
-        updated = copy.deepcopy(cfg)
-        updated.setdefault("profiles", {})[name] = {
+        cfg.setdefault("profiles", {})[name] = {
             "label": label or name,
             "apps": list(apps or []),
             "mappings": {},
         }
-        return updated
+        return cfg
 
     def test_defaults_to_generic_layout_without_connected_device(self):
         backend = self._make_backend()
@@ -816,7 +931,12 @@ class BackendDeviceLayoutTests(unittest.TestCase):
             patch("ui.backend.save_config"),
             patch("ui.backend.supports_login_startup", return_value=False),
         ):
-            backend = Backend(engine=_FakeEngine(device_connected=True, connected_device=device))
+            backend = Backend(
+                engine=_FakeEngine(
+                    device_connected=True,
+                    connected_device=device,
+                )
+            )
             backend.setDeviceLayoutOverride("mx_master")
 
         overrides = backend._cfg.get("settings", {}).get("device_layout_overrides", {})
@@ -838,7 +958,12 @@ class BackendDeviceLayoutTests(unittest.TestCase):
             patch("ui.backend.save_config"),
             patch("ui.backend.supports_login_startup", return_value=False),
         ):
-            backend = Backend(engine=_FakeEngine(device_connected=True, connected_device=device))
+            backend = Backend(
+                engine=_FakeEngine(
+                    device_connected=True,
+                    connected_device=device,
+                )
+            )
 
         button_keys = [button["key"] for button in backend.buttons]
         self.assertIn("middle", button_keys)
@@ -869,7 +994,12 @@ class BackendDeviceLayoutTests(unittest.TestCase):
             patch("ui.backend.save_config"),
             patch("ui.backend.supports_login_startup", return_value=False),
         ):
-            backend = Backend(engine=_FakeEngine(device_connected=True, connected_device=device))
+            backend = Backend(
+                engine=_FakeEngine(
+                    device_connected=True,
+                    connected_device=device,
+                )
+            )
 
         button_keys = [button["key"] for button in backend.buttons]
         self.assertEqual(button_keys, ["middle", "xbutton1", "xbutton2"])
@@ -1109,7 +1239,13 @@ class BackendDeviceLayoutTests(unittest.TestCase):
             patch("ui.backend.supports_login_startup", return_value=False),
             patch("ui.backend.sys.platform", "win32"),
         ):
-            backend = Backend(engine=_FakeEngine(device_connected=True, connected_device=device))
+            backend = Backend(
+                engine=_FakeEngine(
+                    device_connected=True,
+                    connected_device=device,
+                    cfg=cfg,
+                )
+            )
 
             button_keys = [button["key"] for button in backend.buttons]
             self.assertEqual(button_keys.count("middle"), 1)
@@ -1189,7 +1325,7 @@ class BackendDeviceLayoutTests(unittest.TestCase):
             ),
         )
 
-        def load_persisted():
+        def load_persisted(**_):
             return copy.deepcopy(persisted)
 
         def save_persisted(updated):
@@ -1295,7 +1431,7 @@ class BackendDeviceLayoutTests(unittest.TestCase):
         persisted["profiles"]["default"]["mappings"]["generic_xbutton1"] = "browser_back"
         persisted["profiles"]["default"]["mappings"]["generic_xbutton1_long"] = "copy"
 
-        def load_persisted():
+        def load_persisted(**_):
             return copy.deepcopy(persisted)
 
         def save_persisted(updated):
@@ -1849,6 +1985,31 @@ class BackendDeviceLayoutTests(unittest.TestCase):
 
 @unittest.skipIf(Backend is None, "PySide6 not installed in test environment")
 class BackendLoginStartupTests(unittest.TestCase):
+    def test_unverified_config_never_syncs_login_startup(self):
+        from core import config
+
+        _ensure_qapp()
+        with tempfile.TemporaryDirectory() as temp_dir:
+            config_file = Path(temp_dir) / "config.json"
+            malformed = "{not-valid-json"
+            config_file.write_text(malformed, encoding="utf-8")
+            with (
+                patch.object(config, "CONFIG_DIR", temp_dir),
+                patch.object(config, "CONFIG_FILE", str(config_file)),
+                patch("ui.backend.supports_login_startup", return_value=True),
+                patch("ui.backend.sync_login_startup_from_config") as sync_mock,
+            ):
+                backend = Backend(engine=None)
+                try:
+                    self.assertFalse(config.config_is_verified(backend._cfg))
+                    sync_mock.assert_not_called()
+                    self.assertEqual(
+                        config_file.read_text(encoding="utf-8"),
+                        malformed,
+                    )
+                finally:
+                    config.mark_config_verified_writable(backend._cfg)
+
     def test_init_calls_sync_from_config_when_supported(self):
         cfg = copy.deepcopy(DEFAULT_CONFIG)
         cfg["settings"]["start_at_login"] = True

@@ -17,6 +17,7 @@ import sys
 import queue
 import threading
 import time
+import traceback
 
 from core.logi_devices import (
     DEFAULT_GESTURE_CIDS,
@@ -758,6 +759,9 @@ class HidGestureListener:
         self._dev       = None          # hid.device()
         self._thread    = None
         self._running   = False
+        self._last_input_event_at = None
+        self._last_backend_exception = None
+        self._last_backend_exception_at = None
         self._feat_idx  = None          # feature index of REPROG_V4
         self._dpi_idx   = None          # feature index of ADJUSTABLE_DPI
         self._battery_idx = None
@@ -795,6 +799,8 @@ class HidGestureListener:
     # ── public API ────────────────────────────────────────────────
 
     def start(self):
+        if self._thread and self._thread.is_alive():
+            return True
         if not HIDAPI_OK and not _MAC_NATIVE_OK:
             details = f": {HIDAPI_IMPORT_ERROR!r}" if HIDAPI_IMPORT_ERROR else ""
             print(f"[HidGesture] no HID backend available; install hidapi{details}")
@@ -835,7 +841,29 @@ class HidGestureListener:
             self._dev = None
         self._connected_device_info = None
         if self._thread:
+            if self._thread is threading.current_thread():
+                self._last_backend_exception = (
+                    "stop: RuntimeError: HID listener cannot join itself"
+                )
+                self._last_backend_exception_at = time.time()
+                print(
+                    "[HidGesture] BACKEND_EXCEPTION "
+                    f"backend=hid phase=stop error={self._last_backend_exception}"
+                )
+                return False
             self._thread.join(timeout=3)
+            if self._thread.is_alive():
+                self._last_backend_exception = (
+                    "stop: TimeoutError: HID listener did not stop within 3 seconds"
+                )
+                self._last_backend_exception_at = time.time()
+                print(
+                    "[HidGesture] BACKEND_EXCEPTION "
+                    f"backend=hid phase=stop error={self._last_backend_exception}"
+                )
+                return False
+            else:
+                self._thread = None
         with _LISTENER_ID_LOCK:
             _ACTIVE_LISTENER_IDS.discard(self._listener_id)
             active_ids = tuple(sorted(_ACTIVE_LISTENER_IDS))
@@ -843,6 +871,7 @@ class HidGestureListener:
             "[HidGesture] Listener stopped: "
             f"listener={self._listener_id} active={active_ids}"
         )
+        return True
 
     @property
     def connected_device(self):
@@ -1128,6 +1157,7 @@ class HidGestureListener:
         if not d:
             return None
         raw = list(d)
+        self._last_input_event_at = time.time()
         self._report_counter += 1
         device = self._connected_device_info
         identity = getattr(device, "key", "") or "unknown"
@@ -2170,7 +2200,40 @@ class HidGestureListener:
         """Outer loop: connect → listen → reconnect on error/disconnect."""
         retry_logged = False
         while self._running:
-            if not self._try_connect():
+            try:
+                connected = self._try_connect()
+            except Exception as exc:
+                self._last_backend_exception = (
+                    f"connect: {type(exc).__name__}: {exc}"
+                )
+                self._last_backend_exception_at = time.time()
+                print(
+                    "[HidGesture] BACKEND_EXCEPTION "
+                    f"backend=hid phase=connect error={self._last_backend_exception}"
+                )
+                traceback.print_exc(file=sys.stdout)
+                try:
+                    if self._dev:
+                        self._dev.close()
+                except Exception as close_exc:
+                    print(
+                        "[HidGesture] BACKEND_EXCEPTION "
+                        "backend=hid phase=connect-cleanup "
+                        f"error={type(close_exc).__name__}: {close_exc}"
+                    )
+                    traceback.print_exc(file=sys.stdout)
+                self._dev = None
+                self._feat_idx = None
+                self._dpi_idx = None
+                self._smart_shift_idx = None
+                self._battery_idx = None
+                self._battery_feature_id = None
+                self._wheel_feature_indexes = {}
+                self._connected_device_info = None
+                self._active_device_path = ""
+                self._applied_extra_divert_cids = set()
+                connected = False
+            if not connected:
                 if self._preserve_device_identity_on_reconnect:
                     self._preserve_device_identity_on_reconnect = False
                     if self._on_disconnect:
@@ -2187,6 +2250,21 @@ class HidGestureListener:
                     time.sleep(0.1)
                 continue
             retry_logged = False
+
+            if not self._running:
+                try:
+                    if self._dev:
+                        self._dev.close()
+                except Exception as exc:
+                    print(
+                        "[HidGesture] BACKEND_EXCEPTION "
+                        "backend=hid phase=stop-cleanup "
+                        f"error={type(exc).__name__}: {exc}"
+                    )
+                    traceback.print_exc(file=sys.stdout)
+                self._dev = None
+                self._connected_device_info = None
+                return
 
             self._connected = True
             self._connection_generation += 1
@@ -2240,7 +2318,18 @@ class HidGestureListener:
                         if _no_data_count >= _STALE_HOLD_LIMIT:
                             self._force_release_stale_holds()
             except Exception as e:
-                print(f"[HidGesture] read error: {e}")
+                if isinstance(e, IOError) and str(e) == "reconnect requested":
+                    print(f"[HidGesture] read error: {e}")
+                else:
+                    self._last_backend_exception = (
+                        f"listen: {type(e).__name__}: {e}"
+                    )
+                    self._last_backend_exception_at = time.time()
+                    print(
+                        "[HidGesture] BACKEND_EXCEPTION "
+                        f"backend=hid phase=listen error={self._last_backend_exception}"
+                    )
+                    traceback.print_exc(file=sys.stdout)
 
             # Cleanup before potential reconnect
             self._undivert()

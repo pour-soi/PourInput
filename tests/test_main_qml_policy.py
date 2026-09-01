@@ -1,6 +1,7 @@
 import inspect
 from pathlib import Path
 import unittest
+from unittest.mock import Mock, patch
 
 try:
     import main_qml
@@ -28,6 +29,48 @@ class ScreenshotControllerStartupPolicyTests(unittest.TestCase):
         self.assertIn("from ui.windows_screenshot import WindowsScreenshotController", source)
         self.assertIn("app._POURINPUT_screenshot_controller = screenshot_controller", source)
         self.assertIn("set_screenshot_action_handler(screenshot_controller.request_action)", source)
+
+
+@unittest.skipIf(main_qml is None, "main_qml / PySide6 not available")
+class EngineStartupPolicyTests(unittest.TestCase):
+    def test_startup_strictly_loads_existing_config_and_shares_it_with_engine(self):
+        source = inspect.getsource(main_qml.main)
+
+        self.assertIn(
+            "cfg = load_config(strict=os.path.lexists(CONFIG_FILE))",
+            source,
+        )
+        self.assertIn("engine = Engine(initial_config=cfg)", source)
+
+    def test_queued_start_failure_logs_inactive_and_never_active(self):
+        engine = Mock()
+        engine.start.return_value = False
+
+        with (
+            patch.object(
+                main_qml.QTimer,
+                "singleShot",
+                side_effect=lambda _delay, callback: callback(),
+            ),
+            patch("builtins.print") as log,
+        ):
+            self.assertTrue(
+                main_qml._schedule_engine_start(
+                    engine,
+                    accessibility_granted=True,
+                )
+            )
+
+        engine.start.assert_called_once_with()
+        messages = [str(item.args[0]) for item in log.call_args_list]
+        self.assertIn(
+            "[PourInput] Engine start failed -- remapping is inactive",
+            messages,
+        )
+        self.assertNotIn(
+            "[PourInput] Engine started -- remapping is active",
+            messages,
+        )
 
 
 class LanguageSwitchingQmlPolicyTests(unittest.TestCase):
@@ -93,7 +136,11 @@ class LanguageSwitchingStartupPolicyTests(unittest.TestCase):
         self.assertIn('initial_lang = cfg_settings.get("language", "en")', source)
         self.assertIn("LocaleManager(language=initial_lang)", source)
         self.assertIn("backend = Backend(engine, root_dir=ROOT, locale_manager=locale_mgr)", source)
-        self.assertIn('saved_cfg.setdefault("settings", {})["language"] = locale_mgr.language', source)
+        self.assertIn(
+            'engine.cfg.setdefault("settings", {})["language"] = locale_mgr.language',
+            source,
+        )
+        self.assertIn("save_config(engine.cfg)", source)
         self.assertIn("locale_mgr.languageChanged.connect(_save_language)", source)
 
 

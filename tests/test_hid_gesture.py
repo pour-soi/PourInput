@@ -788,6 +788,60 @@ class HidBoltReceiverTests(unittest.TestCase):
 
 
 class HidReconnectInvariantTests(unittest.TestCase):
+    def test_stop_timeout_preserves_listener_until_thread_is_dead(self):
+        listener = hid_gesture.HidGestureListener()
+        worker = Mock()
+        worker.is_alive.return_value = True
+        listener._thread = worker
+        listener._running = True
+        with hid_gesture._LISTENER_ID_LOCK:
+            hid_gesture._ACTIVE_LISTENER_IDS.add(listener._listener_id)
+        self.addCleanup(
+            hid_gesture._ACTIVE_LISTENER_IDS.discard,
+            listener._listener_id,
+        )
+
+        with patch("builtins.print") as log:
+            self.assertFalse(listener.stop())
+
+        self.assertIs(listener._thread, worker)
+        with hid_gesture._LISTENER_ID_LOCK:
+            self.assertIn(listener._listener_id, hid_gesture._ACTIVE_LISTENER_IDS)
+        output = "\n".join(str(item.args[0]) for item in log.call_args_list)
+        self.assertIn("BACKEND_EXCEPTION backend=hid phase=stop", output)
+
+        worker.is_alive.return_value = False
+        with patch("builtins.print"):
+            self.assertTrue(listener.stop())
+
+        self.assertIsNone(listener._thread)
+        with hid_gesture._LISTENER_ID_LOCK:
+            self.assertNotIn(listener._listener_id, hid_gesture._ACTIVE_LISTENER_IDS)
+
+    def test_try_connect_exception_is_contained_and_retried(self):
+        listener = hid_gesture.HidGestureListener()
+        listener._running = True
+        attempts = []
+
+        def try_connect():
+            attempts.append(len(attempts) + 1)
+            if len(attempts) == 1:
+                raise RuntimeError("connect exploded")
+            listener._running = False
+            return False
+
+        with (
+            patch.object(listener, "_try_connect", side_effect=try_connect),
+            patch.object(hid_gesture.time, "sleep"),
+            patch("builtins.print") as log,
+        ):
+            listener._main_loop()
+
+        self.assertEqual(attempts, [1, 2])
+        output = "\n".join(str(item.args[0]) for item in log.call_args_list)
+        self.assertIn("BACKEND_EXCEPTION backend=hid phase=connect", output)
+        self.assertIn("connect exploded", output)
+
     def test_expanded_desired_diverts_request_only_one_reconnect(self):
         listener = hid_gesture.HidGestureListener(
             extra_diverts={0x00C4: {"on_down": Mock(), "on_up": Mock()}},

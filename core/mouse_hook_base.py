@@ -3,8 +3,10 @@ Shared mouse hook behavior used by platform implementations.
 """
 
 import queue
+import sys
 import threading
 import time
+import traceback
 from types import MappingProxyType
 
 try:
@@ -17,6 +19,7 @@ from core.mouse_hook_types import (
     BindingSnapshot,
     DispatchGenerationState,
     HidRuntimeState,
+    HookHealth,
     MouseEvent,
     LifecycleInvalidation,
     format_debug_details,
@@ -60,6 +63,7 @@ class BaseMouseHook:
         self.divert_dpi_switch = False
         self.divert_logi_xbutton1 = False
         self.divert_logi_xbutton2 = False
+        self._hid_listener_required_by_config = False
         self._gesture_direction_enabled = False
         self._gesture_threshold = 50.0
         self._gesture_deadzone = 40.0
@@ -75,6 +79,10 @@ class BaseMouseHook:
         self._gesture_input_source = None
         self._connected_device = None
         self._dispatch_queue = None
+        self._health_lock = threading.Lock()
+        self._last_input_event_at = None
+        self._last_backend_exception = None
+        self._last_backend_exception_at = None
         self._logi_xbutton_suppression_lock = threading.Lock()
         self._logi_xbutton_suppression = {}
         self._logi_xbutton_pressed_lock = threading.Lock()
@@ -251,6 +259,10 @@ class BaseMouseHook:
             self._gesture_triggered = False
             self._gesture_input_source = None
 
+    def set_hid_listener_required(self, required):
+        """Set whether authoritative configured routes require HID++."""
+        self._hid_listener_required_by_config = bool(required)
+
     def set_connection_change_callback(self, cb):
         self._connection_change_cb = cb
 
@@ -272,6 +284,47 @@ class BaseMouseHook:
             connected_device=self._connected_device,
         )
 
+    def _record_backend_exception(self, exc, phase):
+        message = f"{phase}: {type(exc).__name__}: {exc}"
+        with self._health_lock:
+            self._last_backend_exception = message
+            self._last_backend_exception_at = time.time()
+        return message
+
+    def health_snapshot(self):
+        listener = self._hid_gesture
+        listener_thread = getattr(listener, "_thread", None) if listener else None
+        listener_alive = bool(listener_thread and listener_thread.is_alive())
+        listener_expected = bool(listener and getattr(listener, "_running", False))
+        snapshot = self.capture_binding_snapshot()
+        listener_error = getattr(listener, "_last_backend_exception", None)
+        listener_error_at = getattr(listener, "_last_backend_exception_at", None)
+        with self._health_lock:
+            last_input_event_at = self._last_input_event_at
+            last_backend_exception = self._last_backend_exception
+            last_backend_exception_at = self._last_backend_exception_at
+        if listener_error_at and (
+            last_backend_exception_at is None
+            or listener_error_at > last_backend_exception_at
+        ):
+            last_backend_exception = listener_error
+            last_backend_exception_at = listener_error_at
+        recovery_required = listener_expected and not listener_alive
+        return HookHealth(
+            backend=sys.platform,
+            running=listener_expected,
+            listener_alive=listener_alive,
+            device_available=bool(self._device_connected),
+            bound_mapping_count=sum(
+                bool(callbacks) for callbacks in snapshot.callbacks.values()
+            ),
+            last_input_event_at=last_input_event_at,
+            last_backend_exception=last_backend_exception,
+            last_backend_exception_at=last_backend_exception_at,
+            recovery_required=recovery_required,
+            healthy=not recovery_required,
+        )
+
     def dump_device_info(self):
         hg = getattr(self, "_hid_gesture", None)
         if hg and hasattr(hg, "dump_device_info"):
@@ -282,6 +335,11 @@ class BaseMouseHook:
         if not connected:
             self._clear_logi_xbutton_suppression("device disconnect")
             self._clear_logi_xbutton_pressed("device disconnect")
+        event = "DEVICE_CONNECTED" if connected else "DEVICE_DISCONNECTED"
+        print(
+            f"[MouseHook] {event} backend={sys.platform} "
+            f"device_available={str(bool(connected)).lower()}"
+        )
         if connected == self._device_connected:
             return
         self._device_connected = connected
@@ -290,8 +348,16 @@ class BaseMouseHook:
         if self._connection_change_cb:
             try:
                 self._connection_change_cb(connected)
-            except Exception:
-                pass
+            except Exception as exc:
+                message = self._record_backend_exception(
+                    exc, "connection-change-callback"
+                )
+                print(
+                    "[MouseHook] BACKEND_EXCEPTION "
+                    f"backend={sys.platform} phase=connection-change-callback "
+                    f"error={message}"
+                )
+                traceback.print_exc(file=sys.stdout)
 
     def set_debug_callback(self, callback):
         self._debug_callback = callback
@@ -360,12 +426,25 @@ class BaseMouseHook:
                             "event_name": event.event_type,
                         }
                     )
+            callbacks_succeeded = True
             for callback in callbacks:
                 try:
                     callback(event)
                     self._emit_debug(f"Callback executed for {event.event_type}")
                 except Exception as exc:
-                    print(f"[MouseHook] callback error: {exc}")
+                    callbacks_succeeded = False
+                    message = self._record_backend_exception(
+                        exc, "mapping-callback"
+                    )
+                    print(
+                        "[MouseHook] BACKEND_EXCEPTION "
+                        f"backend={sys.platform} phase=mapping-callback "
+                        f"error={message}"
+                    )
+                    traceback.print_exc(file=sys.stdout)
+            if callbacks_succeeded:
+                with self._health_lock:
+                    self._last_input_event_at = time.time()
         finally:
             dispatch_state.release()
 
@@ -450,6 +529,16 @@ class BaseMouseHook:
     def _start_hid_listener(self):
         self._clear_logi_xbutton_suppression("listener start")
         self._clear_logi_xbutton_pressed("listener start")
+        if self._hid_gesture is not None and not self._stop_hid_listener():
+            message = self._record_backend_exception(
+                RuntimeError("previous HID listener is still running"),
+                "hid-listener-start",
+            )
+            print(
+                "[MouseHook] BACKEND_EXCEPTION "
+                f"backend={sys.platform} phase=hid-listener-start error={message}"
+            )
+            return None
         platform_module = getattr(self.__class__, "_platform_module", None)
         listener_cls = getattr(platform_module, "HidGestureListener", HidGestureListener)
         if listener_cls is None:
@@ -463,16 +552,51 @@ class BaseMouseHook:
             extra_diverts=self._build_extra_diverts(),
         )
         self._hid_gesture = listener
-        if not listener.start():
+        failure_logged = False
+        try:
+            started = listener.start()
+        except Exception as exc:
+            message = self._record_backend_exception(exc, "hid-listener-start")
+            print(
+                "[MouseHook] BACKEND_EXCEPTION "
+                f"backend={sys.platform} phase=hid-listener-start error={message}"
+            )
+            traceback.print_exc(file=sys.stdout)
+            started = False
+            failure_logged = True
+        if not started:
+            if not failure_logged:
+                message = self._record_backend_exception(
+                    RuntimeError("HID listener failed to start"),
+                    "hid-listener-start",
+                )
+                print(
+                    "[MouseHook] BACKEND_EXCEPTION "
+                    f"backend={sys.platform} phase=hid-listener-start error={message}"
+                )
             self._hid_gesture = None
         return self._hid_gesture
 
     def _stop_hid_listener(self):
         self._clear_logi_xbutton_suppression("listener stop")
         self._clear_logi_xbutton_pressed("listener stop")
-        if self._hid_gesture:
-            self._hid_gesture.stop()
-            self._hid_gesture = None
+        listener = self._hid_gesture
+        if listener:
+            try:
+                stopped = listener.stop()
+            except Exception as exc:
+                message = self._record_backend_exception(exc, "hid-listener-stop")
+                print(
+                    "[MouseHook] BACKEND_EXCEPTION "
+                    f"backend={sys.platform} phase=hid-listener-stop error={message}"
+                )
+                traceback.print_exc(file=sys.stdout)
+                return False
+            if not stopped:
+                return False
+            if self._hid_gesture is listener:
+                self._hid_gesture = None
+        return True
 
     def _on_hid_connect(self):
         self._connected_device = (
@@ -493,8 +617,16 @@ class BaseMouseHook:
         if not preserve_identity and not was_connected and self._connection_change_cb:
             try:
                 self._connection_change_cb(False)
-            except Exception:
-                pass
+            except Exception as exc:
+                message = self._record_backend_exception(
+                    exc, "connection-change-callback"
+                )
+                print(
+                    "[MouseHook] BACKEND_EXCEPTION "
+                    f"backend={sys.platform} phase=connection-change-callback "
+                    f"error={message}"
+                )
+                traceback.print_exc(file=sys.stdout)
 
     def _on_hid_gesture_down(self):
         self._dispatch(MouseEvent(MouseEvent.GESTURE_DOWN))

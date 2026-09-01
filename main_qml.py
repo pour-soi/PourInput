@@ -72,7 +72,7 @@ os.environ.setdefault("QML2_IMPORT_PATH", os.path.join(_pyside_dir, "qml"))
 os.environ.setdefault("QT_PLUGIN_PATH", os.path.join(_pyside_dir, "plugins"))
 
 _t3 = _time.perf_counter()
-from core.config import load_config, save_config
+from core.config import CONFIG_FILE, ConfigLoadError, load_config, save_config
 from core.engine import Engine
 from core.hid_gesture import set_backend_preference as set_hid_backend_preference
 from core.accessibility import is_process_trusted
@@ -1081,10 +1081,13 @@ def _schedule_engine_start(engine, *, accessibility_granted: bool) -> bool:
     if not accessibility_granted:
         print("[PourInput] Engine not started -- Accessibility permission is required")
         return False
-    QTimer.singleShot(0, lambda: (
-        engine.start(),
-        print("[PourInput] Engine started -- remapping is active"),
-    ))
+    def _start_engine():
+        if engine.start() is False:
+            print("[PourInput] Engine start failed -- remapping is inactive")
+            return
+        print("[PourInput] Engine started -- remapping is active")
+
+    QTimer.singleShot(0, _start_engine)
     return True
 
 
@@ -1116,7 +1119,16 @@ def main():
 
         raise SystemExit(apply_windows_update_from_state(sys.argv[2]))
     argv, hid_backend, start_hidden, force_show = _parse_cli_args(sys.argv)
-    cfg = load_config()
+    if not _acquire_windows_single_instance_mutex():
+        return 0
+    try:
+        cfg = load_config(strict=os.path.lexists(CONFIG_FILE))
+    except ConfigLoadError as exc:
+        print(
+            "[PourInput] STARTUP_BLOCKED reason=unverified-config "
+            f"error={exc!r}"
+        )
+        return 1
     cfg_settings = cfg.get("settings", {})
     initial_lang = cfg_settings.get("language", "en")
     launch_hidden = (
@@ -1128,9 +1140,6 @@ def main():
             set_hid_backend_preference(hid_backend)
         except ValueError as exc:
             raise SystemExit(f"Invalid --hid-backend setting: {exc}") from exc
-
-    if not _acquire_windows_single_instance_mutex():
-        return 0
 
     # Also: also mutate the bundle's display name keys so
     # surfaces that read from `[NSBundle mainBundle]` (application menu
@@ -1183,7 +1192,7 @@ def main():
 
     _t6 = _time.perf_counter()
     # ── Engine (created but started AFTER UI is visible) ───────
-    engine = Engine()
+    engine = Engine(initial_config=cfg)
 
     _t7 = _time.perf_counter()
     # ── QML Backend ────────────────────────────────────────────
@@ -1404,9 +1413,9 @@ def main():
     def _save_language():
         """Persist the selected language to config.json."""
         try:
-            saved_cfg = load_config()
-            saved_cfg.setdefault("settings", {})["language"] = locale_mgr.language
-            save_config(saved_cfg)
+            with engine._lock:
+                engine.cfg.setdefault("settings", {})["language"] = locale_mgr.language
+                save_config(engine.cfg)
         except Exception as exc:
             print(f"[PourInput] Failed to save language preference: {exc}")
 

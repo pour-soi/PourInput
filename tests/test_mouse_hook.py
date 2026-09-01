@@ -252,6 +252,47 @@ class BaseMouseHookDispatchQueueTests(unittest.TestCase):
 
 
 class BaseMouseHookBindingSnapshotTests(unittest.TestCase):
+    def test_failed_callback_is_logged_without_advancing_health_or_stopping_dispatch(self):
+        hook = BaseMouseHook()
+        hook._last_input_event_at = 12.5
+        failed_callback = Mock(side_effect=RuntimeError("action failed"))
+        health_seen_by_next_callback = []
+
+        def succeeding_callback(_event):
+            health_seen_by_next_callback.append(
+                hook.health_snapshot().last_input_event_at
+            )
+
+        builder = hook.new_binding_builder()
+        builder.register(MouseEvent.XBUTTON1_DOWN, failed_callback)
+        builder.register(MouseEvent.XBUTTON1_UP, succeeding_callback)
+        snapshot = hook.publish_bindings(builder)
+        failed_event = hook.bind_event(
+            MouseEvent(MouseEvent.XBUTTON1_DOWN),
+            snapshot,
+        )
+        succeeding_event = hook.bind_event(
+            MouseEvent(MouseEvent.XBUTTON1_UP),
+            snapshot,
+        )
+
+        with (
+            patch("core.mouse_hook_base.time.time", return_value=99.0),
+            patch("core.mouse_hook_base.traceback.print_exc"),
+            patch("builtins.print") as log,
+        ):
+            hook._dispatch(failed_event)
+            self.assertEqual(hook.health_snapshot().last_input_event_at, 12.5)
+            hook._dispatch(succeeding_event)
+
+        failed_callback.assert_called_once_with(failed_event)
+        self.assertEqual(health_seen_by_next_callback, [12.5])
+        self.assertEqual(hook.health_snapshot().last_input_event_at, 99.0)
+        self.assertIn("action failed", hook.health_snapshot().last_backend_exception)
+        output = "\n".join(str(item.args[0]) for item in log.call_args_list)
+        self.assertIn("BACKEND_EXCEPTION", output)
+        self.assertIn("phase=mapping-callback", output)
+
     def test_binding_snapshot_replacement_is_atomic_and_immutable(self):
         hook = BaseMouseHook()
         first_callback = Mock()
@@ -777,6 +818,303 @@ class WindowsXButtonHookTests(unittest.TestCase):
 
 @unittest.skipUnless(sys.platform == "win32", "Windows-only worker lifecycle test")
 class WindowsMouseHookShutdownTests(unittest.TestCase):
+    def test_successful_stop_clears_stale_connection_for_next_connect(self):
+        module = importlib.import_module("core.mouse_hook_windows")
+        hook = module.MouseHook()
+        old_device = object()
+        listener = Mock()
+        listener.stop.return_value = True
+        hook._hid_gesture = listener
+        hook._device_connected = True
+        hook._connected_device = old_device
+        connection_change = Mock()
+        hook.set_connection_change_callback(connection_change)
+
+        self.assertTrue(hook.stop())
+        self.assertFalse(hook.device_connected)
+        self.assertIsNone(hook.connected_device)
+
+        new_device = object()
+        hook._hid_gesture = SimpleNamespace(connected_device=new_device)
+        hook._on_hid_connect()
+
+        self.assertTrue(hook.device_connected)
+        self.assertIs(hook.connected_device, new_device)
+        connection_change.assert_called_once_with(True)
+
+    def test_unexpected_hook_exit_clears_thread_id_before_recovery_stop(self):
+        module = importlib.import_module("core.mouse_hook_windows")
+        hook = module.MouseHook()
+        hook._stop_requested = False
+        with (
+            patch.object(
+                module,
+                "windll",
+                SimpleNamespace(
+                    kernel32=SimpleNamespace(GetCurrentThreadId=lambda: 4242)
+                ),
+            ),
+            patch.object(module, "SetWindowsHookExW", return_value=123),
+            patch.object(module, "GetModuleHandleW", return_value=1),
+            patch.object(module, "GetMessageW", return_value=0),
+            patch.object(module, "UnhookWindowsHookEx", return_value=True),
+            patch.object(hook, "_setup_raw_input", return_value=True),
+            patch("builtins.print"),
+        ):
+            hook._run_hook()
+
+        self.assertIsNone(hook._thread_id)
+        self.assertTrue(hook.health_snapshot().recovery_required)
+        with patch.object(module, "PostThreadMessageW") as post_quit:
+            self.assertTrue(hook.stop())
+        post_quit.assert_not_called()
+
+    def test_final_unhook_failure_retains_callback_until_restart_cleanup(self):
+        module = importlib.import_module("core.mouse_hook_windows")
+        hook = module.MouseHook()
+        hook._stop_requested = False
+        old_hook = object()
+        with (
+            patch.object(
+                module,
+                "windll",
+                SimpleNamespace(
+                    kernel32=SimpleNamespace(GetCurrentThreadId=lambda: 5150)
+                ),
+            ),
+            patch.object(module, "SetWindowsHookExW", return_value=old_hook),
+            patch.object(module, "GetModuleHandleW", return_value=1),
+            patch.object(module, "GetMessageW", return_value=0),
+            patch.object(module, "UnhookWindowsHookEx", return_value=False),
+            patch.object(hook, "_setup_raw_input", return_value=True),
+            patch("builtins.print") as log,
+        ):
+            hook._run_hook()
+
+        self.assertEqual(len(hook._retired_hooks), 1)
+        self.assertIs(hook._retired_hooks[0][0], old_hook)
+        retained_proc = hook._retired_hooks[0][1]
+        self.assertIsNotNone(retained_proc)
+        self.assertTrue(hook.health_snapshot().recovery_required)
+        output = "\n".join(str(item.args[0]) for item in log.call_args_list)
+        self.assertIn("HOOK_FAILURE phase=final-unhook", output)
+
+        hook_thread = Mock()
+        hook_thread.is_alive.return_value = True
+        dispatch_thread = Mock()
+        dispatch_thread.is_alive.return_value = True
+
+        def release_retired(handle):
+            self.assertIs(handle, old_hook)
+            self.assertIs(hook._retired_hooks[0][1], retained_proc)
+            return True
+
+        def mark_hook_started():
+            hook._hook = object()
+            hook._ri_hwnd = object()
+            hook._raw_input_active = True
+            hook._running = True
+            hook._startup_ok = True
+
+        hook_thread.start.side_effect = mark_hook_started
+        with (
+            patch.object(
+                module.threading,
+                "Thread",
+                side_effect=[hook_thread, dispatch_thread],
+            ),
+            patch.object(module, "UnhookWindowsHookEx", side_effect=release_retired),
+            patch.object(hook._startup_event, "wait", return_value=True),
+            patch.object(hook, "_start_hid_listener", return_value=None),
+            patch("builtins.print"),
+        ):
+            self.assertTrue(hook.start())
+
+        self.assertEqual(hook._retired_hooks, [])
+
+    def test_device_change_requests_existing_hid_listener_reconnect(self):
+        module = importlib.import_module("core.mouse_hook_windows")
+        hook = module.MouseHook()
+        listener = Mock()
+        hook._hid_gesture = listener
+
+        with (
+            patch.object(module.time, "time", return_value=10.0),
+            patch.object(hook, "_reinstall_hook", return_value=True) as rehook,
+            patch.object(hook, "_start_hid_listener") as start_listener,
+        ):
+            hook._on_device_change()
+
+        rehook.assert_called_once_with(reason="device-change")
+        listener.force_reconnect.assert_called_once_with()
+        start_listener.assert_not_called()
+
+    def test_required_hid_listener_participates_in_windows_health(self):
+        module = importlib.import_module("core.mouse_hook_windows")
+        hook = module.MouseHook()
+        hook._running = True
+        hook._stop_requested = False
+        hook._hook = object()
+        hook._raw_input_active = True
+        hook_thread = Mock()
+        hook_thread.is_alive.return_value = True
+        dispatch_thread = Mock()
+        dispatch_thread.is_alive.return_value = True
+        hook._hook_thread = hook_thread
+        hook._dispatch_worker_thread = dispatch_thread
+
+        self.assertTrue(hook.health_snapshot().healthy)
+
+        hook.set_hid_listener_required(True)
+        required_health = hook.health_snapshot()
+        self.assertTrue(required_health.recovery_required)
+        self.assertFalse(required_health.healthy)
+
+    def test_hid_stop_timeout_preserves_listener_and_blocks_replacement(self):
+        module = importlib.import_module("core.mouse_hook_windows")
+        hook = module.MouseHook()
+        listener = Mock()
+        listener.stop.return_value = False
+        hook._hid_gesture = listener
+
+        with (
+            patch.object(module.threading, "Thread") as thread_factory,
+            patch("builtins.print") as log,
+        ):
+            self.assertFalse(hook.stop())
+            self.assertIs(hook._hid_gesture, listener)
+            self.assertTrue(hook.health_snapshot().recovery_required)
+            self.assertFalse(hook.start())
+
+        self.assertIs(hook._hid_gesture, listener)
+        self.assertEqual(listener.stop.call_count, 2)
+        thread_factory.assert_not_called()
+        output = "\n".join(str(item.args[0]) for item in log.call_args_list)
+        self.assertIn("previous-hid-listener-still-running", output)
+
+    def test_required_hid_listener_start_failure_is_explicit_and_fails_start(self):
+        module = importlib.import_module("core.mouse_hook_windows")
+        hook = module.MouseHook()
+        hook.divert_logi_xbutton1 = True
+        hook_thread = Mock()
+        failed_listener = Mock()
+        failed_listener.start.return_value = False
+
+        def mark_hook_started():
+            hook._hook = object()
+            hook._ri_hwnd = object()
+            hook._raw_input_active = True
+            hook._running = True
+            hook._startup_ok = True
+
+        hook_thread.start.side_effect = mark_hook_started
+        with (
+            patch.object(module.threading, "Thread", return_value=hook_thread),
+            patch.object(hook._startup_event, "wait", return_value=True),
+            patch.object(
+                module,
+                "HidGestureListener",
+                return_value=failed_listener,
+            ),
+            patch.object(hook, "stop", return_value=True) as stop,
+            patch("builtins.print") as log,
+        ):
+            self.assertFalse(hook.start())
+
+        stop.assert_called_once_with()
+        output = "\n".join(str(item.args[0]) for item in log.call_args_list)
+        self.assertIn(
+            "BACKEND_EXCEPTION backend=win32 phase=hid-listener-start",
+            output,
+        )
+        self.assertIn(
+            "HOOK_FAILURE phase=hid-listener-start required=true",
+            output,
+        )
+
+    def test_start_clears_stale_divergence_and_pending_scroll_state(self):
+        module = importlib.import_module("core.mouse_hook_windows")
+        hook = module.MouseHook()
+        hook._last_hook_event_at = 1.0
+        hook._last_raw_input_at = 5.0
+        hook._last_dispatch_event_at = 4.0
+        hook._pending_vscroll = 120
+        hook._pending_hscroll = -120
+        hook._vscroll_posted = True
+        hook._hscroll_posted = True
+        hook._prev_raw_buttons[1] = 1
+        hook._device_name_cache[1] = "stale-device"
+        hook._recovery_required = True
+
+        hook_thread = Mock()
+        hook_thread.is_alive.return_value = True
+        dispatch_thread = Mock()
+        dispatch_thread.is_alive.return_value = True
+
+        def mark_hook_started():
+            hook._hook = object()
+            hook._ri_hwnd = object()
+            hook._raw_input_active = True
+            hook._running = True
+            hook._startup_ok = True
+
+        hook_thread.start.side_effect = mark_hook_started
+
+        with (
+            patch.object(
+                module.threading,
+                "Thread",
+                side_effect=[hook_thread, dispatch_thread],
+            ),
+            patch.object(hook._startup_event, "wait", return_value=True),
+            patch.object(hook, "_start_hid_listener"),
+        ):
+            self.assertTrue(hook.start())
+
+        self.assertIsNone(hook._last_hook_event_at)
+        self.assertIsNone(hook._last_raw_input_at)
+        self.assertIsNone(hook._last_dispatch_event_at)
+        self.assertEqual(hook._pending_vscroll, 0)
+        self.assertEqual(hook._pending_hscroll, 0)
+        self.assertFalse(hook._vscroll_posted)
+        self.assertFalse(hook._hscroll_posted)
+        self.assertEqual(hook._prev_raw_buttons, {})
+        self.assertEqual(hook._device_name_cache, {})
+        self.assertFalse(hook.health_snapshot().recovery_required)
+        self.assertTrue(hook.health_snapshot().healthy)
+
+    def test_repeated_raw_input_setup_reuses_registered_window_callback(self):
+        module = importlib.import_module("core.mouse_hook_windows")
+        hook = module.MouseHook()
+        retained_wndproc = hook._ri_wndproc_ref
+        retained_class_name = hook._ri_class_name
+
+        with (
+            patch.object(module, "GetModuleHandleW", return_value=1),
+            patch.object(module, "RegisterClassExW", return_value=1) as register,
+            patch.object(
+                module,
+                "CreateWindowExW",
+                side_effect=[101, 102],
+            ) as create_window,
+            patch.object(module, "ShowWindow"),
+            patch.object(
+                hook,
+                "_register_raw_input_devices",
+                return_value=True,
+            ),
+        ):
+            self.assertTrue(hook._setup_raw_input())
+            hook._ri_hwnd = None  # Mirrors DestroyWindow during hook shutdown.
+            self.assertTrue(hook._setup_raw_input())
+
+        register.assert_called_once()
+        self.assertEqual(create_window.call_count, 2)
+        self.assertIs(hook._ri_wndproc_ref, retained_wndproc)
+        self.assertEqual(hook._ri_class_name, retained_class_name)
+        self.assertEqual(create_window.call_args_list[0].args[1], retained_class_name)
+        self.assertEqual(create_window.call_args_list[1].args[1], retained_class_name)
+
     def test_stop_preserves_live_worker_reference(self):
         module = importlib.import_module("core.mouse_hook_windows")
         hook = module.MouseHook()
@@ -790,6 +1128,42 @@ class WindowsMouseHookShutdownTests(unittest.TestCase):
         self.assertFalse(stopped)
         self.assertIs(hook._dispatch_worker_thread, worker)
         worker.join.assert_called_once_with(timeout=1)
+
+    def test_failed_reinstall_retains_old_hook_and_reports_dead_workers(self):
+        module = importlib.import_module("core.mouse_hook_windows")
+        hook = module.MouseHook()
+        old_hook = object()
+        hook._hook = old_hook
+        hook._running = True
+        hook._stop_requested = False
+        hook._ri_hwnd = object()
+        hook_thread = Mock()
+        hook_thread.is_alive.return_value = False
+        dispatch_worker = Mock()
+        dispatch_worker.is_alive.return_value = False
+        hook._hook_thread = hook_thread
+        hook._dispatch_worker_thread = dispatch_worker
+
+        with (
+            patch.object(module, "HOOKPROC", return_value=object()),
+            patch.object(module, "GetModuleHandleW", return_value=object()),
+            patch.object(module, "SetWindowsHookExW", return_value=None),
+            patch.object(module, "UnhookWindowsHookEx") as unhook,
+            patch("builtins.print") as log,
+        ):
+            self.assertFalse(hook._reinstall_hook(reason="test-failure"))
+
+        self.assertIs(hook._hook, old_hook)
+        unhook.assert_not_called()
+        health = hook.health_snapshot()
+        self.assertTrue(health.hook_registered)
+        self.assertFalse(health.hook_thread_alive)
+        self.assertFalse(health.dispatch_worker_alive)
+        self.assertTrue(health.recovery_required)
+        self.assertFalse(health.healthy)
+        output = "\n".join(str(item.args[0]) for item in log.call_args_list)
+        self.assertIn("BACKEND_EXCEPTION backend=windows phase=hook-reinstall", output)
+        self.assertIn("test-failure", output)
 
 
 class LinuxMouseHookReconnectTests(unittest.TestCase):

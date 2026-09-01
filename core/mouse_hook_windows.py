@@ -8,6 +8,7 @@ import queue
 import sys
 import threading
 import time
+import traceback
 from ctypes import (
     CFUNCTYPE,
     POINTER,
@@ -35,6 +36,7 @@ WM_MBUTTONDOWN = 0x0207
 WM_MBUTTONUP = 0x0208
 WM_MOUSEHWHEEL = 0x020E
 WM_MOUSEWHEEL = 0x020A
+WM_POWERBROADCAST = 0x0218
 
 HC_ACTION = 0
 XBUTTON1 = 0x0001
@@ -221,6 +223,15 @@ WM_APP_INJECT_HSCROLL = WM_APP + 2
 
 WM_DEVICECHANGE = 0x0219
 DBT_DEVNODES_CHANGED = 0x0007
+PBT_APMRESUMECRITICAL = 0x0006
+PBT_APMRESUMESUSPEND = 0x0007
+PBT_APMRESUMEAUTOMATIC = 0x0012
+POWER_RESUME_EVENTS = {
+    PBT_APMRESUMECRITICAL,
+    PBT_APMRESUMESUSPEND,
+    PBT_APMRESUMEAUTOMATIC,
+}
+SILENT_HOOK_RAW_DIVERGENCE_S = 1.0
 
 PostMessageW = windll.user32.PostMessageW
 PostMessageW.argtypes = [wintypes.HWND, c_uint, wintypes.WPARAM, wintypes.LPARAM]
@@ -240,19 +251,126 @@ class MouseHook(BaseMouseHook):
         self._thread_id = None
         self._running = False
         self._hook_proc = None
+        self._hook_generation = 0
+        self._retired_hooks = []
         self._pending_vscroll = 0
         self._pending_hscroll = 0
         self._vscroll_posted = False
         self._hscroll_posted = False
-        self._ri_wndproc_ref = None
+        # RegisterClassExW retains this function pointer after the window is
+        # destroyed.  Keep one callback and class for this hook object's full
+        # lifetime so a stop/start cycle cannot leave Windows with a pointer to
+        # a garbage-collected replacement callback.
+        self._ri_wndproc_ref = WNDPROC_TYPE(self._ri_wndproc)
+        self._ri_class_name = (
+            f"PourInputRawInput_{id(self):X}_{time.monotonic_ns():X}"
+        )
+        self._ri_class_registered = False
         self._ri_hwnd = None
         self._device_name_cache = {}
         self._startup_event = threading.Event()
         self._startup_ok = False
+        self._stop_requested = True
+        self._recovery_required = False
+        self._raw_input_active = False
+        self._last_hook_event_at = None
+        self._last_raw_input_at = None
+        self._last_dispatch_event_at = None
         self._prev_raw_buttons = {}
         self._last_rehook_time = 0
         self._init_dispatch_queue(maxsize=512)
         self._dispatch_worker_thread = None
+
+    def _log_backend_exception(self, exc, phase):
+        message = self._record_backend_exception(exc, phase)
+        print(
+            "[MouseHook] BACKEND_EXCEPTION "
+            f"backend=windows phase={phase} error={message}"
+        )
+        traceback.print_exc(file=sys.stdout)
+
+    def _log_backend_error(self, phase, detail):
+        exc = RuntimeError(detail)
+        message = self._record_backend_exception(exc, phase)
+        print(
+            "[MouseHook] BACKEND_EXCEPTION "
+            f"backend=windows phase={phase} error={message}"
+        )
+
+    def _make_hook_proc(self, generation):
+        def _generation_handler(nCode, wParam, lParam):
+            if generation != self._hook_generation:
+                return CallNextHookEx(None, nCode, wParam, lParam)
+            return self._low_level_handler(nCode, wParam, lParam)
+
+        return HOOKPROC(_generation_handler)
+
+    def health_snapshot(self):
+        base = super().health_snapshot()
+        hook_thread_alive = bool(
+            self._hook_thread and self._hook_thread.is_alive()
+        )
+        dispatch_worker_alive = bool(
+            self._dispatch_worker_thread
+            and self._dispatch_worker_thread.is_alive()
+        )
+        listener = self._hid_gesture
+        listener_expected = bool(listener and getattr(listener, "_running", False))
+        listener_thread = getattr(listener, "_thread", None) if listener else None
+        listener_alive = bool(listener_thread and listener_thread.is_alive())
+        listener_required = self._hid_listener_required()
+        listener_ready = listener_expected and listener_alive
+        running = bool(self._running)
+        silent_unhook_suspected = bool(
+            self._last_raw_input_at is not None
+            and (
+                self._last_hook_event_at is None
+                or self._last_raw_input_at - self._last_hook_event_at
+                > SILENT_HOOK_RAW_DIVERGENCE_S
+            )
+        )
+        recovery_required = bool(
+            self._recovery_required
+            or (
+                not self._stop_requested
+                and (
+                    not running
+                    or not self._hook
+                    or not hook_thread_alive
+                    or not self._raw_input_active
+                    or not dispatch_worker_alive
+                    or (listener_required and not listener_ready)
+                    or bool(self._retired_hooks)
+                    or silent_unhook_suspected
+                )
+            )
+        )
+        return type(base)(
+            **{
+                **base.__dict__,
+                "backend": "windows",
+                "running": running,
+                "hook_registered": bool(self._hook),
+                "hook_thread_alive": hook_thread_alive,
+                "raw_input_active": bool(self._raw_input_active),
+                "dispatch_worker_alive": dispatch_worker_alive,
+                "listener_alive": listener_alive,
+                "device_available": bool(self._device_connected),
+                "last_input_event_at": base.last_input_event_at,
+                "last_hook_event_at": self._last_hook_event_at,
+                "last_raw_input_at": self._last_raw_input_at,
+                "last_dispatch_event_at": self._last_dispatch_event_at,
+                "recovery_required": recovery_required,
+                "healthy": running and not recovery_required,
+            }
+        )
+
+    def _hid_listener_required(self):
+        return bool(
+            self._hid_listener_required_by_config
+            or self._gesture_direction_enabled
+            or self._build_extra_diverts()
+        )
 
     def _accumulate_gesture_delta(self, delta_x, delta_y, source):
         if not (self._gesture_direction_enabled and self._gesture_active):
@@ -377,16 +495,14 @@ class MouseHook(BaseMouseHook):
             return self._low_level_handler_inner(nCode, wParam, lParam)
         except Exception as exc:
             try:
-                print(f"[MouseHook] CRITICAL _low_level_handler EXCEPTION: {exc}")
-                import traceback
-
-                traceback.print_exc()
+                self._log_backend_exception(exc, "low-level-callback")
             except Exception:
                 pass
             return CallNextHookEx(self._hook, nCode, wParam, lParam)
 
     def _low_level_handler_inner(self, nCode, wParam, lParam):
         if nCode == HC_ACTION:
+            self._last_hook_event_at = time.time()
             data = lParam.contents
             mouse_data = data.mouseData
             flags = data.flags
@@ -540,11 +656,18 @@ class MouseHook(BaseMouseHook):
         return "046d" in self._get_device_name(hDevice).lower()
 
     def _ri_wndproc(self, hwnd, msg, wParam, lParam):
+        try:
+            return self._ri_wndproc_inner(hwnd, msg, wParam, lParam)
+        except Exception as exc:
+            self._log_backend_exception(exc, "raw-input-window")
+            return DefWindowProcW(hwnd, msg, wParam, lParam)
+
+    def _ri_wndproc_inner(self, hwnd, msg, wParam, lParam):
         if msg == WM_INPUT:
             try:
                 self._process_raw_input(lParam)
             except Exception as exc:
-                print(f"[MouseHook] Raw Input error: {exc}")
+                self._log_backend_exception(exc, "raw-input")
             return 0
 
         if msg == WM_APP_INJECT_VSCROLL:
@@ -568,6 +691,10 @@ class MouseHook(BaseMouseHook):
                 self._on_device_change()
             return 0
 
+        if msg == WM_POWERBROADCAST and wParam in POWER_RESUME_EVENTS:
+            self._on_power_resume(wParam)
+            return 1
+
         return DefWindowProcW(hwnd, msg, wParam, lParam)
 
     def _process_raw_input(self, lParam):
@@ -587,6 +714,7 @@ class MouseHook(BaseMouseHook):
             return
         header = RAWINPUTHEADER.from_buffer_copy(buffer)
         if header.dwType == RIM_TYPEMOUSE:
+            self._last_raw_input_at = time.time()
             # Raw Input has useful device identity for diagnostics, but its
             # asynchronous messages cannot be correlated reliably with the
             # synchronous WH_MOUSE_LL event used for suppression and routing.
@@ -634,20 +762,26 @@ class MouseHook(BaseMouseHook):
                 self._dispatch(MouseEvent(MouseEvent.GESTURE_CLICK))
 
     def _setup_raw_input(self):
+        self._raw_input_active = False
         instance = GetModuleHandleW(None)
-        class_name = f"PourInputRawInput_{id(self)}"
-        self._ri_wndproc_ref = WNDPROC_TYPE(self._ri_wndproc)
-
-        window_class = WNDCLASSEXW()
-        window_class.cbSize = sizeof(WNDCLASSEXW)
-        window_class.lpfnWndProc = self._ri_wndproc_ref
-        window_class.hInstance = instance
-        window_class.lpszClassName = class_name
-        RegisterClassExW(byref(window_class))
+        if not self._ri_class_registered:
+            window_class = WNDCLASSEXW()
+            window_class.cbSize = sizeof(WNDCLASSEXW)
+            window_class.lpfnWndProc = self._ri_wndproc_ref
+            window_class.hInstance = instance
+            window_class.lpszClassName = self._ri_class_name
+            if not RegisterClassExW(byref(window_class)):
+                self._log_backend_error(
+                    "raw-input-class-registration",
+                    "RegisterClassExW failed "
+                    f"winerror={ctypes.get_last_error()}",
+                )
+                return False
+            self._ri_class_registered = True
 
         self._ri_hwnd = CreateWindowExW(
             0,
-            class_name,
+            self._ri_class_name,
             "PourInput RI",
             0,
             0,
@@ -661,10 +795,16 @@ class MouseHook(BaseMouseHook):
         )
         if not self._ri_hwnd:
             print("[MouseHook] CreateWindowExW failed — gesture detection unavailable")
+            self._log_backend_error("raw-input-window", "CreateWindowExW failed")
             return False
 
         ShowWindow(self._ri_hwnd, SW_HIDE)
+        return self._register_raw_input_devices()
 
+    def _register_raw_input_devices(self):
+        if not self._ri_hwnd:
+            self._raw_input_active = False
+            return False
         devices = (RAWINPUTDEVICE * 4)()
         devices[0].usUsagePage = 0x01
         devices[0].usUsage = 0x02
@@ -685,63 +825,122 @@ class MouseHook(BaseMouseHook):
 
         if RegisterRawInputDevices(devices, 4, sizeof(RAWINPUTDEVICE)):
             print("[MouseHook] Raw Input: mice + Logitech HID + consumer")
+            self._raw_input_active = True
             return True
         if RegisterRawInputDevices(devices, 2, sizeof(RAWINPUTDEVICE)):
             print("[MouseHook] Raw Input: mice + Logitech HID short")
+            self._raw_input_active = True
             return True
         if RegisterRawInputDevices(devices, 1, sizeof(RAWINPUTDEVICE)):
             print("[MouseHook] Raw Input: mice only")
+            self._raw_input_active = True
             return True
         print("[MouseHook] Raw Input registration failed")
+        self._raw_input_active = False
+        self._log_backend_error(
+            "raw-input-registration",
+            f"RegisterRawInputDevices failed winerror={ctypes.get_last_error()}",
+        )
         return False
 
     def _dispatch_worker(self):
-        while self._running:
-            try:
-                event = self._dispatch_queue.get(timeout=0.05)
-            except queue.Empty:
-                continue
-            try:
-                self._dispatch(event)
-            except Exception as exc:
-                print(f"[MouseHook] dispatch worker error: {exc}")
+        try:
+            while self._running:
+                try:
+                    event = self._dispatch_queue.get(timeout=0.05)
+                except queue.Empty:
+                    continue
+                try:
+                    self._dispatch(event)
+                    self._last_dispatch_event_at = time.time()
+                except Exception as exc:
+                    self._log_backend_exception(exc, "dispatch-worker-event")
+        except Exception as exc:
+            if not self._stop_requested:
+                self._recovery_required = True
+            self._log_backend_exception(exc, "dispatch-worker")
 
     def _run_hook(self):
-        self._thread_id = windll.kernel32.GetCurrentThreadId()
-        self._hook_proc = HOOKPROC(self._low_level_handler)
-        self._hook = SetWindowsHookExW(
-            WH_MOUSE_LL,
-            self._hook_proc,
-            GetModuleHandleW(None),
-            0,
-        )
-        if not self._hook:
-            self._startup_ok = False
+        hook_thread_id = windll.kernel32.GetCurrentThreadId()
+        self._thread_id = hook_thread_id
+        try:
+            generation = self._hook_generation + 1
+            hook_proc = self._make_hook_proc(generation)
+            hook = SetWindowsHookExW(
+                WH_MOUSE_LL,
+                hook_proc,
+                GetModuleHandleW(None),
+                0,
+            )
+            if not hook:
+                self._startup_ok = False
+                self._log_backend_error(
+                    "hook-registration",
+                    f"SetWindowsHookExW failed winerror={ctypes.get_last_error()}",
+                )
+                print("[MouseHook] Failed to install hook!")
+                return
+            self._hook_generation = generation
+            self._hook_proc = hook_proc
+            self._hook = hook
+            print("[MouseHook] Hook installed successfully")
+            self._setup_raw_input()
+            self._running = True
+            self._startup_ok = True
             self._startup_event.set()
-            print("[MouseHook] Failed to install hook!")
-            return
-        print("[MouseHook] Hook installed successfully")
-        self._setup_raw_input()
-        self._running = True
-        self._startup_ok = True
-        self._startup_event.set()
 
-        message = wintypes.MSG()
-        while self._running:
-            result = GetMessageW(ctypes.byref(message), None, 0, 0)
-            if result == 0 or result == -1:
-                break
-            TranslateMessage(ctypes.byref(message))
-            DispatchMessageW(ctypes.byref(message))
-
-        if self._ri_hwnd:
-            DestroyWindow(self._ri_hwnd)
-            self._ri_hwnd = None
-        if self._hook:
-            UnhookWindowsHookEx(self._hook)
-            self._hook = None
-        self._running = False
-        print("[MouseHook] Hook removed")
+            message = wintypes.MSG()
+            while self._running:
+                result = GetMessageW(ctypes.byref(message), None, 0, 0)
+                if result == 0:
+                    if self._running:
+                        self._log_backend_error(
+                            "message-loop", "GetMessageW received unexpected WM_QUIT"
+                        )
+                    break
+                if result == -1:
+                    self._log_backend_error(
+                        "message-loop",
+                        f"GetMessageW failed winerror={ctypes.get_last_error()}",
+                    )
+                    break
+                TranslateMessage(ctypes.byref(message))
+                DispatchMessageW(ctypes.byref(message))
+        except Exception as exc:
+            self._startup_ok = False
+            self._log_backend_exception(exc, "hook-thread")
+        finally:
+            try:
+                if not self._stop_requested:
+                    self._recovery_required = True
+                self._startup_event.set()
+                self._running = False
+                self._raw_input_active = False
+                if self._ri_hwnd:
+                    DestroyWindow(self._ri_hwnd)
+                    self._ri_hwnd = None
+                self._hook_generation += 1
+                self._cleanup_retired_hooks()
+                hook = self._hook
+                hook_proc = self._hook_proc
+                self._hook = None
+                self._hook_proc = None
+                if hook and not UnhookWindowsHookEx(hook):
+                    self._retired_hooks.append((hook, hook_proc))
+                    self._recovery_required = True
+                    self._log_backend_error(
+                        "hook-unregister",
+                        "UnhookWindowsHookEx failed during hook-thread exit "
+                        f"winerror={ctypes.get_last_error()}",
+                    )
+                    print(
+                        "[MouseHook] HOOK_FAILURE phase=final-unhook "
+                        "callback=retained"
+                    )
+                print("[MouseHook] Hook removed")
+            finally:
+                if self._thread_id == hook_thread_id:
+                    self._thread_id = None
 
     def _on_device_change(self):
         now = time.time()
@@ -751,23 +950,88 @@ class MouseHook(BaseMouseHook):
         print("[MouseHook] Device change detected — refreshing hook")
         self._device_name_cache.clear()
         self._prev_raw_buttons.clear()
-        self._reinstall_hook()
+        self._reinstall_hook(reason="device-change")
+        listener = self._hid_gesture
+        if listener is not None and hasattr(listener, "force_reconnect"):
+            listener.force_reconnect()
 
-    def _reinstall_hook(self):
-        if self._hook:
-            UnhookWindowsHookEx(self._hook)
-            self._hook = None
-        self._hook_proc = HOOKPROC(self._low_level_handler)
-        self._hook = SetWindowsHookExW(
+    def _on_power_resume(self, resume_event):
+        self._last_rehook_time = time.time()
+        self._last_hook_event_at = None
+        self._last_raw_input_at = None
+        self._last_dispatch_event_at = None
+        self._raw_input_active = False
+        self._device_name_cache.clear()
+        self._prev_raw_buttons.clear()
+        self._clear_logi_xbutton_suppression("power resume")
+        self._clear_logi_xbutton_pressed("power resume")
+        print(
+            "[MouseHook] POWER_RESUME "
+            f"event=0x{int(resume_event):04X} action=refresh-backends"
+        )
+        hook_refreshed = self._reinstall_hook(reason="power-resume")
+        raw_input_refreshed = self._register_raw_input_devices()
+        if not hook_refreshed or not raw_input_refreshed:
+            self._recovery_required = True
+        listener = self._hid_gesture
+        if listener is not None and hasattr(listener, "force_reconnect"):
+            listener.force_reconnect()
+
+    def _cleanup_retired_hooks(self):
+        remaining = []
+        for hook, hook_proc in self._retired_hooks:
+            try:
+                removed = bool(UnhookWindowsHookEx(hook))
+            except Exception as exc:
+                removed = False
+                self._log_backend_exception(exc, "retired-hook-unregister")
+            if not removed:
+                remaining.append((hook, hook_proc))
+        self._retired_hooks = remaining
+        return not remaining
+
+    def _reinstall_hook(self, reason="manual"):
+        old_hook = self._hook
+        old_hook_proc = self._hook_proc
+        generation = self._hook_generation + 1
+        hook_proc = self._make_hook_proc(generation)
+        hook = SetWindowsHookExW(
             WH_MOUSE_LL,
-            self._hook_proc,
+            hook_proc,
             GetModuleHandleW(None),
             0,
         )
-        if self._hook:
-            print("[MouseHook] Hook reinstalled successfully")
-        else:
+        if not hook:
+            self._recovery_required = True
+            self._log_backend_error(
+                "hook-reinstall",
+                f"SetWindowsHookExW failed reason={reason} "
+                f"winerror={ctypes.get_last_error()}",
+            )
+            print(
+                "[MouseHook] HOOK_FAILURE "
+                f"phase=reinstall reason={reason} retained_old={bool(old_hook)}"
+            )
             print("[MouseHook] Failed to reinstall hook!")
+            return False
+
+        self._hook_generation = generation
+        self._hook_proc = hook_proc
+        self._hook = hook
+        self._recovery_required = False
+        if old_hook and not UnhookWindowsHookEx(old_hook):
+            # The old callback is generation-gated and cannot dispatch or block,
+            # but retain its Python callback object until Windows releases it.
+            self._retired_hooks.append((old_hook, old_hook_proc))
+            self._log_backend_error(
+                "hook-unregister",
+                f"UnhookWindowsHookEx failed reason={reason} "
+                f"winerror={ctypes.get_last_error()}",
+            )
+        if not self._cleanup_retired_hooks():
+            self._recovery_required = True
+        print(f"[MouseHook] Hook reinstalled successfully reason={reason}")
+        return True
 
     def _on_hid_gesture_down(self):
         if not self._gesture_active:
@@ -831,10 +1095,39 @@ class MouseHook(BaseMouseHook):
 
     def start(self):
         if self._hook_thread and self._hook_thread.is_alive():
-            return True
+            return self.health_snapshot().healthy
+        if self._retired_hooks and not self._cleanup_retired_hooks():
+            self._recovery_required = True
+            print(
+                "[MouseHook] HOOK_FAILURE phase=start "
+                "reason=retired-hook-still-registered"
+            )
+            return False
+        if self._hid_gesture is not None and not self._stop_hid_listener():
+            self._recovery_required = True
+            print(
+                "[MouseHook] HOOK_FAILURE phase=start "
+                "reason=previous-hid-listener-still-running"
+            )
+            return False
+        self._stop_requested = False
+        self._recovery_required = False
+        self._last_hook_event_at = None
+        self._last_raw_input_at = None
+        self._last_dispatch_event_at = None
+        self._pending_vscroll = 0
+        self._pending_hscroll = 0
+        self._vscroll_posted = False
+        self._hscroll_posted = False
+        self._prev_raw_buttons.clear()
+        self._device_name_cache.clear()
         self._startup_ok = False
         self._startup_event.clear()
-        self._hook_thread = threading.Thread(target=self._run_hook, daemon=True)
+        self._hook_thread = threading.Thread(
+            target=self._run_hook,
+            daemon=True,
+            name="WindowsMouseHook",
+        )
         self._hook_thread.start()
         if not self._startup_event.wait(2):
             print("[MouseHook] Hook startup timed out")
@@ -842,20 +1135,31 @@ class MouseHook(BaseMouseHook):
             return False
         if not self._startup_ok:
             return False
-        self._start_hid_listener()
+        listener = self._start_hid_listener()
+        if listener is None:
+            required = self._hid_listener_required()
+            print(
+                "[MouseHook] HOOK_FAILURE phase=hid-listener-start "
+                f"required={str(required).lower()}"
+            )
+            if required:
+                self._recovery_required = True
+                self.stop()
+                return False
         self._dispatch_worker_thread = threading.Thread(
             target=self._dispatch_worker,
             daemon=True,
             name="HookDispatch",
         )
         self._dispatch_worker_thread.start()
-        return True
+        return self.health_snapshot().healthy
 
     def stop(self):
+        self._stop_requested = True
+        self._recovery_required = False
         self._running = False
-        self._stop_hid_listener()
-        self._connected_device = None
-        stopped = True
+        listener_stopped = self._stop_hid_listener()
+        stopped = listener_stopped
         if self._dispatch_worker_thread:
             if self._dispatch_worker_thread is threading.current_thread():
                 stopped = False
@@ -876,11 +1180,17 @@ class MouseHook(BaseMouseHook):
                     stopped = False
                 else:
                     self._hook_thread = None
+        if not self._cleanup_retired_hooks():
+            stopped = False
         if stopped:
             self._hook = None
             self._ri_hwnd = None
             self._thread_id = None
             self._startup_ok = False
+            self._connected_device = None
+            self._device_connected = False
+        else:
+            self._recovery_required = True
         self._startup_event.clear()
         return stopped
 

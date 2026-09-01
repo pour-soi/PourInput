@@ -5,6 +5,7 @@ Exposes properties, signals, and slots for two-way data binding.
 
 import os
 import json
+from contextlib import nullcontext
 import posixpath
 import re
 import shutil
@@ -20,6 +21,7 @@ from PySide6.QtCore import QCoreApplication, QMetaObject, QObject, Property, QTi
 from core.accessibility import is_process_trusted
 from core.config import (
     BUTTON_NAMES, load_config, save_config, get_active_mappings,
+    config_is_verified,
     GENERIC_MOUSE_BUTTON_NAMES, GENERIC_MOUSE_BUTTONS,
     PROFILE_BUTTON_NAMES, set_mapping, create_profile, delete_profile,
     get_icon_for_exe, long_press_mapping_key, supports_multi_action,
@@ -251,7 +253,7 @@ class Backend(QObject):
         self._engine = engine
         self._locale_manager = locale_manager
         self._root_dir = root_dir or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        self._cfg = load_config()
+        self._cfg = engine.cfg if engine is not None else load_config()
         self._mouse_connected = False
         self._device_display_name = "Mouse device"
         self._connected_device_key = ""
@@ -345,7 +347,13 @@ class Backend(QObject):
             self._hid_features_ready = bool(
                 getattr(engine, "hid_features_ready", False)
             )
-        if supports_login_startup():
+        config_verified = config_is_verified(self._cfg)
+        if not config_verified:
+            print(
+                "[startup] STARTUP_SYNC status=skipped reason=unverified-config",
+                file=sys.stderr,
+            )
+        elif supports_login_startup():
             try:
                 sync_login_startup_from_config(self.startAtLogin)
             except Exception as exc:
@@ -365,12 +373,29 @@ class Backend(QObject):
                         "status.start_login_unavailable",
                         "Start at login is not available on this platform",
                     )
-        else:
+        elif config_verified:
             self._cfg.setdefault("settings", {})["start_at_login"] = False
         self._sync_connected_device_info()
-        self._configureUpdateChecks()
-        self._consumeUpdateResultMarker()
+        if config_verified:
+            self._configureUpdateChecks()
+            self._consumeUpdateResultMarker()
+        else:
+            print(
+                "[startup] UPDATE_STATE status=skipped reason=unverified-config",
+                file=sys.stderr,
+            )
         self._cleanupStaleUpdatePreparation()
+
+    def _reload_engine_mappings(self):
+        if self._engine is None:
+            return None
+        try:
+            return self._engine.reload_mappings()
+        finally:
+            self._cfg = self._engine.cfg
+
+    def _engine_config_lock(self):
+        return getattr(self._engine, "_lock", None) or nullcontext()
 
     def _translate(self, key, default, *args):
         text = default
@@ -501,8 +526,6 @@ class Backend(QObject):
             presets[index] = clamped
         self._cfg.setdefault("settings", {})["dpi_presets"] = presets
         save_config(self._cfg)
-        if self._engine:
-            self._engine.cfg = self._cfg
         self.settingsChanged.emit()
 
     @Property(str, notify=smartShiftChanged)
@@ -1174,9 +1197,10 @@ class Backend(QObject):
     @Slot(str, str)
     def setMapping(self, button, actionId):
         """Set a button mapping in the active profile."""
-        self._cfg = set_mapping(self._cfg, button, actionId)
-        if self._engine:
-            self._engine.reload_mappings()
+        with self._engine_config_lock():
+            set_mapping(self._cfg, button, actionId)
+            if self._engine:
+                self._reload_engine_mappings()
         self.mappingsChanged.emit()
         self._status("status.saved", "Saved")
 
@@ -1197,12 +1221,12 @@ class Backend(QObject):
                 f"profile={profileName} active_profile={active_profile} "
                 f"previous={previous}"
             )
-        self._cfg = set_mapping(self._cfg, button, actionId,
-                                profile=profileName)
-        generation = None
-        if self._engine:
-            snapshot = self._engine.reload_mappings()
-            generation = getattr(snapshot, "generation", None)
+        with self._engine_config_lock():
+            set_mapping(self._cfg, button, actionId, profile=profileName)
+            generation = None
+            if self._engine:
+                snapshot = self._reload_engine_mappings()
+                generation = getattr(snapshot, "generation", None)
         if self._debug_events_enabled:
             updated = self._cfg["profiles"][profileName]["mappings"][button]
             self._append_debug_line(
@@ -1241,15 +1265,15 @@ class Backend(QObject):
         if sys.platform != "win32":
             return
         enabled = bool(value)
-        settings = self._cfg.setdefault("settings", {})
-        if bool(settings.get("generic_mouse_enabled", False)) == enabled:
-            return
-        previous_status_kind = self._device_status_kind()
-        settings["generic_mouse_enabled"] = enabled
-        save_config(self._cfg)
-        if self._engine:
-            self._engine.cfg = self._cfg
-            self._engine.reload_mappings()
+        with self._engine_config_lock():
+            settings = self._cfg.setdefault("settings", {})
+            if bool(settings.get("generic_mouse_enabled", False)) == enabled:
+                return
+            previous_status_kind = self._device_status_kind()
+            settings["generic_mouse_enabled"] = enabled
+            save_config(self._cfg)
+            if self._engine:
+                self._reload_engine_mappings()
         self.settingsChanged.emit()
         if self._device_status_kind() != previous_status_kind:
             self.deviceStatusChanged.emit()
@@ -1345,7 +1369,8 @@ class Backend(QObject):
         try:
             if self._engine:
                 # Release mouse hooks and HID grabs before replacing binaries.
-                self._engine.stop()
+                if self._engine.stop() is False:
+                    raise RuntimeError("input backend did not stop for update")
                 engine_stopped = True
             launch_windows_update_helper(
                 self._pending_update_plan_path,
@@ -1480,7 +1505,7 @@ class Backend(QObject):
         self._cfg.setdefault("settings", {})["invert_vscroll"] = value
         save_config(self._cfg)
         if self._engine:
-            self._engine.reload_mappings()
+            self._reload_engine_mappings()
         self.settingsChanged.emit()
 
     @Slot(bool)
@@ -1491,7 +1516,7 @@ class Backend(QObject):
         self._cfg.setdefault("settings", {})["invert_hscroll"] = value
         save_config(self._cfg)
         if self._engine:
-            self._engine.reload_mappings()
+            self._reload_engine_mappings()
         self.settingsChanged.emit()
 
     @Slot(bool)
@@ -1499,7 +1524,7 @@ class Backend(QObject):
         self._cfg.setdefault("settings", {})["ignore_trackpad"] = value
         save_config(self._cfg)
         if self._engine:
-            self._engine.reload_mappings()
+            self._reload_engine_mappings()
         self.settingsChanged.emit()
 
     @Slot(int)
@@ -1508,7 +1533,7 @@ class Backend(QObject):
         self._cfg.setdefault("settings", {})["gesture_threshold"] = snapped
         save_config(self._cfg)
         if self._engine:
-            self._engine.reload_mappings()
+            self._reload_engine_mappings()
         self.settingsChanged.emit()
 
     @Slot(str)
@@ -1581,9 +1606,8 @@ class Backend(QObject):
             self._status("status.profile_exists", "Profile already exists")
             return
         safe_name = re.sub(r"[^a-z0-9_]", "_", label.lower())[:32].strip("_")
-        self._cfg = create_profile(self._cfg, safe_name, label=label, apps=[app_spec])
-        if self._engine:
-            self._engine.cfg = self._cfg
+        with self._engine_config_lock():
+            create_profile(self._cfg, safe_name, label=label, apps=[app_spec])
         self.profilesChanged.emit()
         self._status("status.profile_created", "Profile created")
 
@@ -1626,9 +1650,8 @@ class Backend(QObject):
             self._status("status.profile_exists", "Profile already exists")
             return
         safe_name = re.sub(r"[^a-z0-9_]", "_", label.lower())[:32].strip("_")
-        self._cfg = create_profile(self._cfg, safe_name, label=label, apps=[app_spec])
-        if self._engine:
-            self._engine.cfg = self._cfg
+        with self._engine_config_lock():
+            create_profile(self._cfg, safe_name, label=label, apps=[app_spec])
         self.profilesChanged.emit()
         self._status("status.profile_created", "Profile created")
 
@@ -1641,10 +1664,10 @@ class Backend(QObject):
     def deleteProfile(self, name):
         if name == "default":
             return
-        self._cfg = delete_profile(self._cfg, name)
-        if self._engine:
-            self._engine.cfg = self._cfg
-            self._engine.reload_mappings()
+        with self._engine_config_lock():
+            delete_profile(self._cfg, name)
+            if self._engine:
+                self._reload_engine_mappings()
         self.profilesChanged.emit()
         self._status("status.profile_deleted", "Profile deleted")
 
@@ -1882,7 +1905,10 @@ class Backend(QObject):
     @Slot(str)
     def _handleProfileSwitch(self, profile_name):
         """Runs on Qt main thread."""
-        self._cfg["active_profile"] = profile_name
+        # Engine already changed the shared authoritative config. Ignore a
+        # queued notification that was superseded by a newer profile switch.
+        if self._cfg.get("active_profile", "default") != profile_name:
+            return
         self.activeProfileChanged.emit()
         self.mappingsChanged.emit()
         self.profilesChanged.emit()

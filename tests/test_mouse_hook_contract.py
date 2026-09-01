@@ -3,7 +3,7 @@ import unittest
 
 from core import mouse_hook
 from core.mouse_hook_contract import MouseHookLike
-from core.mouse_hook_types import HidRuntimeState, MouseEvent
+from core.mouse_hook_types import HidRuntimeState, HookHealth, MouseEvent
 
 
 class MouseHookContractTests(unittest.TestCase):
@@ -32,6 +32,18 @@ class MouseHookContractTests(unittest.TestCase):
         self.assertFalse(state.input_ready)
         self.assertFalse(state.hid_ready)
         self.assertIsNone(state.connected_device)
+
+    def test_selected_hook_exposes_explicit_health_snapshot(self):
+        hook = mouse_hook.MouseHook()
+
+        health = hook.health_snapshot()
+
+        self.assertIsInstance(health, HookHealth)
+        self.assertIsInstance(health.backend, str)
+        self.assertIsInstance(health.configured_mapping_count, int)
+        self.assertIsInstance(health.bound_mapping_count, int)
+        self.assertIsInstance(health.recovery_required, bool)
+        self.assertIsInstance(health.healthy, bool)
 
     def test_dispatcher_monkeypatch_forwards_to_platform_module(self):
         platform_module = sys.modules[mouse_hook.MouseHook.__module__]
