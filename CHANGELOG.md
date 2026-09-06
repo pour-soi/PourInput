@@ -6,6 +6,16 @@ This project uses Semantic Versioning.
 
 ## Unreleased
 
+## v1.3.5 - 2026-09-05
+
+### Fixed
+
+- Preserve user mouse mappings when the existing configuration cannot be safely read or validated at startup.
+- Block unverified or fallback configuration from being saved by unrelated settings and update operations.
+- Isolate automated tests from the user's real configuration.
+- Improve configuration validation and safe startup behavior.
+- Improve input backend startup, shutdown, and recovery reliability.
+
 ## v1.3.4 - 2026-07-19
 
 ### Fixed

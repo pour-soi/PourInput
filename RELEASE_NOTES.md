@@ -1,38 +1,29 @@
-# PourInput v1.3.4
+# PourInput v1.3.5
 
-Release date: 2026-07-19
+Release date: 2026-09-05
 
-Repository: `pour-soi/PourInput`
-
-## Highlights
-
-PourInput v1.3.4 completes the device-specific MX Master 3 Back and Forward path on Windows, including native-event suppression, reliable physical-hold state, and packaged screenshot clipboard delivery.
+This Windows maintenance release protects saved mouse customizations and improves startup reliability.
 
 ## Fixed
 
-- Fixed MX Master 3 Back and Forward mappings still allowing native browser navigation.
-- Added targeted suppression of matching Windows XBUTTON events while preserving Generic Mouse Mode separation.
-- Fixed transient HID++ empty-state reports splitting one physical hold into multiple logical presses.
-- Physical release is now confirmed using the matching Windows XBUTTON UP event.
-- Fixed full-screen screenshot-to-clipboard delivery in packaged Windows builds using durable native `CF_DIB`.
-- Prevented duplicate screenshot actions during a continuous side-button hold.
-- Improved persistent diagnostics for HID++, suppression, action execution, screenshot capture, and clipboard delivery.
+- Preserve user mouse mappings when the existing configuration cannot be safely read or validated at startup.
+- Block unverified or fallback configuration from being saved by unrelated settings and update operations.
+- Isolate automated tests from the user's real configuration.
+- Improve configuration validation and safe startup behavior.
+- Improve input backend startup, shutdown, and recovery reliability.
 
-## Hardware validation
+## Validation
 
-- Verified with a real Logitech MX Master 3 connected over Bluetooth with Generic Mouse Mode disabled.
-- Confirmed Back CID `0x0053` and Forward CID `0x0056` reach their independent selected actions while matching native browser events remain suppressed.
-- Confirmed a continuous Forward hold produces one logical DOWN, one action, no premature release, and one logical UP after the matching Windows XBUTTON UP.
-- Confirmed full-screen screenshots remain available as native `CF_DIB` clipboard data and paste successfully into Paint.
-- Logitech receiver transport has not yet been validated.
-- Logitech Options and Options+ coexistence has not yet been validated.
+- Completed five application restart cycles and a real Windows reboot with physical mouse-button checks.
+- Verified preservation of profiles and custom mappings, including buttons intentionally assigned no action.
+- Verified invalid-configuration protection and settings/update save paths in isolated tests.
 
-## Compatibility
+## Windows download
 
-- Windows remains the only official public release target.
-- Existing profiles, configuration storage, input timing, supported devices, and updater behavior remain compatible.
-- Generic Mouse Mode continues to support Middle Button, Side Button 1 (Back), and Side Button 2 (Forward).
+- `PourInput-v1.3.5-Windows.zip`
+- `PourInput-v1.3.5-Windows.zip.sha256`
+- `pourinput-v1.3.5-update.json`
 
-## Checksums
+ZIP SHA-256: `36033EDABCFEC79B4FEA513DB8C99C06A9509DA9EFE8B367316F7DCD93E5CB9D`
 
-The official Windows ZIP SHA-256 is provided in `PourInput-v1.3.4-Windows.zip.sha256` and in `pourinput-v1.3.4-update.json`.
+The Windows executable reports version 1.3.5 and was built from commit `b8d529033fc80bcb283520188215b8297acea474`. The release tag adds only release preparation changes. The validated archive is preserved unchanged; its bundled documentation predates these release notes. These release notes and the update manifest describe v1.3.5.

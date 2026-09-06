@@ -11,11 +11,11 @@
 PourInput 是一款独立的 Windows 应用，让同一个鼠标按键分别执行单击与长按操作，以更少的按键完成更多工作。
 
 <p>
-  <a href="https://github.com/pour-soi/PourInput/releases/download/v1.3.4/PourInput-v1.3.4-Windows.zip">
-    <img src="https://img.shields.io/badge/%E4%B8%8B%E8%BD%BD_Windows_%E7%89%88-v1.3.4-0078D4?style=for-the-badge&logo=windows11&logoColor=white" alt="下载 Windows 版">
+  <a href="https://github.com/pour-soi/PourInput/releases/download/v1.3.5/PourInput-v1.3.5-Windows.zip">
+    <img src="https://img.shields.io/badge/%E4%B8%8B%E8%BD%BD_Windows_%E7%89%88-v1.3.5-0078D4?style=for-the-badge&logo=windows11&logoColor=white" alt="下载 Windows 版">
   </a>
-  <a href="https://github.com/pour-soi/PourInput/releases/tag/v1.3.4">
-    <img src="https://img.shields.io/badge/%E7%89%88%E6%9C%AC%E8%AF%B4%E6%98%8E-v1.3.4-555555?style=for-the-badge" alt="版本说明">
+  <a href="https://github.com/pour-soi/PourInput/releases/tag/v1.3.5">
+    <img src="https://img.shields.io/badge/%E7%89%88%E6%9C%AC%E8%AF%B4%E6%98%8E-v1.3.5-555555?style=for-the-badge" alt="版本说明">
   </a>
 </p>
 
@@ -72,11 +72,11 @@ PourInput 是一款在 Windows 上运行的本地鼠标按键自定义工具。�
 
 下载官方 Windows 发布包：
 
-[**PourInput-v1.3.4-Windows.zip**](https://github.com/pour-soi/PourInput/releases/download/v1.3.4/PourInput-v1.3.4-Windows.zip) · [版本说明](https://github.com/pour-soi/PourInput/releases/tag/v1.3.4)
+[**PourInput-v1.3.5-Windows.zip**](https://github.com/pour-soi/PourInput/releases/download/v1.3.5/PourInput-v1.3.5-Windows.zip) · [版本说明](https://github.com/pour-soi/PourInput/releases/tag/v1.3.5)
 
 1. 下载 ZIP 压缩包。
 2. 将压缩包解压到普通文件夹。
-3. 运行 `PourInput-v1.3.4/PourInput.exe`。
+3. 运行 `PourInput-v1.3.5/PourInput.exe`。
 4. 启动前先退出正在运行的其他 PourInput 构建。
 
 发布包已经包含所需运行文件，并会在首次启动时自动创建配置。Windows 是唯一的官方公开发布目标。macOS 支持已规划但尚未正式提供；Linux 仍仅用于构建验证。
@@ -84,9 +84,9 @@ PourInput 是一款在 Windows 上运行的本地鼠标按键自定义工具。�
 <details>
 <summary>官方发布文件</summary>
 
-- `PourInput-v1.3.4-Windows.zip`
-- `PourInput-v1.3.4-Windows.zip.sha256`
-- `pourinput-v1.3.4-update.json`
+- `PourInput-v1.3.5-Windows.zip`
+- `PourInput-v1.3.5-Windows.zip.sha256`
+- `pourinput-v1.3.5-update.json`
 
 </details>
 
