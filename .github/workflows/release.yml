@@ -37,7 +37,36 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Build with PyInstaller
-        run: pyinstaller PourInput.spec --noconfirm
+        shell: pwsh
+        run: |
+          $python = (Get-Command python).Source
+          $gitDirectory = Split-Path (Get-Command git).Source
+          $env:PATH = "$(Split-Path $python);$gitDirectory;$env:WINDIR\System32;$env:WINDIR"
+          & $python -m PyInstaller PourInput.spec --noconfirm
+          if ($LASTEXITCODE -ne 0) { throw "PyInstaller failed" }
+          if (Test-Path dist/PourInput/_internal/icuuc.dll) { throw "Unexpected non-system ICU library" }
+
+      - name: Smoke test Windows startup
+        shell: pwsh
+        run: |
+          $env:APPDATA = Join-Path $env:RUNNER_TEMP "pourinput-smoke"
+          $process = Start-Process -FilePath (Resolve-Path dist/PourInput/PourInput.exe) -WindowStyle Hidden -PassThru
+          try {
+            Start-Sleep -Seconds 10
+            if ($process.HasExited) { throw "Packaged application exited during startup" }
+            $log = Get-Content (Join-Path $env:APPDATA "PourInput/logs/PourInput.log") -Raw
+            if ($log -notmatch "QML load:" -or $log -match "Traceback") { throw "Packaged QML startup failed" }
+            Write-Output $log
+          } finally {
+            if (-not $process.HasExited) { Stop-Process -Id $process.Id }
+          }
+
+      - name: Stage release documentation
+        shell: pwsh
+        run: |
+          Copy-Item LICENSE, README.md, README_CN.md, CHANGELOG.md, RELEASE_NOTES.md dist/PourInput/
+          New-Item -ItemType Directory -Force dist/PourInput/images | Out-Null
+          Copy-Item images/Screenshot*.png, images/logo.png dist/PourInput/images/
 
       - name: Create archive
         run: Compress-Archive -Path dist\\PourInput -DestinationPath "${{ env.WINDOWS_ARCHIVE_NAME }}"
