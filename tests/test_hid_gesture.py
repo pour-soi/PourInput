@@ -842,7 +842,7 @@ class HidReconnectInvariantTests(unittest.TestCase):
         self.assertIn("BACKEND_EXCEPTION backend=hid phase=connect", output)
         self.assertIn("connect exploded", output)
 
-    def test_expanded_desired_diverts_request_only_one_reconnect(self):
+    def test_restored_side_diverts_use_existing_transport(self):
         listener = hid_gesture.HidGestureListener(
             extra_diverts={0x00C4: {"on_down": Mock(), "on_up": Mock()}},
         )
@@ -854,22 +854,24 @@ class HidReconnectInvariantTests(unittest.TestCase):
             0x0056: {"on_down": Mock(), "on_up": Mock()},
         }
 
-        with patch.object(listener, "force_reconnect") as force_reconnect:
+        listener._feat_idx = 13
+        transport = listener._dev = Mock()
+        with (patch.object(listener, "force_reconnect") as force_reconnect,
+              patch.object(listener, "_set_cid_reporting", return_value=[1]) as reporting):
             self.assertTrue(listener.update_extra_diverts(expanded))
-            self.assertTrue(listener.preserve_device_identity_on_reconnect)
-            force_reconnect.assert_called_once_with()
-
-            listener._connected = False
-            listener._applied_extra_divert_cids = set()
+            listener._divert_extras()
+            self.assertEqual({c.args for c in reporting.call_args_list},
+                             {(0x0053, 0x03), (0x0056, 0x03)})
+            reporting.reset_mock()
             self.assertFalse(listener.update_extra_diverts(expanded))
-            force_reconnect.assert_called_once_with()
+            listener._divert_extras()
+            reporting.assert_not_called()
+            force_reconnect.assert_not_called()
+        self.assertIs(listener._dev, transport)
+        transport.close.assert_not_called()
+        self.assertTrue(listener._connected)
 
-            listener._applied_extra_divert_cids = set(expanded)
-            listener._connected = True
-            self.assertFalse(listener.update_extra_diverts(expanded))
-            force_reconnect.assert_called_once_with()
-
-    def test_update_extra_diverts_reconnects_when_mode_shift_is_added_live(self):
+    def test_update_extra_diverts_does_not_reconnect_when_mode_shift_is_added_live(self):
         listener = hid_gesture.HidGestureListener()
         listener._connected = True
 
@@ -880,7 +882,7 @@ class HidReconnectInvariantTests(unittest.TestCase):
 
         self.assertTrue(changed)
         self.assertIn(0x00C4, listener._extra_diverts)
-        force_reconnect.assert_called_once_with()
+        force_reconnect.assert_not_called()
 
     def test_update_extra_diverts_preserves_existing_held_state(self):
         listener = hid_gesture.HidGestureListener(
@@ -894,6 +896,110 @@ class HidReconnectInvariantTests(unittest.TestCase):
 
         self.assertFalse(changed)
         self.assertTrue(listener._extra_diverts[0x00C4]["held"])
+
+    def test_transport_loss_recovers_once_and_restores_side_buttons(self):
+        for loss in ("read-error", "mouse-unresponsive"):
+            with self.subTest(loss=loss):
+                listener = hid_gesture.HidGestureListener()
+                listener._running = True
+                transports = [Mock(), Mock()]
+                connects, disconnects = [], []
+
+                def connect():
+                    listener._dev = transports[len(connects)]
+                    listener._feat_idx = 13
+                    connects.append(True)
+                    return True
+
+                def connected():
+                    listener.update_extra_diverts({0x0053: {"on_down": Mock()}})
+
+                def disconnected():
+                    disconnects.append(True)
+                    listener.update_extra_diverts({})
+
+                def read(_timeout):
+                    if len(connects) == 2:
+                        listener._running = False
+                        return None
+                    if loss == "read-error":
+                        raise OSError("receiver removed")
+                    return None
+
+                listener._on_connect = connected
+                listener._on_disconnect = disconnected
+                with (
+                    patch.object(hid_gesture.sys, "platform", "win32"),
+                    patch.object(hid_gesture.time, "monotonic", side_effect=range(0, 1000, 20)),
+                    patch.object(hid_gesture.time, "sleep"),
+                    patch.object(listener, "_try_connect", side_effect=connect),
+                    patch.object(listener, "_rx", side_effect=read),
+                    patch.object(listener, "_find_feature", return_value=None) as probe,
+                    patch.object(listener, "_set_cid_reporting", return_value=[1]) as reporting,
+                    patch.object(listener, "_undivert"),
+                    patch.object(listener, "force_reconnect") as forced,
+                    patch("builtins.print"),
+                ):
+                    listener._main_loop()
+                self.assertEqual(len(connects), 2)
+                # One genuine loss plus normal final shutdown of the test loop.
+                self.assertEqual(len(disconnects), 2)
+                self.assertEqual(reporting.call_count, 2)
+                self.assertTrue(all(c.args == (0x0053, 0x03) for c in reporting.call_args_list))
+                forced.assert_not_called()
+                if loss == "mouse-unresponsive":
+                    self.assertGreaterEqual(probe.call_count, 3)
+                for transport in transports:
+                    transport.close.assert_called_once()
+
+    def test_idle_healthy_mouse_is_not_disconnected_by_health_checks(self):
+        listener = hid_gesture.HidGestureListener()
+        listener._running = True
+        listener._dev = Mock()
+        reads = []
+
+        def read(_timeout):
+            reads.append(True)
+            if len(reads) == 5:
+                listener._running = False
+            return None
+
+        with (
+            patch.object(hid_gesture.sys, "platform", "win32"),
+            patch.object(hid_gesture.time, "monotonic", side_effect=range(0, 1000, 20)),
+            patch.object(listener, "_try_connect", return_value=True) as connect,
+            patch.object(listener, "_rx", side_effect=read),
+            patch.object(listener, "_find_feature", return_value=13) as probe,
+            patch.object(listener, "_undivert"),
+            patch("builtins.print"),
+        ):
+            listener._main_loop()
+        connect.assert_called_once()
+        self.assertEqual(probe.call_count, 5)
+
+    def test_live_divert_removal_restores_default_reporting(self):
+        listener = hid_gesture.HidGestureListener()
+        listener._feat_idx = 13
+        listener._applied_extra_divert_cids = {0x0053}
+        with patch.object(listener, "_set_cid_reporting", return_value=[1]) as reporting:
+            listener._divert_extras()
+        reporting.assert_called_once_with(0x0053, 0x02)
+        self.assertEqual(listener._applied_extra_divert_cids, set())
+
+    def test_failed_live_divert_is_not_marked_applied_or_forced_to_reconnect(self):
+        listener = hid_gesture.HidGestureListener(
+            extra_diverts={0x0053: {"on_down": Mock()}},
+        )
+        listener._connected = True
+        listener._feat_idx = 13
+        with (patch.object(listener, "_set_cid_reporting", side_effect=[None, [1]]),
+              patch.object(listener, "force_reconnect") as forced):
+            listener._divert_extras()
+            self.assertEqual(listener._applied_extra_divert_cids, set())
+            listener._divert_extras()
+            self.assertEqual(listener._applied_extra_divert_cids, {0x0053})
+        forced.assert_not_called()
+        self.assertTrue(listener._connected)
 
     def test_force_release_stale_holds_clears_gesture_and_extra_buttons(self):
         gesture_up = Mock()
@@ -931,6 +1037,60 @@ class HidSideButtonHoldStateTests(unittest.TestCase):
         listener = hid_gesture.HidGestureListener(extra_diverts=callbacks)
         listener._feat_idx = 0x09
         return listener, callbacks
+
+    @unittest.skipUnless(sys.platform == "win32", "Windows side-button correlation")
+    def test_hid_only_long_none_then_short_copy(self):
+        import threading
+        from core.engine import Engine
+        from core.mouse_hook_windows import MouseHook
+        from core.mouse_hook_types import MouseEvent
+
+        hook = MouseHook()
+        hook.divert_logi_xbutton2 = True
+        with patch.object(hid_gesture.HidGestureListener, "start", return_value=True):
+            listener = hook._start_hid_listener()
+        listener._feat_idx = 9
+        engine = Engine.__new__(Engine)
+        engine.hook = hook
+        engine._enabled = True
+        engine.cfg = {"settings": {"multi_action_long_press_threshold_ms": 300}}
+        engine._binding_state_lock = threading.RLock()
+        engine._multi_action_down_at = {}
+        engine._emit_debug = Mock()
+        engine._execute_mapped_action = Mock()
+        down = engine._make_multi_action_down_handler("xbutton2", "copy", "none")
+        up = engine._make_multi_action_up_handler("xbutton2", "copy", "none")
+        hook._dispatch = lambda event: (down if event.event_type == MouseEvent.LOGI_XBUTTON2_DOWN else up)(event)
+        for timestamp, cids in ((100, (0x0056,)), (102, ()), (103, (0x0056,)), (103.1, ())):
+            with patch.object(hid_gesture.time, "monotonic", return_value=timestamp):
+                listener._on_report(self._report(*cids))
+        self.assertEqual([c.args[0] for c in engine._execute_mapped_action.call_args_list], ["none", "copy"])
+        self.assertFalse(listener._extra_diverts[0x0056]["held"])
+        self.assertIsNone(listener.active_side_button_hold(0x0056))
+        self.assertFalse(engine._multi_action_down_at)
+
+    @unittest.skipUnless(sys.platform == "win32", "Windows side-button correlation")
+    def test_correlated_windows_hold_keeps_temporary_empty_filter(self):
+        from core.mouse_hook_windows import MouseHook
+        hook = MouseHook()
+        hook.divert_logi_xbutton2 = True
+        hook._dispatch = Mock()
+        with patch.object(hid_gesture.HidGestureListener, "start", return_value=True):
+            listener = hook._start_hid_listener()
+        listener._feat_idx = 9
+        with patch.object(hid_gesture.time, "monotonic", return_value=100):
+            listener._on_report(self._report(0x0056))
+        hold = listener.active_side_button_hold(0x0056)
+        hook._observe_windows_xbutton_event("xbutton2_down", True, 1)
+        with patch.object(hid_gesture.time, "monotonic", return_value=102):
+            listener._on_report(self._report())
+        with patch.object(hid_gesture.time, "monotonic", return_value=102.7):
+            listener._on_report(self._report(0x0056))
+        self.assertEqual(hook._dispatch.call_count, 1)
+        self.assertEqual(listener.active_side_button_hold(0x0056), hold)
+        hook._observe_windows_xbutton_event("xbutton2_up", True, 1)
+        self.assertEqual(hook._dispatch.call_count, 2)
+        self.assertIsNone(listener.active_side_button_hold(0x0056))
 
     def test_temporary_empty_and_returning_cid_remain_one_logical_hold(self):
         listener, callbacks = self._listener()

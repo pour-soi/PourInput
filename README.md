@@ -8,14 +8,17 @@
 
 **English** | [简体中文](README_CN.md)
 
-PourInput is an independent Windows app that gives one mouse button separate Click and Long Press actions, helping you perform more work with fewer buttons.
+PourInput is a local mouse-button customization app for Windows and macOS. It gives one mouse button separate Click and Long Press actions, helping you perform more work with fewer buttons.
 
 <p>
-  <a href="https://github.com/pour-soi/PourInput/releases/download/v1.3.5/PourInput-v1.3.5-Windows.zip">
-    <img src="https://img.shields.io/badge/Download_for_Windows-v1.3.5-0078D4?style=for-the-badge&logo=windows11&logoColor=white" alt="Download for Windows">
+  <a href="https://github.com/pour-soi/PourInput/releases/download/v1.4.0/PourInput-v1.4.0-Windows.zip">
+    <img src="https://img.shields.io/badge/Download_for_Windows-v1.4.0-0078D4?style=for-the-badge&logo=windows11&logoColor=white" alt="Download for Windows">
   </a>
-  <a href="https://github.com/pour-soi/PourInput/releases/tag/v1.3.5">
-    <img src="https://img.shields.io/badge/Release_Notes-v1.3.5-555555?style=for-the-badge" alt="Release Notes">
+  <a href="https://github.com/pour-soi/PourInput/releases/tag/v1.3.4-macos.1">
+    <img src="https://img.shields.io/badge/Download_for_macOS-v1.3.4-000000?style=for-the-badge&logo=apple&logoColor=white" alt="Download for macOS">
+  </a>
+  <a href="https://github.com/pour-soi/PourInput/releases/tag/v1.4.0">
+    <img src="https://img.shields.io/badge/Release_Notes-v1.4.0-555555?style=for-the-badge" alt="Release Notes">
   </a>
 </p>
 
@@ -31,9 +34,24 @@ PourInput is an independent Windows app that gives one mouse button separate Cli
 |----------------|-----------------------|-----------------------|
 | Independent Click and Long Press actions | Works with standard Windows middle and side buttons | Capture the full screen or a selected region |
 
+## Reading Mode · Windows v1.4.0
+
+Read local TXT and EPUB files in a quiet desktop overlay and turn pages with your mouse wheel. Documents stay on your computer, independently of mouse profiles.
+
+- **Fixed type, continuous pages**: fill the available space without changing font size; overflow continues on the next page and your place is saved.
+- **Move and resize directly**: drag the book-and-sprout grip to move, or the subtle bottom-right corner to resize. Customize background transparency, text color, and font size.
+- **Normal / Minimal / Ghost**: an always-on-top panel that does not take focus; Minimal and Ghost text areas allow clicks through.
+- **Hold to hide**: release to restore immediately. Reading still owns the wheel while hidden and keeps your place.
+- **Works alongside mouse controls**: use Generic Mouse Mode on or off while retaining non-overlapping MX Master enhancements. Turning Reading Mode off restores ordinary scrolling.
+
+![Reading Mode settings](images/Screenshot_reading_en.png)
+![Reading overlay example](images/Screenshot_reading_panel_en.png)
+
+Screenshots render this version's actual QML interface with sample text. Open the book icon in the left rail, import a TXT / EPUB, and enable Reading Mode.
+
 ## What is PourInput?
 
-PourInput is a local mouse-button customization tool for Windows. It maps supported buttons to built-in actions, keeps settings on your computer, and can switch mappings automatically through application-specific profiles.
+PourInput is a local mouse-button customization tool for Windows and macOS. It maps supported buttons to built-in actions, keeps settings on your computer, and can switch mappings automatically through application-specific profiles.
 
 Its Multi-Action model gives a button two useful roles: one action for a Click and another for a Long Press. Generic Mouse Mode extends that workflow to standard Windows middle and side-button events.
 
@@ -42,7 +60,7 @@ Its Multi-Action model gives a button two useful roles: one action for a Click a
 - **Get more from each button** with separate Click and Long Press actions.
 - **Keep configuration local** without depending on proprietary device software.
 - **Adapt to each application** with automatically selected profiles.
-- **Work from a focused Windows app** designed around clear, practical mouse workflows.
+- **Use a focused desktop app** designed around clear, practical mouse workflows.
 
 ## Key Features
 
@@ -51,7 +69,7 @@ Its Multi-Action model gives a button two useful roles: one action for a Click a
 - **Application Profiles** — switch button mappings automatically for different applications.
 - **Built-in Screenshot Actions** — capture the full screen or a selected region to the clipboard or a file.
 - **Multi-language UI** — switch the visible interface between English and Simplified Chinese without changing saved mappings.
-- **Portable Windows Release** — use the packaged app without installing Python separately.
+- **Packaged Desktop Builds** — use the portable Windows release or a separate Apple Silicon / Intel macOS build without installing Python.
 
 ## How It Works
 
@@ -70,25 +88,54 @@ A press shorter than 300 ms runs the Click Action. A press held for at least 300
 
 ## Download & Installation
 
+### Windows (stable)
+
 Download the official Windows package:
 
-[**PourInput-v1.3.5-Windows.zip**](https://github.com/pour-soi/PourInput/releases/download/v1.3.5/PourInput-v1.3.5-Windows.zip) · [Release Notes](https://github.com/pour-soi/PourInput/releases/tag/v1.3.5)
+[**PourInput-v1.4.0-Windows.zip**](https://github.com/pour-soi/PourInput/releases/download/v1.4.0/PourInput-v1.4.0-Windows.zip) · [Release Notes](https://github.com/pour-soi/PourInput/releases/tag/v1.4.0)
 
 1. Download the ZIP archive.
 2. Extract it to a normal folder.
-3. Run `PourInput-v1.3.5/PourInput.exe`.
+3. Run `PourInput/PourInput.exe`.
 4. Quit any other PourInput build before launching this one.
 
-The package includes its required runtime files and creates its configuration automatically on first launch. Windows is the only official public release target. macOS support is planned but not officially available; Linux remains validation-only.
+The package includes its required runtime files and creates its configuration automatically on first launch.
 
 <details>
 <summary>Official release files</summary>
 
-- `PourInput-v1.3.5-Windows.zip`
-- `PourInput-v1.3.5-Windows.zip.sha256`
-- `pourinput-v1.3.5-update.json`
+- `PourInput-v1.4.0-Windows.zip`
+- `PourInput-v1.4.0-Windows.zip.sha256`
+- `pourinput-v1.4.0-update.json`
 
 </details>
+
+### macOS
+
+Choose the build for your Mac:
+
+- [**Apple Silicon (M1 or newer)**](https://github.com/pour-soi/PourInput/releases/download/v1.3.4-macos.1/PourInput-1.3.4-macOS-arm64.zip)
+- [**Intel Mac**](https://github.com/pour-soi/PourInput/releases/download/v1.3.4-macos.1/PourInput-1.3.4-macOS-x86_64.zip)
+- [Release Notes](https://github.com/pour-soi/PourInput/releases/tag/v1.3.4-macos.1)
+
+1. Download the correct ZIP archive and extract it.
+2. Move `PourInput.app` to Applications if desired.
+3. On first launch, right-click `PourInput.app` and choose **Open**.
+4. When prompted, allow PourInput in **System Settings → Privacy & Security → Accessibility**.
+
+This macOS release is unsigned and unnotarized, so macOS may display a security warning. It has been manually tested on an Intel MacBook Air with an MX Master 3; the Apple Silicon package has passed automated build validation but has not yet been tested on physical Apple Silicon hardware. Generic Mouse Mode remains Windows-only.
+
+<details>
+<summary>macOS release files</summary>
+
+- `PourInput-1.3.4-macOS-arm64.zip`
+- `PourInput-1.3.4-macOS-arm64.zip.sha256`
+- `PourInput-1.3.4-macOS-x86_64.zip`
+- `PourInput-1.3.4-macOS-x86_64.zip.sha256`
+
+</details>
+
+Linux remains validation-only.
 
 ## Compatibility
 

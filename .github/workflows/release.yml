@@ -56,6 +56,7 @@ jobs:
             ${{ env.WINDOWS_ARCHIVE_NAME }}.sha256
 
   build-macos:
+    if: github.ref != 'refs/tags/v1.4.0' && github.event.inputs.release_tag != 'v1.4.0'
     if: github.ref != 'refs/tags/v1.3.5' && github.event.inputs.release_tag != 'v1.3.5'
     name: build-macos (${{ matrix.name }})
     strategy:
@@ -102,6 +103,7 @@ jobs:
           path: ${{ matrix.archive_name }}
 
   build-linux:
+    if: github.ref != 'refs/tags/v1.4.0' && github.event.inputs.release_tag != 'v1.4.0'
     if: github.ref != 'refs/tags/v1.3.5' && github.event.inputs.release_tag != 'v1.3.5'
     runs-on: ubuntu-latest
     steps:
@@ -240,7 +242,7 @@ jobs:
 
   release:
     if: (startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch') && github.ref != 'refs/tags/v1.3.5' && github.event.inputs.release_tag != 'v1.3.5'
-    needs: [build-windows, build-macos, build-linux]
+    needs: [build-windows]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -272,19 +274,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           if gh release view "${{ env.RELEASE_TAG }}" --repo "${{ github.repository }}" > /dev/null 2>&1; then
-            # Release already exists; upload or replace the assets.
-            gh release upload "${{ env.RELEASE_TAG }}" \
-              --repo "${{ github.repository }}" \
-              --clobber \
-              "PourInput-Windows/${{ env.WINDOWS_ARCHIVE_NAME }}" \
-              "PourInput-Windows/${{ env.WINDOWS_ARCHIVE_NAME }}.sha256" \
-              pourinput-${{ env.RELEASE_TAG }}-update.json
-          else
-            gh release create "${{ env.RELEASE_TAG }}" \
-              --repo "${{ github.repository }}" \
-              --title "PourInput ${{ env.RELEASE_TAG }}" \
-              --generate-notes \
-              "PourInput-Windows/${{ env.WINDOWS_ARCHIVE_NAME }}" \
-              "PourInput-Windows/${{ env.WINDOWS_ARCHIVE_NAME }}.sha256" \
-              pourinput-${{ env.RELEASE_TAG }}-update.json
+            echo "Release already exists; published assets are immutable."
+            exit 1
           fi
+          gh release create "${{ env.RELEASE_TAG }}" \
+            --repo "${{ github.repository }}" \
+            --title "PourInput ${{ env.RELEASE_TAG }}" \
+            --notes-file RELEASE_NOTES.md \
+            "PourInput-Windows/${{ env.WINDOWS_ARCHIVE_NAME }}" \
+            "PourInput-Windows/${{ env.WINDOWS_ARCHIVE_NAME }}.sha256" \
+            pourinput-${{ env.RELEASE_TAG }}-update.json

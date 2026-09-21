@@ -100,7 +100,8 @@ ApplicationWindow {
                     Repeater {
                         model: [
                             { icon: "mouse-simple", tipKey: "nav.mouse_profiles", page: 0 },
-                            { icon: "sliders-horizontal", tipKey: "nav.point_scroll", page: 1 }
+                            { icon: "sliders-horizontal", tipKey: "nav.point_scroll", page: 1 },
+                            { icon: "book-open", tipKey: "nav.reading", page: 2 }
                         ]
 
                         delegate: FocusScope {
@@ -266,8 +267,14 @@ ApplicationWindow {
                 active: root.currentPage === 1 || item
                 source: "ScrollPage.qml"
             }
+            ReadingPage {
+                controller: reader
+                theme: root.theme
+            }
         }
     }
+
+    ReadingPanel { controller: reader }
 
     Item {
         id: overlayLayer

@@ -6,6 +6,19 @@ This project uses Semantic Versioning.
 
 ## Unreleased
 
+## v1.4.0 - 2026-09-20
+
+### Added
+- Local TXT/EPUB Reading Mode with independent persistence and wheel navigation.
+- Fixed-font continuous pagination, direct panel movement/resizing, transparent background, custom text style, and hold-to-hide.
+- English and Simplified Chinese reading UI and homepage screenshots.
+
+### Fixed
+- Avoid forced HID reconnects for unrelated Windows device-change notifications.
+- Correct HID-only hold-button release handling while preserving standard-input ownership.
+- Preserve all v1.3.5 configuration-loss protections.
+
+
 ## v1.3.5 - 2026-09-05
 
 ### Fixed

@@ -737,6 +737,9 @@ class HidGestureListener:
         self._on_move       = on_move
         self._on_connect    = on_connect
         self._on_disconnect = on_disconnect
+        self.button_state_observer = None
+        self.side_button_release_requires_confirmation = None
+        self._observed_side_buttons = set()
         self._listener_id = _allocate_listener_id()
         self._connection_generation = 0
         self._report_counter = 0
@@ -884,9 +887,7 @@ class HidGestureListener:
     def update_extra_diverts(self, extra_diverts=None):
         """Update extra diverted CIDs while the listener is running.
 
-        The HID++ reporting state is applied during connection setup.  When UI
-        mappings change after startup, force a reconnect so newly added controls
-        such as CID 0x00C4 (Mode Shift / Smart Shift) are actually diverted.
+        The listener thread applies reporting changes on the existing transport.
         """
         next_extra = {
             cid: {
@@ -936,10 +937,6 @@ class HidGestureListener:
                 if next_keys else "none"
             )
         )
-        if self._connected and next_keys != self._applied_extra_divert_cids:
-            print("[HidGesture] Extra diverts changed while connected; reconnecting to re-apply HID++ diversion")
-            self._preserve_device_identity_on_reconnect = True
-            self.force_reconnect()
         return True
 
     def _discovered_feature_ids(self):
@@ -1409,18 +1406,31 @@ class HidGestureListener:
         return False
 
     def _divert_extras(self):
-        """Divert additional CIDs (e.g. mode shift) without raw XY."""
+        """Reconcile reporting on the HID thread without replacing transport."""
         if self._feat_idx is None:
             return
         with self._extra_diverts_lock:
             items = list(self._extra_diverts.items())
+            applied = set(self._applied_extra_divert_cids)
+        desired = {cid for cid, _ in items}
+        for cid in applied - desired:
+            if self._set_cid_reporting(cid, 0x02) is None:
+                # A control command failure alone is not transport loss.
+                # Leave it pending; read/health failures drive recovery.
+                return
+            with self._extra_diverts_lock:
+                self._applied_extra_divert_cids.discard(cid)
         for cid, info in items:
+            if cid in applied:
+                continue
             resp = self._set_cid_reporting(cid, 0x03)
             ok = resp is not None
             print(f"[HidGesture] Extra divert {_format_cid(cid)}: "
                   f"{'OK' if ok else 'FAILED'}")
-        with self._extra_diverts_lock:
-            self._applied_extra_divert_cids = {cid for cid, _ in items}
+            if not ok:
+                return
+            with self._extra_diverts_lock:
+                self._applied_extra_divert_cids.add(cid)
 
     def _undivert(self):
         """Restore default button behaviour (best-effort)."""
@@ -1760,8 +1770,22 @@ class HidGestureListener:
                     continue
                 self._dispatch_extra_up(cid, info, "stale hold", forced=True)
 
+    def _observe_side_buttons(self, cids):
+        """Report physical holds without adding or executing action mappings."""
+        current = cids & _LOGITECH_SIDE_BUTTON_CIDS
+        changed = current ^ self._observed_side_buttons
+        self._observed_side_buttons = current
+        observer = self.button_state_observer
+        if observer is not None:
+            for cid in sorted(changed):
+                try:
+                    observer(5 if cid == 0x0053 else 6, cid in current)
+                except Exception as exc:
+                    print(f"[HidGesture] button observer error: {exc}")
+
     def _clear_extra_divert_holds(self, reason):
         """Release all extra controls after a real transport lifecycle break."""
+        self._observe_side_buttons(set())
         with self._extra_diverts_lock:
             items = list(self._extra_diverts.items())
         for cid, info in items:
@@ -1884,6 +1908,7 @@ class HidGestureListener:
             f"states={[(f'0x{cid:04X}', prior_states.get(cid, self._held), cid in cids) for cid in tracked]}"
         )
 
+        self._observe_side_buttons(cids)
         gesture_now = self._gesture_cid in cids
 
         if gesture_now and not self._held:
@@ -1944,6 +1969,15 @@ class HidGestureListener:
                 held_since = info.get("held_since")
                 held_for = now - held_since if held_since is not None else 0.0
                 tentative_since = info.get("tentative_empty_since")
+                needs_confirmation = self.side_button_release_requires_confirmation
+                if (
+                    cid in _LOGITECH_SIDE_BUTTON_CIDS
+                    and needs_confirmation is not None
+                    and not needs_confirmation(cid, self.active_side_button_hold(cid))
+                ):
+                    # HID-only devices cannot supply a correlated Windows UP.
+                    self._dispatch_extra_up(cid, info, "HID-only release")
+                    continue
                 if (
                     cid in _LOGITECH_SIDE_BUTTON_CIDS
                     and held_for >= _SIDE_BUTTON_ESTABLISHED_HOLD_S
@@ -2285,6 +2319,8 @@ class HidGestureListener:
             _STALE_HOLD_LIMIT = 3       # force-release held buttons after this many empty reads (~3 s)
             _CONSECUTIVE_TIMEOUT_RECONNECT = 3  # force reconnect after this many request timeouts
             self._consecutive_request_timeouts = 0
+            next_health_check = time.monotonic() + 15.0
+            health_failures = 0
             try:
                 while self._running:
                     if self._reconnect_requested:
@@ -2297,6 +2333,15 @@ class HidGestureListener:
                         print(f"[HidGesture] {self._consecutive_request_timeouts} consecutive "
                               f"request timeouts — forcing reconnect")
                         raise IOError("consecutive request timeouts — device likely asleep")
+                    # Receiver reads can remain valid when the paired mouse is
+                    # powered off. Probe that mouse, not general USB topology.
+                    if sys.platform == "win32" and time.monotonic() >= next_health_check:
+                        feature = self._find_feature(FEAT_REPROG_V4)
+                        health_failures = health_failures + 1 if feature is None else 0
+                        next_health_check = time.monotonic() + 15.0
+                        if health_failures >= 3:
+                            raise IOError("active mouse health checks failed")
+                    self._divert_extras()
                     # Apply any queued DPI command
                     if self._pending_dpi is not None:
                         if self._pending_dpi == "read":

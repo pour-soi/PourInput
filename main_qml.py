@@ -1197,6 +1197,10 @@ def main():
     _t7 = _time.perf_counter()
     # ── QML Backend ────────────────────────────────────────────
     backend = Backend(engine, root_dir=ROOT, locale_manager=locale_mgr)
+    from core.config import CONFIG_DIR
+    from ui.reading import ReadingController
+    reader = ReadingController(engine.hook, os.path.join(CONFIG_DIR, "reader"), app, locale_manager=locale_mgr)
+    app.aboutToQuit.connect(reader.close)
     ui_state.appearanceMode = backend.appearanceMode
     backend.settingsChanged.connect(
         lambda: setattr(ui_state, "appearanceMode", backend.appearanceMode)
@@ -1245,6 +1249,7 @@ def main():
     qml_engine.addImageProvider("appicons", AppIconProvider(ROOT))
     qml_engine.addImageProvider("systemicons", SystemIconProvider())
     qml_engine.rootContext().setContextProperty("backend", backend)
+    qml_engine.rootContext().setContextProperty("reader", reader)
     qml_engine.rootContext().setContextProperty("uiState", ui_state)
     qml_engine.rootContext().setContextProperty("lm", locale_mgr)
     qml_engine.rootContext().setContextProperty("launchHidden", launch_hidden)
@@ -1457,6 +1462,7 @@ def main():
     try:
         sys.exit(app.exec())
     finally:
+        reader.close()
         engine.stop()
         print("[PourInput] Shut down cleanly")
 

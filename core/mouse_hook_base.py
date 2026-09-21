@@ -551,6 +551,10 @@ class BaseMouseHook:
             on_disconnect=self._on_hid_disconnect,
             extra_diverts=self._build_extra_diverts(),
         )
+        listener.button_state_observer = getattr(self, "_on_reading_hid_button", None)
+        listener.side_button_release_requires_confirmation = (
+            getattr(self, "_side_button_release_requires_confirmation", None)
+        )
         self._hid_gesture = listener
         failure_logged = False
         try:

@@ -932,21 +932,27 @@ class WindowsMouseHookShutdownTests(unittest.TestCase):
 
         self.assertEqual(hook._retired_hooks, [])
 
-    def test_device_change_requests_existing_hid_listener_reconnect(self):
+    def test_unrelated_device_changes_preserve_connected_hid_listener(self):
         module = importlib.import_module("core.mouse_hook_windows")
         hook = module.MouseHook()
         listener = Mock()
+        listener._connected = True
         hook._hid_gesture = listener
 
         with (
-            patch.object(module.time, "time", return_value=10.0),
+            patch.object(module, "time", Mock(time=Mock(side_effect=[10.0, 13.0, 16.0]))),
             patch.object(hook, "_reinstall_hook", return_value=True) as rehook,
             patch.object(hook, "_start_hid_listener") as start_listener,
         ):
             hook._on_device_change()
+            hook._on_device_change()
+            hook._on_device_change()
 
-        rehook.assert_called_once_with(reason="device-change")
-        listener.force_reconnect.assert_called_once_with()
+        self.assertEqual(rehook.call_count, 3)
+        listener.force_reconnect.assert_not_called()
+        listener.stop.assert_not_called()
+        self.assertIs(hook._hid_gesture, listener)
+        self.assertTrue(listener._connected)
         start_listener.assert_not_called()
 
     def test_required_hid_listener_participates_in_windows_health(self):

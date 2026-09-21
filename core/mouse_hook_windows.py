@@ -244,6 +244,28 @@ class MouseHook(BaseMouseHook):
     and horizontal scroll events.
     """
 
+    _READING_BUTTON_EDGES = {
+        0x0201: (1, True), 0x0202: (1, False),
+        0x0204: (2, True), 0x0205: (2, False),
+        WM_MBUTTONDOWN: (4, True), WM_MBUTTONUP: (4, False),
+    }
+
+    def set_reading_button_observer(self, observer):
+        self._reading_button_observer = observer
+
+    def _side_button_release_requires_confirmation(self, cid, hold_identity):
+        with self._logi_windows_hold_lock:
+            return (hold_identity is not None
+                    and self._logi_windows_holds.get(cid) == hold_identity)
+
+    def _on_reading_hid_button(self, key, down):
+        observer = getattr(self, "_reading_button_observer", None)
+        if observer is not None:
+            observer(key, down)
+
+    def set_reading_wheel_handler(self, handler):
+        self._reading_wheel_handler = handler
+
     def __init__(self):
         super().__init__()
         self._hook = None
@@ -557,6 +579,19 @@ class MouseHook(BaseMouseHook):
                     return 1
                 return CallNextHookEx(self._hook, nCode, wParam, lParam)
 
+            observer = getattr(self, "_reading_button_observer", None)
+            if observer is not None:
+                edge = self._READING_BUTTON_EDGES.get(wParam)
+                if wParam in (WM_XBUTTONDOWN, WM_XBUTTONUP):
+                    button = hiword(mouse_data)
+                    if button in (XBUTTON1, XBUTTON2):
+                        edge = (4 + button, wParam == WM_XBUTTONDOWN)
+                if edge:
+                    try:
+                        observer(*edge)
+                    except Exception as exc:
+                        self._emit_debug(f"Reader button observer failed: {exc}")
+
             if wParam == WM_XBUTTONDOWN:
                 xbutton = hiword(mouse_data)
                 if xbutton == XBUTTON1:
@@ -578,6 +613,10 @@ class MouseHook(BaseMouseHook):
                 event = MouseEvent(MouseEvent.MIDDLE_UP)
 
             elif wParam == WM_MOUSEWHEEL:
+                # Feature ownership is independent of the mapping snapshot/profile.
+                reader = getattr(self, "_reading_wheel_handler", None)
+                if reader is not None and reader(hiword(mouse_data)):
+                    return 1
                 if self.invert_vscroll:
                     delta = hiword(mouse_data)
                     if delta != 0 and self._ri_hwnd:
@@ -951,9 +990,8 @@ class MouseHook(BaseMouseHook):
         self._device_name_cache.clear()
         self._prev_raw_buttons.clear()
         self._reinstall_hook(reason="device-change")
-        listener = self._hid_gesture
-        if listener is not None and hasattr(listener, "force_reconnect"):
-            listener.force_reconnect()
+        # DBT_DEVNODES_CHANGED identifies no particular device. Keep the HID
+        # transport intact; its read/health checks handle actual device loss.
 
     def _on_power_resume(self, resume_event):
         self._last_rehook_time = time.time()
@@ -1155,6 +1193,9 @@ class MouseHook(BaseMouseHook):
         return self.health_snapshot().healthy
 
     def stop(self):
+        observer = getattr(self, "_reading_button_observer", None)
+        if observer is not None:
+            observer(0, False)
         self._stop_requested = True
         self._recovery_required = False
         self._running = False
