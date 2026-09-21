@@ -49,3 +49,9 @@ and global hold observation are currently Windows-only.
 ## v1.4.0 pagination
 
 The panel keeps the selected size and font. Qt text layout fills successive pages across stored text groups; only the last page may be short. A group index and character offset persist the reading anchor. Default height is 240 px; minimum height fits one line. Reader data stays under the separate local reader directory.
+
+## Continuous auto-reading (v1.4.2)
+
+The Reading page offers start/pause and a 5–100 px/s speed control in English and Simplified Chinese. Auto-reading uses the existing wrapped text lines, a clipped viewport, and fractional vertical movement, without changing panel or font size. Only visible lines plus a small buffer are rendered.
+
+The reader store saves speed, text anchor, and fractional line position. Playback starts paused after restart. Position is checkpointed every two seconds and when pausing or closing; no document content is added to the mouse config. Hiding freezes motion without changing reading state or wheel ownership; release resumes from the same position. Reading OFF stops playback, and reaching the final visible text stops playback without disabling Reading Mode. Manual wheel navigation retains its existing ownership and resumes automatic movement from the selected position.

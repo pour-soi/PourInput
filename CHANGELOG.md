@@ -6,6 +6,14 @@ This project uses Semantic Versioning.
 
 ## Unreleased
 
+## v1.4.2 - 2026-09-20
+
+### Added
+- Continuous automatic reading with adjustable speed, pause/resume, and fixed panel/font size.
+- Preserve the text anchor and fractional scroll position in the independent reader store; restart paused.
+- Pause automatic motion while the panel is temporarily hidden, resume on release, and stop at the end or when Reading Mode is disabled.
+- English and Simplified Chinese controls, usage notes, and screenshots.
+
 ## v1.4.1 - 2026-09-20
 
 ### Fixed

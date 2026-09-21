@@ -14,6 +14,9 @@ class ReaderState:
     document_id: str = ""
     group_index: int = 0
     group_offset: int = 0
+    continuous_scroll: bool = False
+    scroll_fraction: float = 0.0
+    scroll_speed: int = 24
     display_mode: str = "Normal"
     opacity: float = 0.9
     hide_key: int = 0
@@ -53,6 +56,9 @@ class ReaderStore:
                 or (state.document_id and not re.fullmatch(r"[0-9a-f]{64}", state.document_id))
                 or type(state.group_index) is not int or state.group_index < 0
                 or type(state.group_offset) is not int or state.group_offset < 0
+                or type(state.continuous_scroll) is not bool
+                or type(state.scroll_fraction) not in (float, int) or not 0 <= state.scroll_fraction < 1
+                or type(state.scroll_speed) is not int or not 5 <= state.scroll_speed <= 100
                 or state.display_mode not in ("Normal", "Minimal", "Ghost")
                 or type(state.opacity) not in (int, float) or not 0.2 <= state.opacity <= 1
                 or type(state.hide_key) is not int or not 0 <= state.hide_key <= 255
@@ -145,7 +151,7 @@ class ReaderModel:
     def open_document(self, title, groups):
         document_id = self.store.save_document(title, groups)
         document = self.store.load_document(document_id)
-        state = replace(self.state, document_id=document_id, group_index=0, group_offset=0)
+        state = replace(self.state, document_id=document_id, group_index=0, group_offset=0, scroll_fraction=0.0)
         self.store.save_state(state)
         self.document, self.state = document, state
 

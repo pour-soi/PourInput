@@ -41,26 +41,32 @@ Window {
                 font.pixelSize: 12
                 elide: Text.ElideRight
             }
-            Text {
-                id: body
+            Item {
                 width: parent.width
-                text: controller.text
-                textFormat: Text.PlainText
-                wrapMode: Text.Wrap
-                objectName: "readingBody"
-                color: controller.fontColor
-                font.pixelSize: controller.fontSize || (panel.normal ? 22 : 19)
                 height: Math.max(1, panel.height - panel.verticalPadding)
                 clip: true
-                fontSizeMode: Text.FixedSize
-                renderType: Text.QtRendering
-                lineHeightMode: Text.FixedHeight
-                lineHeight: controller.readerLineHeight
-                function updateViewport() { controller.setViewport(width, height, font) }
-                onWidthChanged: Qt.callLater(updateViewport)
-                onHeightChanged: Qt.callLater(updateViewport)
-                onFontChanged: Qt.callLater(updateViewport)
-                Component.onCompleted: Qt.callLater(updateViewport)
+                Text {
+                    id: body
+                    width: parent.width
+                    text: controller.text
+                    textFormat: Text.PlainText
+                    wrapMode: Text.Wrap
+                    objectName: "readingBody"
+                    color: controller.fontColor
+                    font.pixelSize: controller.fontSize || (panel.normal ? 22 : 19)
+                    y: -controller.scrollOffset
+                    height: parent.height + (controller.continuousScroll ? controller.readerLineHeight * 2 : 0)
+                    clip: true
+                    fontSizeMode: Text.FixedSize
+                    renderType: Text.QtRendering
+                    lineHeightMode: Text.FixedHeight
+                    lineHeight: controller.readerLineHeight
+                    function updateViewport() { controller.setViewport(width, parent.height, font) }
+                    onWidthChanged: Qt.callLater(updateViewport)
+                    onHeightChanged: Qt.callLater(updateViewport)
+                    onFontChanged: Qt.callLater(updateViewport)
+                    Component.onCompleted: Qt.callLater(updateViewport)
+                }
             }
         }
         MouseArea {

@@ -47,6 +47,30 @@ ScrollView {
             color: page.theme.textPrimary
             elide: Text.ElideMiddle
         }
+        RowLayout {
+            Layout.leftMargin: 28
+            Button {
+                text: controller.autoRunning ? s["reading.auto_pause"] : s["reading.auto_start"]
+                enabled: controller.enabled && controller.groupCount > 0
+                onClicked: controller.setAutoRunning(!controller.autoRunning)
+            }
+            Label { text: s["reading.auto_speed"]; color: page.theme.textSecondary }
+            Slider {
+                from: 5; to: 100; stepSize: 1
+                value: controller.scrollSpeed
+                onMoved: controller.setScrollSpeed(Math.round(value))
+                Accessible.name: s["reading.auto_speed"]
+            }
+            Label { text: controller.scrollSpeed + " " + s["reading.pixels_second"]; color: page.theme.textSecondary }
+        }
+        Label {
+            Layout.leftMargin: 28
+            Layout.rightMargin: 28
+            Layout.fillWidth: true
+            text: s["reading.auto_hint"]
+            wrapMode: Text.Wrap
+            color: page.theme.textSecondary
+        }
         Rectangle {
             Layout.leftMargin: 28
             Layout.rightMargin: 28

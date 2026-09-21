@@ -11,14 +11,14 @@
 PourInput 是一款面向 Windows 和 macOS 的本地鼠标按键自定义应用。它让同一个鼠标按键分别执行单击与长按操作，以更少的按键完成更多工作。
 
 <p>
-  <a href="https://github.com/pour-soi/PourInput/releases/download/v1.4.1/PourInput-v1.4.1-Windows.zip">
-    <img src="https://img.shields.io/badge/%E4%B8%8B%E8%BD%BD_Windows_%E7%89%88-v1.4.1-0078D4?style=for-the-badge&logo=windows11&logoColor=white" alt="下载 Windows 版">
+  <a href="https://github.com/pour-soi/PourInput/releases/download/v1.4.2/PourInput-v1.4.2-Windows.zip">
+    <img src="https://img.shields.io/badge/%E4%B8%8B%E8%BD%BD_Windows_%E7%89%88-v1.4.2-0078D4?style=for-the-badge&logo=windows11&logoColor=white" alt="下载 Windows 版">
   </a>
   <a href="https://github.com/pour-soi/PourInput/releases/tag/v1.3.4-macos.1">
     <img src="https://img.shields.io/badge/%E4%B8%8B%E8%BD%BD_macOS_%E7%89%88-v1.3.4-000000?style=for-the-badge&logo=apple&logoColor=white" alt="下载 macOS 版">
   </a>
-  <a href="https://github.com/pour-soi/PourInput/releases/tag/v1.4.1">
-    <img src="https://img.shields.io/badge/%E7%89%88%E6%9C%AC%E8%AF%B4%E6%98%8E-v1.4.1-555555?style=for-the-badge" alt="版本说明">
+  <a href="https://github.com/pour-soi/PourInput/releases/tag/v1.4.2">
+    <img src="https://img.shields.io/badge/%E7%89%88%E6%9C%AC%E8%AF%B4%E6%98%8E-v1.4.2-555555?style=for-the-badge" alt="版本说明">
   </a>
 </p>
 
@@ -34,7 +34,9 @@ PourInput 是一款面向 Windows 和 macOS 的本地鼠标按键自定义应用
 |-----------|----------------|-------------|
 | 单击与长按可分别执行不同操作 | 支持标准 Windows 中键与侧键 | 支持全屏或区域截图 |
 
-## 阅读模式 · Windows v1.4.1
+## 阅读模式 · Windows v1.4.2
+
+**自动连续阅读**：文字在浮窗内平滑滚动，可调节速度、暂停和继续。按住隐藏键时暂停，松开后继续；读到末尾或关闭阅读模式时停止。重开软件后恢复阅读位置，等待你手动开始。
 
 阅读模式开启时，设为隐藏键的鼠标按键只负责隐藏和恢复浮窗；关闭阅读模式后自动恢复原来的按键功能，已保存的映射不会改变。
 
@@ -94,7 +96,7 @@ PourInput 是一款在 Windows 和 macOS 上运行的本地鼠标按键自定义
 
 下载官方 Windows 发布包：
 
-[**PourInput-v1.4.1-Windows.zip**](https://github.com/pour-soi/PourInput/releases/download/v1.4.1/PourInput-v1.4.1-Windows.zip) · [版本说明](https://github.com/pour-soi/PourInput/releases/tag/v1.4.1)
+[**PourInput-v1.4.2-Windows.zip**](https://github.com/pour-soi/PourInput/releases/download/v1.4.2/PourInput-v1.4.2-Windows.zip) · [版本说明](https://github.com/pour-soi/PourInput/releases/tag/v1.4.2)
 
 1. 下载 ZIP 压缩包。
 2. 将压缩包解压到普通文件夹。
@@ -106,9 +108,9 @@ PourInput 是一款在 Windows 和 macOS 上运行的本地鼠标按键自定义
 <details>
 <summary>官方发布文件</summary>
 
-- `PourInput-v1.4.1-Windows.zip`
-- `PourInput-v1.4.1-Windows.zip.sha256`
-- `pourinput-v1.4.1-update.json`
+- `PourInput-v1.4.2-Windows.zip`
+- `PourInput-v1.4.2-Windows.zip.sha256`
+- `pourinput-v1.4.2-update.json`
 
 </details>
 

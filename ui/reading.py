@@ -5,6 +5,8 @@ from bisect import bisect_right
 import re
 import sys
 import threading
+import time
+from dataclasses import replace
 
 from PySide6.QtCore import QObject, Property, Qt, QTimer, Signal, Slot
 from PySide6.QtWidgets import QFileDialog, QColorDialog
@@ -18,6 +20,7 @@ from core.reader_wheel import ReaderWheel
 
 class ReadingController(QObject):
     changed = Signal()
+    scrollChanged = Signal()
     _navigation = Signal(int, int)
     _imported = Signal(object, str)
     _buttonEdge = Signal(int, bool)
@@ -47,6 +50,15 @@ class ReadingController(QObject):
         self._page_key = None
         self._pages = []
         self._line_height = 28
+        self._lines = []
+        self._auto_running = False
+        self._scroll_dirty = False
+        self._scroll_last = time.monotonic()
+        self._scroll_saved = self._scroll_last
+        self._scroll_timer = QTimer(self)
+        self._scroll_timer.setTimerType(Qt.PreciseTimer)
+        self._scroll_timer.setInterval(16)
+        self._scroll_timer.timeout.connect(self._scroll_tick)
         self.model = None
         try:
             self.model = ReaderModel(ReaderStore(directory))
@@ -126,11 +138,17 @@ class ReadingController(QObject):
             position += len(encoded[previous * 2:offset * 2].decode("utf-16-le"))
             offsets.append(position)
             previous = offset
+        self._lines = []
+        for index, start in enumerate(offsets):
+            group = bisect_right(group_starts, start) - 1
+            end = offsets[index + 1] if index + 1 < len(offsets) else len(text)
+            self._lines.append((group, start - group_starts[group], text[start:end]))
         for first in range(0, len(offsets), lines_per_page):
             start = offsets[first]
             end = offsets[first + lines_per_page] if first + lines_per_page < len(offsets) else len(text)
             group = bisect_right(group_starts, start) - 1
             pages.append((group, start - group_starts[group], text[start:end]))
+        self._line_anchors = [(g, o) for g, o, text in self._lines]
         self._pages, self._page_key = pages, key
         return bool(pages)
 
@@ -141,8 +159,83 @@ class ReadingController(QObject):
 
     def _page_text(self):
         if self._ensure_pages():
+            if self.continuousScroll:
+                first = self._line_index()
+                count = math.ceil(self._viewport[1] / self._line_height) + 2
+                return "".join(line[2] for line in self._lines[first:first + count])
             return self._pages[self._page_index()][2]
         return self.model.text if self.model else ""
+
+    continuousScroll = Property(bool, lambda self: bool(self.model and self.model.state.continuous_scroll), notify=changed)
+    autoRunning = Property(bool, lambda self: self._auto_running, notify=changed)
+    scrollSpeed = Property(int, lambda self: self.model.state.scroll_speed if self.model else 24, notify=changed)
+    scrollOffset = Property(float, lambda self: self.model.state.scroll_fraction * self._line_height if self.model and self.continuousScroll else 0, notify=scrollChanged)
+
+    def _line_index(self):
+        state = self.model.state
+        return max(0, bisect_right(self._line_anchors,
+                                   (state.group_index, state.group_offset)) - 1)
+
+    def _flush_scroll(self):
+        if not self._scroll_dirty or self.model is None:
+            return
+        try:
+            self.model.store.save_state(self.model.state)
+            self._scroll_dirty = False
+            self._scroll_saved = time.monotonic()
+        except Exception as exc:
+            self._error = str(exc)
+            self._auto_running = False
+            self._scroll_timer.stop()
+            self.changed.emit()
+
+    @Slot(int)
+    def setScrollSpeed(self, speed):
+        self._change(scroll_speed=max(5, min(100, speed)))
+
+    @Slot(bool)
+    def setAutoRunning(self, running):
+        if running and (not self.enabled or self._closed or not self._ensure_pages()):
+            return
+        if running:
+            self._change(continuous_scroll=True)
+            if not self.continuousScroll:
+                return
+        self._auto_running = bool(running)
+        self._scroll_last = time.monotonic()
+        if running:
+            self._scroll_timer.start()
+        else:
+            self._scroll_timer.stop()
+            self._flush_scroll()
+        self.changed.emit()
+        self.scrollChanged.emit()
+
+    def _scroll_tick(self):
+        now = time.monotonic()
+        elapsed = min(0.1, max(0, now - self._scroll_last))
+        self._scroll_last = now
+        self._advance_scroll(elapsed)
+        if not self.model.hidden and now - self._scroll_saved >= 2:
+            self._flush_scroll()
+
+    def _advance_scroll(self, elapsed):
+        if not self._auto_running or not self.panelVisible or not self._ensure_pages():
+            return
+        first = self._line_index()
+        limit = max(0, len(self._lines) - self._viewport[1] / self._line_height)
+        position = min(limit, first + self.model.state.scroll_fraction
+                       + max(0, elapsed) * self.scrollSpeed / self._line_height)
+        index = int(position)
+        group, offset, text = self._lines[index]
+        self.model.state = replace(self.model.state, group_index=group,
+                                   group_offset=offset, scroll_fraction=position - index)
+        self._scroll_dirty = True
+        if index != first:
+            self.changed.emit()
+        self.scrollChanged.emit()
+        if position >= limit:
+            self.setAutoRunning(False)
 
     @Slot(float, float, QFont)
     def setViewport(self, width, height, font):
@@ -154,6 +247,7 @@ class ReadingController(QObject):
         self._viewport = viewport
         self._line_height = math.ceil(QFontMetricsF(font).height() * 1.25)
         self.changed.emit()
+        self.scrollChanged.emit()
 
     readerLineHeight = Property(int, lambda self: self._line_height, notify=changed)
     text = Property(str, _page_text, notify=changed)
@@ -221,6 +315,7 @@ class ReadingController(QObject):
         if self.model.hidden != hidden:
             # Visibility only: no model.update(), gate reset, or persistence.
             self.model.set_hidden(hidden)
+            self._scroll_last = time.monotonic()
             self.changed.emit()
 
     @Slot(int, bool)
@@ -235,6 +330,8 @@ class ReadingController(QObject):
 
     @Slot(bool)
     def setEnabled(self, enabled):
+        if not enabled:
+            self.setAutoRunning(False)
         if enabled and not self._supported:
             return
         self._change(reading_enabled=bool(enabled))
@@ -295,7 +392,9 @@ class ReadingController(QObject):
             if self.enabled and self._ensure_pages():
                 index = max(0, min(len(self._pages) - 1, self._page_index() + (1 if direction > 0 else -1)))
                 group, start, text = self._pages[index]
-                self.model.update(group_index=group, group_offset=start)
+                self.model.update(group_index=group, group_offset=start, scroll_fraction=0.0)
+                self._scroll_last = time.monotonic()
+                self.scrollChanged.emit()
             else:
                 self.model.navigate(1 if direction > 0 else -1)
             self._error = ""
@@ -337,7 +436,9 @@ class ReadingController(QObject):
         try:
             if error:
                 raise ValueError(error)
+            self.setAutoRunning(False)
             self.model.open_document(*result)
+            self.scrollChanged.emit()
             self._sync_gate()
             self._error = ""
         except Exception as exc:
@@ -346,6 +447,7 @@ class ReadingController(QObject):
 
     @Slot()
     def close(self):
+        self.setAutoRunning(False)
         self._closed = True
         if hasattr(self._hook, "set_reading_hide_key"):
             self._hook.set_reading_hide_key(0)

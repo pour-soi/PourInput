@@ -1,17 +1,23 @@
-# PourInput v1.4.1 — Hide-button fix / 隐藏键冲突修复
+# PourInput v1.4.2 — Continuous auto-reading / 自动连续阅读
 
 ## 中文
 
-Windows 修复版本。阅读模式开启时，设为隐藏键的鼠标按键只控制浮窗，不再同时触发自定义动作或系统后退。关闭阅读模式后自动恢复原来的按键功能；按住途中关闭阅读，也不会在松开时补触发动作。
+Windows 版本新增自动连续阅读。文字在阅读浮窗中平滑向上移动，不是整页切换；字号和浮窗大小保持不变。阅读页面提供开始、暂停和速度调节。
 
-保留已保存的鼠标映射、阅读位置和隐藏期间的滚轮控制。用户已确认 Windows 实机测试正常。此修复针对鼠标隐藏键，键盘隐藏键不在本次变更范围内。
+- 按住隐藏键：浮窗隐藏，自动滚动暂停；松开后从原位置继续。
+- 读到末尾或关闭阅读模式时停止自动滚动。
+- 保存滚动速度和阅读位置，重开软件后保持暂停，手动开始即可继续。
+- 阅读数据独立保存；保留 Generic/MX 路由、鼠标隐藏键独占和后台页面滚轮拦截规则。
 
-下载 ZIP 后解压到较短路径（例如 F:\Apps），退出旧版托盘进程，再运行 PourInput/PourInput.exe。不要在解压报错时跳过文件。原有设置保持不变。此版本未签名；macOS 和 Linux 不在本次发布范围内。
+用户已确认 Windows 实机滚动及隐藏暂停行为可用。下载 ZIP 后解压到短路径，退出旧版托盘进程，再运行 PourInput/PourInput.exe。不要在解压报错时跳过文件。此版本未签名；不包含 macOS 或 Linux 发布。
 
 ## English
 
-Windows maintenance release. While Reading Mode is enabled, the configured mouse hide button exclusively hides/restores the panel instead of also executing a custom action or native Back. Disabling Reading Mode restores normal button actions; disabling it during a hold consumes the matching release.
+Windows release adding smooth continuous auto-reading inside the floating panel, without page transitions or changes to panel/font size. The Reading page includes start, pause, and speed controls.
 
-Saved mappings, reading position, and wheel ownership while hidden are preserved. The user confirmed successful Windows hardware validation. This fix covers mouse hide buttons; keyboard hide keys are unchanged.
+- Holding the hide key hides the panel and pauses motion; release resumes from the same position.
+- Automatic motion stops at the end or when Reading Mode is disabled.
+- Speed and position are saved independently. Playback starts paused after restarting the app.
+- Generic/MX routing, exclusive mouse hide-button ownership, and background-page wheel suppression are preserved.
 
-Extract the ZIP to a short path (for example F:\Apps), quit the old tray process, and run PourInput/PourInput.exe. Do not skip files if extraction reports an error. Existing settings are preserved. The executable is unsigned. No macOS or Linux release is included.
+The user confirmed the Windows hardware scrolling and hide/pause behavior. Extract the ZIP to a short path, quit the older tray process, then run PourInput/PourInput.exe. Do not skip files if extraction fails. The executable is unsigned; no macOS or Linux release is included.
