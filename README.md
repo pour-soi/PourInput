@@ -4,59 +4,71 @@
 
 # PourInput
 
-### Make your mouse more useful. Read at your own pace.
+### Your mouse. Your controls.
 
 **English** · [简体中文](README_CN.md)
 
-Customize your mouse buttons and keep a book within reach. PourInput brings application-specific shortcuts and a floating reader to your Windows desktop, with local TXT / EPUB import and smooth automatic scrolling.
+PourInput is a mouse customization app. Assign actions to supported buttons, give clicks and long presses different roles, and switch mappings automatically for each application. Keep control of your mouse with settings saved locally.
 
 [**Download for Windows · v1.4.2**](https://github.com/pour-soi/PourInput/releases/download/v1.4.2/PourInput-v1.4.2-Windows.zip)
 
 [What's new](https://github.com/pour-soi/PourInput/releases/tag/v1.4.2) · [macOS edition](#macos-edition) · [Report a problem](https://github.com/pour-soi/PourInput/issues)
 
-![PourInput floating reader with continuous scrolling](images/Screenshot_reading_panel_en.png)
+![PourInput mouse button and application profile configuration](images/Screenshot_mouse_en.png)
 
-**Mouse shortcuts · Continuous reading · Your settings, saved locally**
+**Button mapping · Click and Long Press · Application profiles · MX Master controls**
 
-## A reader that stays with you
+## Put your everyday actions on your mouse
 
-Open a local TXT or EPUB file and read in a floating panel above your other windows. Move it using the book-and-sprout handle, resize it from the lower-right corner, and choose the text size and color that suit you.
+Map supported buttons to copying, pasting, browser navigation, tab switching, screenshots, and other built-in actions. Choose the behavior for each button from the mouse page and keep your most-used commands within reach.
 
-### Scroll at your own pace
+### One button, two actions
 
-Use the wheel to navigate manually, or start automatic reading and let the text move smoothly upward. Adjust the speed, pause whenever you need, and continue from the same place. The panel and font stay the same size.
+Assign separate **Click** and **Long Press** actions to the same supported button. A quick press can copy; a long press can paste. Choose the combination that fits your workflow.
 
-Automatic reading stops at the end of the document. Your reading position is saved, and reopening PourInput restores it with automatic scrolling paused.
+### Different apps, different mappings
 
-### Keep it discreet
+Create application profiles so the same button can perform different actions in your browser, editor, or other software. PourInput selects the appropriate profile as you switch applications. Keep a default profile for everything else.
 
-Choose **Normal**, **Minimal**, or **Ghost**. The panel stays on top without taking keyboard focus. Minimal and Ghost allow clicks through the text area; the separate move and resize handles remain available. You can make the background fully transparent while keeping the text visible.
+### Standard mice, too
 
-Hold your hide key to make the panel disappear. Automatic scrolling pauses while it is hidden and resumes on release, without losing your place.
+**Generic Mouse Mode** handles standard Windows middle and side buttons, including mice such as ZOWIE. It does not require a supported Logitech device.
 
-![English Reading page with automatic reading and appearance controls](images/Screenshot_reading_en.png)
+![Generic Mouse Mode button configuration](images/Screenshot_generic_en.png)
 
-*Reading screenshots use the actual application interface with sample text.*
+### Keep your MX Master enhancements
 
-## Mouse buttons that fit what you do
+Supported HID++ controls can provide gestures, Mode Shift, SmartShift, DPI adjustment, battery information, and horizontal scrolling. Available controls depend on the device and firmware.
 
-Give supported buttons separate **Click** and **Long Press** actions. Use built-in shortcuts for copying, pasting, switching browser tabs, taking screenshots, and other everyday tasks. Application profiles let the same button do different things in different apps.
+Generic Mouse Mode and MX enhancements work together. Generic owns the standard inputs it supports while enabled; non-overlapping MX controls remain available. A Generic mapping set to “none” stays inactive instead of falling back to an MX action. Turning Generic off restores device-specific routing, with saved mappings retained.
 
-**Standard mouse buttons.** Generic Mouse Mode handles Windows middle and side buttons, including mice such as ZOWIE. You do not need a supported Logitech device to use this layer.
+## Set it up your way
 
-**MX Master enhancements.** Supported HID++ controls can provide gestures, Mode Shift, SmartShift, DPI, battery information, and horizontal scrolling. Available controls depend on the device and firmware.
+1. Open the mouse page and select a supported button.
+2. Choose its Click Action and, if needed, a Long Press Action.
+3. Add an application profile for software that needs different mappings.
+4. For standard middle and side buttons, enable Generic Mouse Mode as needed.
 
-**One clear owner for each input.** When Generic Mouse Mode is on, it owns supported standard inputs. A mapping set to “none” stays inactive; it does not fall back to an MX mapping. Non-overlapping MX controls remain available, and saved device mappings are retained when you switch modes.
+Switch the interface between English and Simplified Chinese without changing saved mappings. Settings stay on your computer.
 
-## Reading and mouse controls work together
+## Also included: Reading Mode on Windows
 
-- **Reading OFF:** the wheel scrolls the active application normally.
-- **Reading ON:** the vertical wheel navigates the reader instead of scrolling the page behind it, whether Generic Mouse Mode is on or off.
-- **Mouse hide button:** while reading, this button only hides/restores the panel. Turn Reading Mode off to restore its usual action.
-- **While hidden:** Reading Mode still owns the wheel. Hiding does not exit reading or reset the position.
-- **Keyboard hide keys:** their normal keyboard action remains available; exclusive hide-button handling applies to mouse buttons.
+Reading Mode is an optional feature alongside mouse customization. Import a local TXT or EPUB into a floating panel, navigate with the wheel, or enable smooth automatic scrolling with speed and pause controls. Customize the panel's size, text, and transparency.
 
-Documents and reading position are stored separately from mouse profiles and the main mouse configuration. Changing mouse profiles does not reset the book you are reading.
+Reading OFF restores ordinary scrolling. Reading ON temporarily uses the vertical wheel for the reader without changing saved mouse mappings. Hold-to-hide pauses automatic movement and resumes it on release; the configured mouse hide button returns to its usual action when reading is off.
+
+<details>
+<summary>Reading screenshot and usage details</summary>
+
+![Reading overlay with sample text](images/Screenshot_reading_panel_en.png)
+
+Open the book icon in the left sidebar, import a document, then enable Reading Mode. Use **Start / resume auto-scroll** or **Pause auto-scroll** on the Reading page. Playback stops at the end and restarts paused at the saved position when the app is reopened.
+
+Normal, Minimal, and Ghost display modes are available. The panel stays on top without taking focus; Minimal and Ghost allow clicks through the text area. While temporarily hidden, Reading Mode still owns the wheel. Mouse hide buttons are exclusive while reading; keyboard hide keys retain their normal keyboard action.
+
+Documents and reading position are stored separately from mouse profiles. The screenshot uses the actual interface with sample text. See the [Reading Mode guide](docs/READING_MODE.md) for more details.
+
+</details>
 
 ## Get started on Windows
 
@@ -66,7 +78,7 @@ Documents and reading position are stored separately from mouse profiles and the
 2. Quit any older PourInput instance from its **system tray menu**. Closing the settings window only hides it.
 3. Open `PourInput/PourInput.exe`. No separate Python installation is needed.
 4. To customize buttons, open the mouse page and select a button.
-5. To read, select the **book icon** in the left sidebar, import a TXT or EPUB, and turn on **Reading Mode**. Select **Start / resume auto-scroll** for continuous reading.
+5. Add application profiles and enable Generic Mouse Mode if you want to customize standard middle and side buttons.
 
 The Windows executable is unsigned. Downloads include a SHA-256 checksum and an update manifest on the [release page](https://github.com/pour-soi/PourInput/releases/tag/v1.4.2).
 
@@ -87,8 +99,6 @@ The separate macOS release is **v1.3.4-macos.1**. The Windows reading and automa
 Extract the matching package, open `PourInput.app`, and grant Accessibility permission when prompted. This build is unsigned and unnotarized. Intel hardware testing used a MacBook Air and MX Master 3; Apple Silicon has build validation only. Generic Mouse Mode is Windows-only. Linux remains validation-only.
 
 ## Quick help
-
-**Text is moving and you want it to stop?** Select **Pause auto-scroll** on the Reading page. Holding the hide key only pauses it temporarily; releasing resumes it.
 
 **A button performs an unexpected action?** Check the active application profile, Generic Mouse Mode, and whether that button is selected as the reader's hide button.
 
