@@ -6,6 +6,13 @@ This project uses Semantic Versioning.
 
 ## Unreleased
 
+## v1.4.1 - 2026-09-20
+
+### Fixed
+- Give the mouse hold-to-hide button exclusive ownership while Reading Mode is enabled, suppressing conflicting Generic, MX HID, and native actions.
+- Restore normal button actions when Reading Mode is disabled without modifying saved mappings or reading state.
+- Consume the matching release when Reading Mode is disabled during a hold.
+
 ## v1.4.0 - 2026-09-20
 
 ### Added

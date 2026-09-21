@@ -250,6 +250,25 @@ class MouseHook(BaseMouseHook):
         WM_MBUTTONDOWN: (4, True), WM_MBUTTONUP: (4, False),
     }
 
+    def set_reading_hide_key(self, key):
+        with self._reading_claim_lock:
+            self._reading_hide_key = key
+
+    def _claim_reading_button(self, key, down, source):
+        # Keep ownership until release even if reading is disabled mid-hold.
+        identity = (source, key)
+        with self._reading_claim_lock:
+            if down:
+                return self._reading_claims.setdefault(identity, key == self._reading_hide_key)
+            return self._reading_claims.pop(identity, False)
+
+    def _clear_logi_xbutton_pressed(self, reason):
+        super()._clear_logi_xbutton_pressed(reason)
+        with self._reading_claim_lock:
+            for identity in list(self._reading_claims):
+                if identity[0] in ("hid", "injected"):
+                    del self._reading_claims[identity]
+
     def set_reading_button_observer(self, observer):
         self._reading_button_observer = observer
 
@@ -267,6 +286,9 @@ class MouseHook(BaseMouseHook):
         self._reading_wheel_handler = handler
 
     def __init__(self):
+        self._reading_claim_lock = threading.Lock()
+        self._reading_hide_key = 0
+        self._reading_claims = {}
         super().__init__()
         self._hook = None
         self._hook_thread = None
@@ -567,6 +589,10 @@ class MouseHook(BaseMouseHook):
                 )
 
             if flags & INJECTED_FLAG:
+                if windows_xbutton_event and self._claim_reading_button(
+                    4 + hiword(mouse_data), wParam == WM_XBUTTONDOWN, "injected"
+                ):
+                    return 1
                 injected_xbutton_event = windows_xbutton_event
                 if (
                     injected_xbutton_event
@@ -579,18 +605,21 @@ class MouseHook(BaseMouseHook):
                     return 1
                 return CallNextHookEx(self._hook, nCode, wParam, lParam)
 
+            edge = self._READING_BUTTON_EDGES.get(wParam)
+            if wParam in (WM_XBUTTONDOWN, WM_XBUTTONUP):
+                button = hiword(mouse_data)
+                if button in (XBUTTON1, XBUTTON2):
+                    edge = (4 + button, wParam == WM_XBUTTONDOWN)
             observer = getattr(self, "_reading_button_observer", None)
             if observer is not None:
-                edge = self._READING_BUTTON_EDGES.get(wParam)
-                if wParam in (WM_XBUTTONDOWN, WM_XBUTTONUP):
-                    button = hiword(mouse_data)
-                    if button in (XBUTTON1, XBUTTON2):
-                        edge = (4 + button, wParam == WM_XBUTTONDOWN)
                 if edge:
                     try:
                         observer(*edge)
                     except Exception as exc:
                         self._emit_debug(f"Reader button observer failed: {exc}")
+
+            if edge and self._claim_reading_button(*edge, "physical"):
+                return 1
 
             if wParam == WM_XBUTTONDOWN:
                 xbutton = hiword(mouse_data)
@@ -1193,6 +1222,8 @@ class MouseHook(BaseMouseHook):
         return self.health_snapshot().healthy
 
     def stop(self):
+        with self._reading_claim_lock:
+            self._reading_claims.clear()
         observer = getattr(self, "_reading_button_observer", None)
         if observer is not None:
             observer(0, False)

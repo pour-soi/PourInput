@@ -1,21 +1,17 @@
-# PourInput v1.4.0 — Reading Mode / 阅读模式
+# PourInput v1.4.1 — Hide-button fix / 隐藏键冲突修复
+
+## 中文
+
+Windows 修复版本。阅读模式开启时，设为隐藏键的鼠标按键只控制浮窗，不再同时触发自定义动作或系统后退。关闭阅读模式后自动恢复原来的按键功能；按住途中关闭阅读，也不会在松开时补触发动作。
+
+保留已保存的鼠标映射、阅读位置和隐藏期间的滚轮控制。用户已确认 Windows 实机测试正常。此修复针对鼠标隐藏键，键盘隐藏键不在本次变更范围内。
+
+下载 ZIP 后解压到较短路径（例如 F:\Apps），退出旧版托盘进程，再运行 PourInput/PourInput.exe。不要在解压报错时跳过文件。原有设置保持不变。此版本未签名；macOS 和 Linux 不在本次发布范围内。
 
 ## English
 
-Windows release with local TXT/EPUB reading, a floating panel, fixed-font continuous pagination, direct move/resize controls, transparent background, custom text color/size, and hold-to-hide. Reader state is separate from mouse profiles and the main config. Generic standard-input ownership and non-overlapping MX enhancements are preserved.
+Windows maintenance release. While Reading Mode is enabled, the configured mouse hide button exclusively hides/restores the panel instead of also executing a custom action or native Back. Disabling Reading Mode restores normal button actions; disabling it during a hold consumes the matching release.
 
-Retains all v1.3.5 configuration-loss protection. Unrelated Windows device-change notifications refresh hooks without forcing a healthy HID connection to reconnect. Includes reader hold-button release fixes.
+Saved mappings, reading position, and wheel ownership while hidden are preserved. The user confirmed successful Windows hardware validation. This fix covers mouse hide buttons; keyboard hide keys are unchanged.
 
-Download the Windows ZIP, extract it, quit any older PourInput process, then run PourInput/PourInput.exe. The existing macOS release remains available separately; this release does not claim Reading Mode hardware validation on macOS/Linux.
-
-Validated on Windows with MX Master 4 and Zowie through user hardware testing; continuous page filling and fixed font behavior were accepted by the tester. Automated checks and packaged-build evidence are recorded in docs/RELEASE_VALIDATION-v1.4.0.md. The Windows executable is unsigned.
-
-## 简体中文
-
-新增本地 TXT / EPUB 阅读模式：置顶浮窗、固定字号连续分页、直接拖动移动和缩放、透明背景、自定义文字颜色与字号，以及按住暂时隐藏。阅读进度独立于鼠标配置，文档内容不会写入主配置文件。保留通用鼠标的输入优先权及不冲突的 MX 高级功能。
-
-完整保留 v1.3.5 的配置丢失防护。无关设备变化只刷新输入钩子，不再强制重连健康的 HID 连接；同时修复阅读隐藏键的部分释放路径。
-
-下载 Windows ZIP 并解压，先退出旧版，再运行 PourInput/PourInput.exe。macOS 现有版本继续单独提供；本次未验证 macOS/Linux 上的阅读硬件行为。
-
-已由用户在 Windows 上使用 MX Master 4 和 Zowie 验证，固定字号和连续填页效果已获确认。自动检查及打包验证见 docs/RELEASE_VALIDATION-v1.4.0.md。Windows 程序暂未进行代码签名。
+Extract the ZIP to a short path (for example F:\Apps), quit the old tray process, and run PourInput/PourInput.exe. Do not skip files if extraction reports an error. Existing settings are preserved. The executable is unsigned. No macOS or Linux release is included.

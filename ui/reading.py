@@ -202,6 +202,8 @@ class ReadingController(QObject):
 
     def _sync_hold(self):
         active = self._supported and self.enabled and self.hideKey != 0 and not self._closed
+        if hasattr(self._hook, "set_reading_hide_key"):
+            self._hook.set_reading_hide_key(self.hideKey if active else 0)
         if active:
             self._hold_timer.start()
         else:
@@ -345,6 +347,8 @@ class ReadingController(QObject):
     @Slot()
     def close(self):
         self._closed = True
+        if hasattr(self._hook, "set_reading_hide_key"):
+            self._hook.set_reading_hide_key(0)
         self._hold_timer.stop()
         self._gate.configure(False)
         if self._supported:

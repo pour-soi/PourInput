@@ -687,6 +687,9 @@ class BaseMouseHook:
             f"event={event_type}"
         )
         self._arm_logi_xbutton_suppression(event_type)
+        claim = getattr(self, "_claim_reading_button", None)
+        if claim is not None and claim(5 if cid == 0x0053 else 6, is_down, "hid"):
+            return True
         self._dispatch(MouseEvent(event_type))
         return True
 

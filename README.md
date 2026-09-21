@@ -11,14 +11,14 @@
 PourInput is a local mouse-button customization app for Windows and macOS. It gives one mouse button separate Click and Long Press actions, helping you perform more work with fewer buttons.
 
 <p>
-  <a href="https://github.com/pour-soi/PourInput/releases/download/v1.4.0/PourInput-v1.4.0-Windows.zip">
-    <img src="https://img.shields.io/badge/Download_for_Windows-v1.4.0-0078D4?style=for-the-badge&logo=windows11&logoColor=white" alt="Download for Windows">
+  <a href="https://github.com/pour-soi/PourInput/releases/download/v1.4.1/PourInput-v1.4.1-Windows.zip">
+    <img src="https://img.shields.io/badge/Download_for_Windows-v1.4.1-0078D4?style=for-the-badge&logo=windows11&logoColor=white" alt="Download for Windows">
   </a>
   <a href="https://github.com/pour-soi/PourInput/releases/tag/v1.3.4-macos.1">
     <img src="https://img.shields.io/badge/Download_for_macOS-v1.3.4-000000?style=for-the-badge&logo=apple&logoColor=white" alt="Download for macOS">
   </a>
-  <a href="https://github.com/pour-soi/PourInput/releases/tag/v1.4.0">
-    <img src="https://img.shields.io/badge/Release_Notes-v1.4.0-555555?style=for-the-badge" alt="Release Notes">
+  <a href="https://github.com/pour-soi/PourInput/releases/tag/v1.4.1">
+    <img src="https://img.shields.io/badge/Release_Notes-v1.4.1-555555?style=for-the-badge" alt="Release Notes">
   </a>
 </p>
 
@@ -34,7 +34,9 @@ PourInput is a local mouse-button customization app for Windows and macOS. It gi
 |----------------|-----------------------|-----------------------|
 | Independent Click and Long Press actions | Works with standard Windows middle and side buttons | Capture the full screen or a selected region |
 
-## Reading Mode · Windows v1.4.0
+## Reading Mode · Windows v1.4.1
+
+While Reading Mode is enabled, the configured mouse hide button only hides/restores the panel; its original action returns when Reading Mode is disabled. Saved mappings are preserved.
 
 Read local TXT and EPUB files in a quiet desktop overlay and turn pages with your mouse wheel. Documents stay on your computer, independently of mouse profiles.
 
@@ -92,7 +94,7 @@ A press shorter than 300 ms runs the Click Action. A press held for at least 300
 
 Download the official Windows package:
 
-[**PourInput-v1.4.0-Windows.zip**](https://github.com/pour-soi/PourInput/releases/download/v1.4.0/PourInput-v1.4.0-Windows.zip) · [Release Notes](https://github.com/pour-soi/PourInput/releases/tag/v1.4.0)
+[**PourInput-v1.4.1-Windows.zip**](https://github.com/pour-soi/PourInput/releases/download/v1.4.1/PourInput-v1.4.1-Windows.zip) · [Release Notes](https://github.com/pour-soi/PourInput/releases/tag/v1.4.1)
 
 1. Download the ZIP archive.
 2. Extract it to a normal folder.
@@ -104,9 +106,9 @@ The package includes its required runtime files and creates its configuration au
 <details>
 <summary>Official release files</summary>
 
-- `PourInput-v1.4.0-Windows.zip`
-- `PourInput-v1.4.0-Windows.zip.sha256`
-- `pourinput-v1.4.0-update.json`
+- `PourInput-v1.4.1-Windows.zip`
+- `PourInput-v1.4.1-Windows.zip.sha256`
+- `pourinput-v1.4.1-update.json`
 
 </details>
 
