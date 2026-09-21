@@ -17,3 +17,7 @@ Build from a clean committed tree. Verify embedded version/commit/dirty metadata
 
 ## Limits
 Unsigned Windows executable. No new macOS/Linux Reading Mode hardware validation, no fresh full OS/DPI matrix, and no long-term reconnect soak. No code signing or installer is introduced.
+
+## Local build environment
+
+Use a short, isolated virtual environment and a minimal build PATH containing Python, Git, and Windows system directories. The developer tools PATH included Poppler ICU DLLs that PyInstaller incorrectly collected as Qt dependencies; the failed builds were retained and not published. The final build must not contain those unrelated ICU libraries. Queued HID observer tests explicitly drain their Qt metacalls before asserting visibility.

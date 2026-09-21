@@ -42,6 +42,7 @@ class ReadingUiTests(unittest.TestCase):
     @unittest.skipUnless(os.name == "nt", "Windows HID reader bridge")
     def test_hid_reports_hide_without_side_action_mappings(self):
         from unittest.mock import patch
+        from PySide6.QtCore import QEvent
         from core.mouse_hook_windows import MouseHook
         from core.hid_gesture import HidGestureListener
         hook = MouseHook()
@@ -61,17 +62,21 @@ class ReadingUiTests(unittest.TestCase):
             down = [0x11, 0xFF, 9, 0, 0, cid, 0, 0]
             listener._on_report(down)
             listener._on_report(down)
+            APP.sendPostedEvents(reader, QEvent.MetaCall)
             APP.processEvents()
             self.assertFalse(reader.panelVisible)
             self.assertEqual(reader.model.state, before)
             self.assertTrue(reader.handle_wheel(1))
             listener._on_report([0x11, 0xFF, 9, 0, 0, 0])
+            APP.sendPostedEvents(reader, QEvent.MetaCall)
             APP.processEvents()
             self.assertTrue(reader.panelVisible)
             self.assertEqual(reader.model.state, before)
             listener._on_report(down)
+            APP.sendPostedEvents(reader, QEvent.MetaCall)
             APP.processEvents()
             listener._clear_extra_divert_holds("disconnect")
+            APP.sendPostedEvents(reader, QEvent.MetaCall)
             APP.processEvents()
             self.assertTrue(reader.panelVisible)
             self.assertEqual(reader.model.state, before)
