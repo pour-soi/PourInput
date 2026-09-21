@@ -17,7 +17,6 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
   RELEASE_TAG: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || github.event.inputs.release_tag }}
   POURINPUT_VERSION: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || github.event.inputs.release_tag }}
-  POURINPUT_GIT_COMMIT: ${{ github.sha }}
   POURINPUT_GIT_DIRTY: "false"
   WINDOWS_ARCHIVE_NAME: ${{ format('PourInput-{0}-Windows.zip', startsWith(github.ref, 'refs/tags/') && github.ref_name || github.event.inputs.release_tag) }}
 
@@ -28,6 +27,15 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: refs/tags/${{ env.RELEASE_TAG }}
+
+      - name: Verify immutable release source
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "$(git rev-parse "refs/tags/$RELEASE_TAG^{commit}")"
+          test -z "$(git status --porcelain)"
+          echo "POURINPUT_GIT_COMMIT=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
 
       - uses: actions/setup-python@v6
         with:
@@ -85,8 +93,7 @@ jobs:
             ${{ env.WINDOWS_ARCHIVE_NAME }}.sha256
 
   build-macos:
-    if: github.ref != 'refs/tags/v1.4.0' && github.event.inputs.release_tag != 'v1.4.0'
-    if: github.ref != 'refs/tags/v1.3.5' && github.event.inputs.release_tag != 'v1.3.5'
+    if: github.ref != 'refs/tags/v1.4.0' && github.event.inputs.release_tag != 'v1.4.0' && github.ref != 'refs/tags/v1.3.5' && github.event.inputs.release_tag != 'v1.3.5'
     name: build-macos (${{ matrix.name }})
     strategy:
       fail-fast: false
@@ -107,6 +114,15 @@ jobs:
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: refs/tags/${{ env.RELEASE_TAG }}
+
+      - name: Verify immutable release source
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "$(git rev-parse "refs/tags/$RELEASE_TAG^{commit}")"
+          test -z "$(git status --porcelain)"
+          echo "POURINPUT_GIT_COMMIT=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
 
       - uses: actions/setup-python@v6
         with:
@@ -132,11 +148,19 @@ jobs:
           path: ${{ matrix.archive_name }}
 
   build-linux:
-    if: github.ref != 'refs/tags/v1.4.0' && github.event.inputs.release_tag != 'v1.4.0'
-    if: github.ref != 'refs/tags/v1.3.5' && github.event.inputs.release_tag != 'v1.3.5'
+    if: github.ref != 'refs/tags/v1.4.0' && github.event.inputs.release_tag != 'v1.4.0' && github.ref != 'refs/tags/v1.3.5' && github.event.inputs.release_tag != 'v1.3.5'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: refs/tags/${{ env.RELEASE_TAG }}
+
+      - name: Verify immutable release source
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "$(git rev-parse "refs/tags/$RELEASE_TAG^{commit}")"
+          test -z "$(git status --porcelain)"
+          echo "POURINPUT_GIT_COMMIT=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
 
       - uses: actions/setup-python@v6
         with:
@@ -275,6 +299,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: refs/tags/${{ env.RELEASE_TAG }}
+
+      - name: Verify immutable release source
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "$(git rev-parse "refs/tags/$RELEASE_TAG^{commit}")"
+          test -z "$(git status --porcelain)"
+          echo "POURINPUT_GIT_COMMIT=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
 
       - uses: actions/download-artifact@v8
 
@@ -289,7 +322,7 @@ jobs:
           python tools/generate_update_manifest.py \
             --repo "${{ github.repository }}" \
             --tag "${{ env.RELEASE_TAG }}" \
-            --commit "${{ github.sha }}" \
+            --commit "${{ env.POURINPUT_GIT_COMMIT }}" \
             --asset-dir update-assets \
             --output "pourinput-${{ env.RELEASE_TAG }}-update.json"
 
