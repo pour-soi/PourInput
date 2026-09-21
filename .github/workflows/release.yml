@@ -310,6 +310,10 @@ jobs:
           echo "POURINPUT_GIT_COMMIT=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
 
       - uses: actions/download-artifact@v8
+        with:
+          pattern: PourInput-Windows*
+          path: PourInput-Windows
+          merge-multiple: true
 
       - uses: actions/setup-python@v6
         with:
