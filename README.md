@@ -10,9 +10,9 @@
 
 PourInput is a mouse customization app. Assign actions to supported buttons, give clicks and long presses different roles, and switch mappings automatically for each application. Keep control of your mouse with settings saved locally.
 
-[**Download for Windows · v1.4.2**](https://github.com/pour-soi/PourInput/releases/download/v1.4.2/PourInput-v1.4.2-Windows.zip)
+[**Download for Windows · v1.4.3**](https://github.com/pour-soi/PourInput/releases/download/v1.4.3/PourInput-v1.4.3-Windows.zip)
 
-[What's new](https://github.com/pour-soi/PourInput/releases/tag/v1.4.2) · [macOS edition](#macos-edition) · [Report a problem](https://github.com/pour-soi/PourInput/issues)
+[What's new](https://github.com/pour-soi/PourInput/releases/tag/v1.4.3) · [macOS edition](#macos-edition) · [Report a problem](https://github.com/pour-soi/PourInput/issues)
 
 ![PourInput mouse button and application profile configuration](images/Screenshot_mouse_en.png)
 
@@ -55,10 +55,12 @@ Switch the interface between English and Simplified Chinese without changing sav
 
 Reading Mode is an optional feature alongside mouse customization. Import a local TXT or EPUB into a floating panel, navigate with the wheel, or enable smooth automatic scrolling with speed and pause controls. Customize the panel's size, text, and transparency.
 
-Reading OFF restores ordinary scrolling. Reading ON temporarily uses the vertical wheel for the reader without changing saved mouse mappings. Hold-to-hide pauses automatic movement and resumes it on release; the configured mouse hide button returns to its usual action when reading is off.
+Reading OFF restores ordinary scrolling. Reading ON temporarily uses the vertical wheel for the reader without changing saved mouse mappings. Press the hide key once to hide and pause, release keeps it hidden, and press again to show and resume; the configured mouse hide button returns to its usual action when reading is off.
 
 <details>
 <summary>Reading screenshot and usage details</summary>
+
+Choose chapters from EPUB contents or recognized TXT headings. Titles inferred from layout are marked as suggested and require confirmation. Chapter jumps start at the title on its own line. Older imports may need reimporting to recover contents and line spacing.
 
 ![Reading overlay with sample text](images/Screenshot_reading_panel_en.png)
 
@@ -72,7 +74,7 @@ Documents and reading position are stored separately from mouse profiles. The sc
 
 ## Get started on Windows
 
-[**Download PourInput v1.4.2 for Windows**](https://github.com/pour-soi/PourInput/releases/download/v1.4.2/PourInput-v1.4.2-Windows.zip)
+[**Download PourInput v1.4.3 for Windows**](https://github.com/pour-soi/PourInput/releases/download/v1.4.3/PourInput-v1.4.3-Windows.zip)
 
 1. Extract the **entire ZIP** to a short path, such as `F:\Apps`. Do not run the app inside the ZIP or skip files if extraction fails.
 2. Quit any older PourInput instance from its **system tray menu**. Closing the settings window only hides it.
@@ -80,7 +82,7 @@ Documents and reading position are stored separately from mouse profiles. The sc
 4. To customize buttons, open the mouse page and select a button.
 5. Add application profiles and enable Generic Mouse Mode if you want to customize standard middle and side buttons.
 
-The Windows executable is unsigned. Downloads include a SHA-256 checksum and an update manifest on the [release page](https://github.com/pour-soi/PourInput/releases/tag/v1.4.2).
+The Windows executable is unsigned. Downloads include a SHA-256 checksum and an update manifest on the [release page](https://github.com/pour-soi/PourInput/releases/tag/v1.4.3).
 
 ## Device and platform notes
 

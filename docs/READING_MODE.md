@@ -10,11 +10,33 @@ mouse profile or change Generic/MX mappings.
 - Normal shows the document title and supports dragging. Minimal and Ghost
   pass mouse clicks through. All presentations are borderless, topmost, and
   non-focusable. The overlay has no transient settings-window owner.
-- Hold-to-hide observes a selected key or standard Windows mouse button.
-  The control retains its existing action. Hiding changes visibility only:
+- Press the selected key or standard Windows mouse button to hide the panel.
+  Releasing keeps it hidden; press again to show it. While reading is enabled,
+  the selected mouse button is consumed; keyboard keys retain their usual action.
+  Hiding changes visibility only:
   reading stays enabled and wheel navigation remains active.
 
 ## Storage and import
+
+The Reading page offers a chapter selector. New TXT imports recognize standalone
+Chinese chapter headings and English Chapter/Part/Book headings. EPUB imports use
+EPUB 3 contents navigation or EPUB 2 NCX, including fragment targets; heading tags
+are the fallback. Chapter metadata lives with the document, outside config.json.
+Selecting a chapter saves its text anchor and pauses automatic scrolling without
+changing Reading Mode, visibility, or wheel ownership. The panel starts at that
+chapter's anchor, with matching title text on its own line. Pages continue from
+that position using the fixed panel and font size, without the previous chapter's tail.
+Older imports estimate chapters from retained text without rewriting the book or
+moving its position. Their original EPUB contents and TXT line breaks are no
+longer available; the UI recommends reimporting for more accurate recognition.
+
+When no explicit contents or headings exist, new imports conservatively suggest
+isolated short titles surrounded by blank lines and followed by a long prose
+paragraph. At least two candidates are required. Suggested entries are labeled
+and require confirmation before jumping; cancel leaves the position unchanged.
+The inference flag is saved with chapter metadata. This heuristic can miss or
+misidentify titles and is not applied to flattened legacy text. Reimport the
+original file to use its line spacing. Explicit EPUB contents/headings take priority.
 
 Reader files live under the application's configuration directory in reader/.
 state.json holds only enabled state, document reference, current group index,
@@ -36,14 +58,14 @@ most 600 characters; very long passages are divided to fit.
 
 Automated tests cover state persistence, failed/corrupt imports, EPUB order,
 grouping, burst filtering, queued-event invalidation, profile/Generic changes,
-hold visibility invariants, and the Windows hook's suppression behavior.
+toggle visibility invariants, and the Windows hook's suppression behavior.
 Qt tests inspect window flags and load both QML components. Offscreen renders
 use synthetic text.
 
 Real MX/standard-mouse wheel feel, focus retention, desktop click-through,
-topmost behavior, and hold/release timing still require desktop/hardware
+topmost behavior, and press/release toggle timing still require desktop/hardware
 validation. No live input engine was started for these tests. Wheel interception
-and global hold observation are currently Windows-only.
+and global key observation are currently Windows-only.
 
 
 ## v1.4.0 pagination
@@ -54,4 +76,4 @@ The panel keeps the selected size and font. Qt text layout fills successive page
 
 The Reading page offers start/pause and a 5–100 px/s speed control in English and Simplified Chinese. Auto-reading uses the existing wrapped text lines, a clipped viewport, and fractional vertical movement, without changing panel or font size. Only visible lines plus a small buffer are rendered.
 
-The reader store saves speed, text anchor, and fractional line position. Playback starts paused after restart. Position is checkpointed every two seconds and when pausing or closing; no document content is added to the mouse config. Hiding freezes motion without changing reading state or wheel ownership; release resumes from the same position. Reading OFF stops playback, and reaching the final visible text stops playback without disabling Reading Mode. Manual wheel navigation retains its existing ownership and resumes automatic movement from the selected position.
+The reader store saves speed, text anchor, and fractional line position. Playback starts paused after restart. Position is checkpointed every two seconds and when pausing or closing; no document content is added to the mouse config. Hiding freezes motion without changing reading state or wheel ownership; pressing again to show the panel resumes from the same position. Reading OFF stops playback, and reaching the final visible text stops playback without disabling Reading Mode. Manual wheel navigation retains its existing ownership and resumes automatic movement from the selected position.

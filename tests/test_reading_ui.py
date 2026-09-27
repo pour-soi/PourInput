@@ -70,7 +70,7 @@ class ReadingUiTests(unittest.TestCase):
             listener._on_report([0x11, 0xFF, 9, 0, 0, 0])
             APP.sendPostedEvents(reader, QEvent.MetaCall)
             APP.processEvents()
-            self.assertTrue(reader.panelVisible)
+            self.assertFalse(reader.panelVisible)
             self.assertEqual(reader.model.state, before)
             listener._on_report(down)
             APP.sendPostedEvents(reader, QEvent.MetaCall)
@@ -363,7 +363,7 @@ class ReadingUiTests(unittest.TestCase):
         page.deleteLater()
 
 
-    def test_hold_hides_only_and_keeps_wheel_ownership_and_saved_state(self):
+    def test_toggle_hides_only_and_keeps_wheel_ownership_and_saved_state(self):
         self.document()
         self.reader.setHideKey(119)
         self.reader._key_down = Mock(return_value=True)
@@ -378,17 +378,62 @@ class ReadingUiTests(unittest.TestCase):
         self.assertTrue(self.reader.handle_wheel(10))
         self.reader._key_down.return_value = False
         self.reader._poll_hold()
+        self.assertFalse(self.reader.panelVisible)
+        self.reader._key_down.return_value = True
+        self.reader._poll_hold()
         self.assertTrue(self.reader.panelVisible)
         self.assertEqual(self.reader.model.state, before)
 
-    def test_observed_suppressed_mouse_button_hides_and_release_restores(self):
+    def test_held_key_and_settings_changes_do_not_repeat_toggle(self):
+        self.document()
+        self.reader.setHideKey(119)
+        self.reader._key_down = Mock(return_value=True)
+        self.reader._poll_hold()
+        for _ in range(5):
+            self.reader._poll_hold()
+        self.reader.setDisplayMode("Minimal")
+        self.assertFalse(self.reader.panelVisible)
+        self.reader._key_down.return_value = False
+        self.reader._poll_hold()
+        self.assertFalse(self.reader.panelVisible)
+
+    def test_enabling_and_changing_key_rearm_an_already_held_key(self):
+        self.document()
+        self.reader._key_down = Mock(return_value=True)
+        self.reader.setHideKey(119)
+        self.assertTrue(self.reader.panelVisible)
+        self.reader._key_down.return_value = False
+        self.reader._poll_hold()
+        self.reader._key_down.return_value = True
+        self.reader._poll_hold()
+        self.assertFalse(self.reader.panelVisible)
+        self.reader.setEnabled(False)
+        self.reader.setEnabled(True)
+        self.assertTrue(self.reader.panelVisible)
+        self.reader._poll_hold()
+        self.assertTrue(self.reader.panelVisible)
+
+    def test_observer_reset_does_not_show_hidden_panel(self):
+        self.document()
+        self.reader.setHideKey(5)
+        self.reader._observe_button(5, True)
+        self.reader._observe_button(0, False)
+        self.assertFalse(self.reader.panelVisible)
+        self.reader._observe_button(5, True)
+        self.assertTrue(self.reader.panelVisible)
+
+    def test_observed_mouse_button_toggles_only_on_new_press(self):
         self.document()
         self.reader.setHideKey(5)
         self.reader._key_down = Mock(return_value=False)
         before = self.reader.model.state
         self.reader._observe_button(5, True)
         self.assertFalse(self.reader.panelVisible)
+        self.reader._observe_button(5, True)
+        self.assertFalse(self.reader.panelVisible)
         self.reader._observe_button(5, False)
+        self.assertFalse(self.reader.panelVisible)
+        self.reader._observe_button(5, True)
         self.assertTrue(self.reader.panelVisible)
         self.assertEqual(self.reader.model.state, before)
 

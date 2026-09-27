@@ -10,6 +10,33 @@ ScrollView {
     clip: true
     contentWidth: availableWidth
 
+    Dialog {
+        id: chapterConfirmation
+        objectName: "chapterConfirmation"
+        property int chapterIndex: -1
+        property string chapterTitle: ""
+        title: s["reading.inferred_confirm"]
+        modal: true
+        anchors.centerIn: parent
+        width: Math.min(420, page.width - 32)
+        standardButtons: Dialog.NoButton
+        ColumnLayout {
+            width: parent.width
+            Label {
+                text: chapterConfirmation.chapterTitle + "\n\n" + s["reading.inferred_hint"]
+                textFormat: Text.PlainText
+                wrapMode: Text.Wrap
+                Layout.fillWidth: true
+            }
+            RowLayout {
+                Button { text: s["reading.inferred_cancel"]; onClicked: chapterConfirmation.reject() }
+                Button { text: s["reading.inferred_jump"]; onClicked: chapterConfirmation.accept() }
+            }
+        }
+        onAccepted: controller.jumpToChapter(chapterIndex)
+        onClosed: chapterPicker.currentIndex = Qt.binding(function() { return controller.currentChapter })
+    }
+
     ColumnLayout {
         width: page.availableWidth
         spacing: 18
@@ -62,6 +89,42 @@ ScrollView {
                 Accessible.name: s["reading.auto_speed"]
             }
             Label { text: controller.scrollSpeed + " " + s["reading.pixels_second"]; color: page.theme.textSecondary }
+        }
+        RowLayout {
+            Layout.leftMargin: 28
+            Layout.rightMargin: 28
+            Layout.fillWidth: true
+            Label { text: s["reading.chapters"]; color: page.theme.textPrimary }
+            ComboBox {
+                id: chapterPicker
+                objectName: "readingChapterPicker"
+                Layout.fillWidth: true
+                model: controller.chapterLabels
+                textRole: "label"
+                currentIndex: controller.currentChapter
+                enabled: count > 0 && !controller.busy
+                displayText: currentIndex < 0 ? s["reading.choose_chapter"] : currentText
+                onActivated: {
+                    var entry = controller.chapters[currentIndex]
+                    if (entry.inferred) {
+                        chapterConfirmation.chapterIndex = currentIndex
+                        chapterConfirmation.chapterTitle = entry.title
+                        chapterConfirmation.open()
+                    } else {
+                        controller.jumpToChapter(currentIndex)
+                    }
+                }
+                Accessible.name: s["reading.chapters"]
+            }
+        }
+        Label {
+            Layout.leftMargin: 28
+            Layout.rightMargin: 28
+            Layout.fillWidth: true
+            text: controller.chaptersEstimated ? s["reading.chapters_estimated"] : s["reading.chapters_empty"]
+            visible: controller.groupCount > 0 && (controller.chaptersEstimated || controller.chapters.length === 0)
+            wrapMode: Text.Wrap
+            color: page.theme.textSecondary
         }
         Label {
             Layout.leftMargin: 28

@@ -6,6 +6,19 @@ This project uses Semantic Versioning.
 
 ## Unreleased
 
+## v1.4.3 - 2026-09-26
+
+### Added
+- Chapter selection using EPUB contents, TXT headings, or clearly labeled layout suggestions requiring confirmation.
+- Save chapter anchors with reader documents; preserve old imported books and explain reimport limitations.
+
+### Changed
+- Press the hide key once to hide, release keeps the panel hidden, and press again to show. Auto-reading remains paused while hidden.
+
+### Fixed
+- Start chapter jumps at the title on its own line, without the preceding chapter's tail; preserve position across resizing and restart.
+- Prevent automatic reading from moving backward near the end of a book after a chapter jump.
+
 ## v1.4.2 - 2026-09-20
 
 ### Added

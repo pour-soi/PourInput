@@ -39,6 +39,8 @@ class ReadingController(QObject):
             key_down = lambda key: bool(query(key) & 0x8000)
         self._key_down = key_down or (lambda key: False)
         self._mouse_down = {}
+        self._hide_down = False
+        self._hide_context = None
         self._buttonEdge.connect(self._observe_button, Qt.QueuedConnection)
         self._hold_timer = QTimer(self)
         self._hold_timer.setTimerType(Qt.PreciseTimer)
@@ -48,6 +50,8 @@ class ReadingController(QObject):
         self._error = ""
         self._viewport = None
         self._page_key = None
+        self._chapter_key = None
+        self._chapters = []
         self._pages = []
         self._line_height = 28
         self._lines = []
@@ -118,36 +122,55 @@ class ReadingController(QObject):
             group_starts.append(length)
             length += len(group) + 1
         text = " ".join(self.model.groups)
-        layout = QTextLayout(text, font)
-        option = QTextOption()
-        option.setWrapMode(QTextOption.WrapAtWordBoundaryOrAnywhere)
-        layout.setTextOption(option)
-        layout.beginLayout()
-        starts = []
-        while True:
-            line = layout.createLine()
-            if not line.isValid():
-                break
-            line.setLineWidth(width)
-            starts.append(line.textStart())
-        layout.endLayout()
-        # Qt indexes UTF-16; persisted offsets use Python character indexes.
-        encoded = text.encode("utf-16-le")
-        offsets, previous, position = [], 0, 0
-        for offset in starts:
-            position += len(encoded[previous * 2:offset * 2].decode("utf-16-le"))
-            offsets.append(position)
-            previous = offset
+        # Layout chapter titles separately, retaining original storage offsets.
+        boundaries = {0, len(text)}
+        for entry in self._get_chapters():
+            start = group_starts[entry["group_index"]] + entry["group_offset"]
+            boundaries.add(start)
+            pattern = r"\s*".join(re.escape(c) for c in entry["title"] if not c.isspace())
+            match = re.match(pattern, text[start:]) if pattern else None
+            if match:
+                boundaries.add(start + match.end())
+        boundaries = sorted(boundaries)
         self._lines = []
-        for index, start in enumerate(offsets):
-            group = bisect_right(group_starts, start) - 1
-            end = offsets[index + 1] if index + 1 < len(offsets) else len(text)
-            self._lines.append((group, start - group_starts[group], text[start:end]))
-        for first in range(0, len(offsets), lines_per_page):
-            start = offsets[first]
-            end = offsets[first + lines_per_page] if first + lines_per_page < len(offsets) else len(text)
-            group = bisect_right(group_starts, start) - 1
-            pages.append((group, start - group_starts[group], text[start:end]))
+        for segment_index, (begin, end) in enumerate(zip(boundaries, boundaries[1:])):
+            segment = text[begin:end]
+            if len(boundaries) > 2:
+                begin += len(segment) - len(segment.lstrip())
+                segment = segment.strip()
+            if not segment:
+                continue
+            layout = QTextLayout(segment, font)
+            option = QTextOption()
+            option.setWrapMode(QTextOption.WrapAtWordBoundaryOrAnywhere)
+            layout.setTextOption(option)
+            layout.beginLayout()
+            starts = []
+            while True:
+                line = layout.createLine()
+                if not line.isValid():
+                    break
+                line.setLineWidth(width)
+                starts.append(line.textStart())
+            layout.endLayout()
+            # Qt indexes UTF-16; persisted offsets use Python character indexes.
+            encoded = segment.encode("utf-16-le")
+            offsets, previous, position = [], 0, 0
+            for offset in starts:
+                position += len(encoded[previous * 2:offset * 2].decode("utf-16-le"))
+                offsets.append(position)
+                previous = offset
+            for index, offset in enumerate(offsets):
+                start = begin + offset
+                group = bisect_right(group_starts, start) - 1
+                stop = offsets[index + 1] if index + 1 < len(offsets) else len(segment)
+                content = segment[offset:stop]
+                if index + 1 == len(offsets) and segment_index + 1 < len(boundaries) - 1:
+                    content += "\n"
+                self._lines.append((group, start - group_starts[group], content))
+        for first in range(0, len(self._lines), lines_per_page):
+            group, offset, _ = self._lines[first]
+            pages.append((group, offset, "".join(line[2] for line in self._lines[first:first + lines_per_page])))
         self._line_anchors = [(g, o) for g, o, text in self._lines]
         self._pages, self._page_key = pages, key
         return bool(pages)
@@ -163,7 +186,9 @@ class ReadingController(QObject):
                 first = self._line_index()
                 count = math.ceil(self._viewport[1] / self._line_height) + 2
                 return "".join(line[2] for line in self._lines[first:first + count])
-            return self._pages[self._page_index()][2]
+            first = self._line_index()
+            count = max(1, int(self._viewport[1] // self._line_height))
+            return "".join(line[2] for line in self._lines[first:first + count])
         return self.model.text if self.model else ""
 
     continuousScroll = Property(bool, lambda self: bool(self.model and self.model.state.continuous_scroll), notify=changed)
@@ -223,7 +248,7 @@ class ReadingController(QObject):
         if not self._auto_running or not self.panelVisible or not self._ensure_pages():
             return
         first = self._line_index()
-        limit = max(0, len(self._lines) - self._viewport[1] / self._line_height)
+        limit = max(first, len(self._lines) - self._viewport[1] / self._line_height)
         position = min(limit, first + self.model.state.scroll_fraction
                        + max(0, elapsed) * self.scrollSpeed / self._line_height)
         index = int(position)
@@ -257,6 +282,44 @@ class ReadingController(QObject):
     displayMode = Property(str, lambda self: self.model.state.display_mode if self.model else "Normal", notify=changed)
     panelOpacity = Property(float, lambda self: self.model.state.opacity if self.model else 0.9, notify=changed)
     strings = Property("QVariantMap", lambda self: self._locale.strings, notify=changed)
+
+    def _get_chapters(self):
+        if not self.model or not self.model.document:
+            return []
+        if self._chapter_key != self.model.state.document_id:
+            from core.reader_chapters import legacy_chapters
+            self._chapter_key = self.model.state.document_id
+            self._chapters = self.model.document.get("chapters")
+            if self._chapters is None:
+                self._chapters = legacy_chapters(self.model.groups)
+        return self._chapters
+
+    chapters = Property("QVariantList", _get_chapters, notify=changed)
+    chapterLabels = Property("QVariantList", lambda self: [
+        dict(entry, label=entry["title"] + (" " + self._locale.tr("reading.inferred_suffix")
+             if entry.get("inferred") else "")) for entry in self._get_chapters()], notify=changed)
+    chaptersEstimated = Property(bool, lambda self: bool(self.model and self.model.document
+        and "chapters" not in self.model.document), notify=changed)
+
+    def _current_chapter(self):
+        entries = self._get_chapters()
+        if not entries:
+            return -1
+        state = self.model.state
+        return bisect_right([(e["group_index"], e["group_offset"]) for e in entries],
+                            (state.group_index, state.group_offset)) - 1
+
+    currentChapter = Property(int, _current_chapter, notify=changed)
+
+    @Slot(int)
+    def jumpToChapter(self, index):
+        entries = self._get_chapters()
+        if self._closed or not 0 <= index < len(entries):
+            return
+        entry = entries[index]
+        self.setAutoRunning(False)
+        self._change(group_index=entry["group_index"], group_offset=entry["group_offset"], scroll_fraction=0.0)
+        self.scrollChanged.emit()
 
     def _localized_error(self):
         if not self._error or self._locale.language == "en":
@@ -298,6 +361,12 @@ class ReadingController(QObject):
         active = self._supported and self.enabled and self.hideKey != 0 and not self._closed
         if hasattr(self._hook, "set_reading_hide_key"):
             self._hook.set_reading_hide_key(self.hideKey if active else 0)
+        context = (active, self.hideKey)
+        if context != self._hide_context:
+            # Re-arm after changing the key or enabling reading; an already-held
+            # key must not count as a fresh press.
+            self._hide_context = context
+            self._hide_down = bool(self._mouse_down.get(self.hideKey, self._key_down(self.hideKey)))
         if active:
             self._hold_timer.start()
         else:
@@ -311,7 +380,12 @@ class ReadingController(QObject):
         down = self._mouse_down.get(self.hideKey)
         if down is None:
             down = self._key_down(self.hideKey) if self.hideKey else False
-        hidden = bool(self._hold_timer.isActive() and down)
+        hidden = self.model.hidden
+        if not self._hold_timer.isActive():
+            hidden = False
+        elif down and not self._hide_down:
+            hidden = not hidden
+        self._hide_down = bool(down)
         if self.model.hidden != hidden:
             # Visibility only: no model.update(), gate reset, or persistence.
             self.model.set_hidden(hidden)
@@ -390,8 +464,11 @@ class ReadingController(QObject):
             return
         try:
             if self.enabled and self._ensure_pages():
-                index = max(0, min(len(self._pages) - 1, self._page_index() + (1 if direction > 0 else -1)))
-                group, start, text = self._pages[index]
+                count = max(1, int(self._viewport[1] // self._line_height))
+                first = self._line_index()
+                last = (len(self._lines) - 1) // count * count
+                index = (max(first, min(last, first + count)) if direction > 0 else max(0, first - count))
+                group, start, text = self._lines[index]
                 self.model.update(group_index=group, group_offset=start, scroll_fraction=0.0)
                 self._scroll_last = time.monotonic()
                 self.scrollChanged.emit()
@@ -420,7 +497,7 @@ class ReadingController(QObject):
 
         def work():
             try:
-                result, error = import_document(path), ""
+                result, error = import_document(path, with_chapters=True), ""
             except Exception as exc:
                 result, error = None, "Import failed: " + str(exc)
             if not self._closed:

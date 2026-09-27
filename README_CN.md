@@ -10,9 +10,9 @@
 
 PourInput 是一款鼠标自定义软件。为受支持的按键分配操作，让单击和长按各司其职，再为不同应用配置不同映射。把鼠标调成适合自己的样子，设置保存在本地。
 
-[**下载 Windows 正式版 · v1.4.2**](https://github.com/pour-soi/PourInput/releases/download/v1.4.2/PourInput-v1.4.2-Windows.zip)
+[**下载 Windows 正式版 · v1.4.3**](https://github.com/pour-soi/PourInput/releases/download/v1.4.3/PourInput-v1.4.3-Windows.zip)
 
-[本版更新](https://github.com/pour-soi/PourInput/releases/tag/v1.4.2) · [macOS 版本](#macos-版本) · [反馈问题](https://github.com/pour-soi/PourInput/issues)
+[本版更新](https://github.com/pour-soi/PourInput/releases/tag/v1.4.3) · [macOS 版本](#macos-版本) · [反馈问题](https://github.com/pour-soi/PourInput/issues)
 
 ![PourInput 鼠标按键与应用配置界面](images/Screenshot_mouse_zh-CN.png)
 
@@ -55,10 +55,12 @@ PourInput 是一款鼠标自定义软件。为受支持的按键分配操作，�
 
 阅读模式是鼠标自定义之外的一项可选功能。将本地 TXT 或 EPUB 放进阅读浮窗，用滚轮手动导航，或开启可调速、可暂停的自动连续滚动。浮窗大小、文字样式和透明度都可以调整。
 
-关闭阅读模式时，滚轮正常滚动页面；开启后，竖向滚轮暂时控制阅读内容，不改变已保存的鼠标映射。按住隐藏键时自动滚动暂停，松开后继续；关闭阅读模式后，鼠标隐藏键恢复原来的操作。
+关闭阅读模式时，滚轮正常滚动页面；开启后，竖向滚轮暂时控制阅读内容，不改变已保存的鼠标映射。按一下隐藏键隐藏并暂停，松开保持隐藏，再按一下显示并继续；关闭阅读模式后，鼠标隐藏键恢复原来的操作。
 
 <details>
 <summary>展开查看阅读截图与使用说明</summary>
+
+章节目录支持 EPUB 内置目录和 TXT 标题识别。根据排版推测的标题会标注“推测”，确认后再跳转；跳转从标题开始，标题独占一行。旧版导入的书籍可能需要重新导入，才能恢复目录和行间格式。
 
 ![使用示例文字的阅读浮窗](images/Screenshot_reading_panel_zh-CN.png)
 
@@ -72,7 +74,7 @@ PourInput 是一款鼠标自定义软件。为受支持的按键分配操作，�
 
 ## 在 Windows 上开始使用
 
-[**下载 PourInput v1.4.2 Windows 正式版**](https://github.com/pour-soi/PourInput/releases/download/v1.4.2/PourInput-v1.4.2-Windows.zip)
+[**下载 PourInput v1.4.3 Windows 正式版**](https://github.com/pour-soi/PourInput/releases/download/v1.4.3/PourInput-v1.4.3-Windows.zip)
 
 1. 将 ZIP **完整解压**到较短的路径，例如 `F:\Apps`。不要直接在压缩包内运行，也不要在解压报错时跳过文件。
 2. 从**系统托盘菜单**退出旧版 PourInput。只关闭设置窗口，并不代表软件已经退出。
@@ -80,7 +82,7 @@ PourInput 是一款鼠标自定义软件。为受支持的按键分配操作，�
 4. 要设置按键，进入鼠标页面，点击对应按钮。
 5. 按需添加应用配置；要自定义标准中键和侧键时，开启通用鼠标模式。
 
-Windows 程序尚未签名。[发布页](https://github.com/pour-soi/PourInput/releases/tag/v1.4.2)同时提供 SHA-256 校验文件和更新清单。
+Windows 程序尚未签名。[发布页](https://github.com/pour-soi/PourInput/releases/tag/v1.4.3)同时提供 SHA-256 校验文件和更新清单。
 
 ## 设备与平台说明
 

@@ -76,10 +76,14 @@ class ReaderStore:
     def save_state(self, state):
         self._write(self.directory / "state.json", asdict(state))
 
-    def save_document(self, title, groups):
+    def save_document(self, title, groups, chapters=None):
         if not groups or any(not isinstance(g, str) or not g.strip() for g in groups):
             raise ValueError("The document contains no readable text")
         document = {"title": title, "groups": list(groups), "grouping_version": 2}
+        if chapters is not None:
+            from core.reader_chapters import validate_chapters
+            validate_chapters(chapters, groups)
+            document["chapters"] = chapters
         payload = json.dumps(document, ensure_ascii=False).encode("utf-8")
         document_id = hashlib.sha256(payload).hexdigest()
         self._write(self.directory / "documents" / (document_id + ".json"), document)
@@ -94,6 +98,9 @@ class ReaderStore:
                 or not document["groups"]
                 or any(not isinstance(g, str) or not g.strip() for g in document["groups"])):
             raise ValueError("Invalid reader document")
+        if "chapters" in document:
+            from core.reader_chapters import validate_chapters
+            validate_chapters(document["chapters"], document["groups"])
         return document
 
 
@@ -148,8 +155,8 @@ class ReaderModel:
         self.store.save_state(state)
         self.state = state
 
-    def open_document(self, title, groups):
-        document_id = self.store.save_document(title, groups)
+    def open_document(self, title, groups, chapters=None):
+        document_id = self.store.save_document(title, groups, chapters)
         document = self.store.load_document(document_id)
         state = replace(self.state, document_id=document_id, group_index=0, group_offset=0, scroll_fraction=0.0)
         self.store.save_state(state)
