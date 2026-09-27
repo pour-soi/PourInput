@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="images/logo.png" alt="PourInput" width="180">
+  <img src="images/logo.png" alt="PourInput" width="140">
 </p>
 
 # PourInput
@@ -8,69 +8,71 @@
 
 **English** · [简体中文](README_CN.md)
 
-PourInput is a mouse customization app. Assign actions to supported buttons, give clicks and long presses different roles, and switch mappings automatically for each application. Keep control of your mouse with settings saved locally.
+**PourInput is a mouse customization app.** Make supported mouse buttons perform the actions you need: copying, pasting, switching tabs, taking screenshots, running keyboard shortcuts, and more. Give a click and a long press different actions, then create application profiles that switch automatically as you work.
 
-[**Download for Windows · v1.4.3**](https://github.com/pour-soi/PourInput/releases/download/v1.4.3/PourInput-v1.4.3-Windows.zip)
+[**Download for Windows · v1.4.3**](https://github.com/pour-soi/PourInput/releases/download/v1.4.3/PourInput-v1.4.3-Windows.zip) · [Release notes](https://github.com/pour-soi/PourInput/releases/tag/v1.4.3) · [Full feature gallery](docs/FEATURES.md)
 
-[What's new](https://github.com/pour-soi/PourInput/releases/tag/v1.4.3) · [macOS edition](#macos-edition) · [Report a problem](https://github.com/pour-soi/PourInput/issues)
+![Mouse controls and application profiles in PourInput v1.4.3](images/screenshots-v1.4.3/mouse-en.png)
 
-![PourInput mouse button and application profile configuration](images/Screenshot_mouse_en.png)
+*Current v1.4.3 interface, rendered with sample profiles and device capabilities. Screenshots illustrate controls; available hardware features depend on your mouse and firmware.*
 
-**Button mapping · Click and Long Press · Application profiles · MX Master controls**
+## Put everyday actions on your mouse
 
-## Put your everyday actions on your mouse
+Choose a supported button directly on the mouse diagram. Assign browser navigation, editing commands, media controls, desktop navigation, or a custom keyboard shortcut. Screenshot actions can capture the whole screen or a selected region, to the clipboard or a file.
 
-Map supported buttons to copying, pasting, browser navigation, tab switching, screenshots, and other built-in actions. Choose the behavior for each button from the mouse page and keep your most-used commands within reach.
+**One button can do two jobs.** For example, click the middle button to capture a region and hold it to copy. Configure Click and Long Press independently where supported.
 
-### One button, two actions
+![Actions, screenshots, custom shortcuts, and long-press mapping](images/screenshots-v1.4.3/actions-en.png)
 
-Assign separate **Click** and **Long Press** actions to the same supported button. A quick press can copy; a long press can paste. Choose the combination that fits your workflow.
+[See all action categories and the custom shortcut editor →](docs/FEATURES.md#buttons-and-shortcuts)
 
-### Different apps, different mappings
+## Different applications, different controls
 
-Create application profiles so the same button can perform different actions in your browser, editor, or other software. PourInput selects the appropriate profile as you switch applications. Keep a default profile for everything else.
+Keep a default profile for everyday use and add profiles for your browser, editor, or other apps. PourInput changes the active mappings with the focused application. The same side button can go back in your browser and run a shortcut elsewhere.
 
-### Standard mice, too
+![Application profile selection](images/screenshots-v1.4.3/profiles-en.png)
 
-**Generic Mouse Mode** handles standard Windows middle and side buttons, including mice such as ZOWIE. It does not require a supported Logitech device.
+## Standard buttons and MX enhancements, together
 
-![Generic Mouse Mode button configuration](images/Screenshot_generic_en.png)
+**Generic Mouse Mode** maps the standard Windows middle button and two side buttons, including on ordinary mice such as ZOWIE. While enabled, Generic owns these inputs completely: a “none” mapping performs no action and does not fall back to a saved MX mapping. Switching it off restores device-specific routing without deleting those mappings.
 
-### Keep your MX Master enhancements
+![Generic Mouse Mode enabled](images/screenshots-v1.4.3/generic-en.png)
 
-Supported HID++ controls can provide gestures, Mode Shift, SmartShift, DPI adjustment, battery information, and horizontal scrolling. Available controls depend on the device and firmware.
+Supported **MX Master HID++ enhancements** remain available for non-overlapping controls: gestures, horizontal scrolling, Mode Shift, SmartShift, and DPI. You can assign directional gestures and adjust their threshold, configure horizontal scroll actions, and choose the supported wheel behavior. Device and firmware support varies.
 
-Generic Mouse Mode and MX enhancements work together. Generic owns the standard inputs it supports while enabled; non-overlapping MX controls remain available. A Generic mapping set to “none” stays inactive instead of falling back to an MX action. Turning Generic off restores device-specific routing, with saved mappings retained.
+![DPI, SmartShift sensitivity, appearance, and language settings](images/screenshots-v1.4.3/settings-1-en.png)
 
-## Set it up your way
+[Explore gestures, horizontal scrolling, wheel modes, and every settings section →](docs/FEATURES.md#mx-controls)
 
-1. Open the mouse page and select a supported button.
-2. Choose its Click Action and, if needed, a Long Press Action.
-3. Add an application profile for software that needs different mappings.
-4. For standard middle and side buttons, enable Generic Mouse Mode as needed.
+## Make the app fit your workflow
 
-Switch the interface between English and Simplified Chinese without changing saved mappings. Settings stay on your computer.
+Choose light, dark, or system appearance and English or Simplified Chinese. Configure startup behavior, update checks, screenshot destination, and vertical/horizontal scroll direction. Mouse mappings and reader data stay in separate local stores.
 
-## Also included: Reading Mode on Windows
+## Reading Mode: mouse control for a specific activity
 
-Reading Mode is an optional feature alongside mouse customization. Import a local TXT or EPUB into a floating panel, navigate with the wheel, or enable smooth automatic scrolling with speed and pause controls. Customize the panel's size, text, and transparency.
+Mouse customization is PourInput's core. Reading Mode extends that idea: beyond deciding what a button does, a mouse can adapt to the activity you are doing. It is an example of bringing mouse control into a complete workflow, while keeping your everyday mappings intact.
 
-Reading OFF restores ordinary scrolling. Reading ON temporarily uses the vertical wheel for the reader without changing saved mouse mappings. Press the hide key once to hide and pause, release keeps it hidden, and press again to show and resume; the configured mouse hide button returns to its usual action when reading is off.
+### Read local books in a floating panel
 
-<details>
-<summary>Reading screenshot and usage details</summary>
+Import **TXT or EPUB** and use the wheel to move through the text, or start **smooth automatic scrolling** with adjustable speed and pause/resume. The panel keeps its size and font size; overflow continues as you read. It stays on top without taking keyboard focus.
 
-Choose chapters from EPUB contents or recognized TXT headings. Titles inferred from layout are marked as suggested and require confirmation. Chapter jumps start at the title on its own line. Older imports may need reimporting to recover contents and line spacing.
+![Reading controls, automatic scrolling, and chapter navigation](images/screenshots-v1.4.3/reading-en.png)
 
-![Reading overlay with sample text](images/Screenshot_reading_panel_en.png)
+### Find your place with chapters
 
-Open the book icon in the left sidebar, import a document, then enable Reading Mode. Use **Start / resume auto-scroll** or **Pause auto-scroll** on the Reading page. Playback stops at the end and restarts paused at the saved position when the app is reopened.
+EPUB contents and recognized TXT headings appear in the chapter selector. When explicit headings are absent, PourInput can suggest titles from line spacing and short standalone lines. Suggestions are labeled and require confirmation; they may be incomplete or incorrect. A jump starts at the chapter title on its own line. Older imports may need reimporting for accurate contents.
 
-Normal, Minimal, and Ghost display modes are available. The panel stays on top without taking focus; Minimal and Ghost allow clicks through the text area. While temporarily hidden, Reading Mode still owns the wheel. Mouse hide buttons are exclusive while reading; keyboard hide keys retain their normal keyboard action.
+### A panel you can adjust and hide
 
-Documents and reading position are stored separately from mouse profiles. The screenshot uses the actual interface with sample text. See the [Reading Mode guide](docs/READING_MODE.md) for more details.
+Drag the book-and-leaf handle to move the panel, or the lower-right grip to resize it. Set the font size, text color, opacity, and fully transparent background. Choose **Normal**, **Minimal**, or **Ghost**; Minimal and Ghost let clicks pass through the text area.
 
-</details>
+![Normal floating reading panel with a chapter title](images/screenshots-v1.4.3/overlay-en.png)
+
+**Press once to hide; press again to show.** Releasing the key keeps the panel hidden. Automatic reading pauses while hidden and resumes when shown. Reading stays enabled, the position is retained, and the wheel still belongs to Reading Mode. The selected mouse hide button is exclusive while reading; keyboard keys retain their usual keyboard action.
+
+Reading OFF restores ordinary wheel scrolling. Reading ON temporarily claims the vertical wheel above Generic/MX routing. Switching mouse profiles or Generic mode does not reset the book. Reopening restores your position with automatic scrolling paused.
+
+[All reading controls and the three panel modes →](docs/FEATURES.md#reading) · [Reading guide](docs/READING_MODE.md)
 
 ## Get started on Windows
 
@@ -86,7 +88,7 @@ The Windows executable is unsigned. Downloads include a SHA-256 checksum and an 
 
 ## Device and platform notes
 
-**Windows hardware validation:** MX Master 4 and a ZOWIE mouse were used to validate reading, wheel ownership, and hold-to-hide workflows. Earlier testing also covered MX Master 3 controls. This does not mean every feature is available on every model or firmware.
+**Windows hardware validation:** MX Master 4 and a ZOWIE mouse were used to validate reading, wheel ownership, and panel-hiding workflows. Earlier testing also covered MX Master 3 controls. This does not mean every feature is available on every model or firmware.
 
 Generic Mouse Mode currently maps the middle button and two side buttons. It cannot distinguish multiple standard mice by physical device, and it does not offer general left/right-button or vertical-wheel remapping. Reading's wheel override is a separate feature.
 

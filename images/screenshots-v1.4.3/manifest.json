@@ -1,0 +1,178 @@
+[
+  {
+    "file": "mouse-en.png",
+    "sha256": "e74d434b82c4a193c9ca57c45f744d5a876136075125b0148b61fc8f19f9f6cc"
+  },
+  {
+    "file": "actions-top-en.png",
+    "sha256": "b633ebf1a10aea2c9fe3206e45df334d9ade78ee902122416387158c556cfed4"
+  },
+  {
+    "file": "actions-en.png",
+    "sha256": "bf43725d18ed7b14ae2d39723dab5bcb0f06030474efdc13b60b906ab88fb0a0"
+  },
+  {
+    "file": "custom-shortcut-en.png",
+    "sha256": "358f6d76021ebd46619d4b0a3d4145f4b586384322a6b598c6926b30828f2f2c"
+  },
+  {
+    "file": "profiles-en.png",
+    "sha256": "9f33b1c8a84fc609cee4e5cd9b9ab40d7645dd67a105d474c6505abe28332a6b"
+  },
+  {
+    "file": "add-profile-en.png",
+    "sha256": "93a901a75737450e90367340974deee2372a75739f3ace074b4db161f4abebb6"
+  },
+  {
+    "file": "generic-en.png",
+    "sha256": "a3ae309786e34d4706edd4054e2057ce510a1e6bd492b3f268009c6d8afa2d22"
+  },
+  {
+    "file": "gestures-en.png",
+    "sha256": "5e78c67f2e6ec8f28ac4c27f2de4b637185aaf8bfeb60d237d97d4d64e331902"
+  },
+  {
+    "file": "horizontal-top-en.png",
+    "sha256": "4ba38dd785347c13a315a96a5f32170e352dda2a2df10143f74a07888ea73e6d"
+  },
+  {
+    "file": "horizontal-en.png",
+    "sha256": "74ef3a153f12b34c2ba1c751283cfdb42aaf45b2fa3b2aa9a97384617d3016ce"
+  },
+  {
+    "file": "mode-shift-top-en.png",
+    "sha256": "c17992cb0da653f6d1ee56f8671ba216dee46c6a3da8721b40ef6993d8eafbf1"
+  },
+  {
+    "file": "mode-shift-en.png",
+    "sha256": "0b6e1099d69145d43a806923a253ea151da2a8f5f7a207fc45f18ab33fea9282"
+  },
+  {
+    "file": "settings-1-en.png",
+    "sha256": "c1b122d2301e71b56a3bb3c5515ee262cc2d64af03efbc458f50f20caeb30d7d"
+  },
+  {
+    "file": "wheel-mode-en.png",
+    "sha256": "48288c86883d8967d2b6731f7b8bcaf1a5e3ca0586a40c380304bb3eacb0b9b2"
+  },
+  {
+    "file": "settings-2-en.png",
+    "sha256": "9b1272f6ba08dfdf21809707586aac658fa6b884ad95f1a77a89a17a535e2a57"
+  },
+  {
+    "file": "settings-3-en.png",
+    "sha256": "6582fad8771c90bb5433ed2b142e9a18d60f56543e8308cbe9db34a5039f97c2"
+  },
+  {
+    "file": "reading-en.png",
+    "sha256": "12b9979125f759dfe5979ec67117ae6246a8e91a12efe4907b7a3743b3fd9dab"
+  },
+  {
+    "file": "reading-options-en.png",
+    "sha256": "1de564279942369c27fa04c5c48c972948107685edbc95c1849ac5630cef66a1"
+  },
+  {
+    "file": "overlay-en.png",
+    "sha256": "293c2a4cf898fa93c2fd60eabd0bbc9955bb4101e0fffade84a69c164b4a08f4"
+  },
+  {
+    "file": "overlay-minimal-en.png",
+    "sha256": "b57db83a82b66652c98d1e9c2a24bd4376d17be058d999d503883a5cea8dbc78"
+  },
+  {
+    "file": "overlay-ghost-en.png",
+    "sha256": "7d55583b136f11931a579a55f62e5fd7883edd0cbefafb1cbf163cfe5ecf6c7a"
+  },
+  {
+    "file": "about-en.png",
+    "sha256": "73c6f99e1fbf9dc282c2fc1e9864d12ae938f579cc6b3e1dcb1d14fd3b202e3f"
+  },
+  {
+    "file": "mouse-zh-CN.png",
+    "sha256": "771ec13053a955ddc6669bcadcb18812d2861959e8753271658a6b6230b7935f"
+  },
+  {
+    "file": "actions-top-zh-CN.png",
+    "sha256": "84faefe4002bfb87ca3f899f49637432e1c65bbab493ece76e519984a5735188"
+  },
+  {
+    "file": "actions-zh-CN.png",
+    "sha256": "d5827af81e9e181fccb6fa6debf6b73c40000ae9d75b8ec91320efde2b8fa759"
+  },
+  {
+    "file": "custom-shortcut-zh-CN.png",
+    "sha256": "f43fbd2753ecc736c850242c27e9a137bb8902965284693c326c596931672649"
+  },
+  {
+    "file": "profiles-zh-CN.png",
+    "sha256": "cca5f2325fecb75616456346d5a0b0f1301480618ee51e77d6a11308ab62faaa"
+  },
+  {
+    "file": "add-profile-zh-CN.png",
+    "sha256": "d2b057d51924961d4a709cc96e2f508f271964ab849f9a07459e9c42af9befbf"
+  },
+  {
+    "file": "generic-zh-CN.png",
+    "sha256": "4a144fd12a00a6f18ea75853f538ca8362de22a3662fb3edd374bdea2705fa25"
+  },
+  {
+    "file": "gestures-zh-CN.png",
+    "sha256": "eb88c08f2c866bb31dd77e8db687be4b787c8eb47fecbf2a821391a191174eac"
+  },
+  {
+    "file": "horizontal-top-zh-CN.png",
+    "sha256": "1ba59dbab7077e985e16aff863e13a03d8927c965d329f7b232e5df7c883354f"
+  },
+  {
+    "file": "horizontal-zh-CN.png",
+    "sha256": "9fad53083d2468feeb1d8bb69c4f57fc87139e35d1e1ba7c6a4c28b45cc65a5c"
+  },
+  {
+    "file": "mode-shift-top-zh-CN.png",
+    "sha256": "d4326f4f9e9084480c45353624e409c29d11a8ff9387f3d79d4097cbf6a2e3e3"
+  },
+  {
+    "file": "mode-shift-zh-CN.png",
+    "sha256": "f7a9c432d7c8185316c4e86dbb82314a7c1e98e38d9af75e7698c9fe2c956640"
+  },
+  {
+    "file": "settings-1-zh-CN.png",
+    "sha256": "d7e0e330a77cf85d4bdece63c93bb97b957db374e9b213d35e8f68ad0a2fa647"
+  },
+  {
+    "file": "wheel-mode-zh-CN.png",
+    "sha256": "ad717810487f10d6ff665debadc054135efeafc7ac976940574e28ac5c848b43"
+  },
+  {
+    "file": "settings-2-zh-CN.png",
+    "sha256": "523a6555452ded36058fc5c3da1daca8ab5cbbac647e99b8151842dc91c933f4"
+  },
+  {
+    "file": "settings-3-zh-CN.png",
+    "sha256": "94525f46388656da0442cdd6ac461b0617812148814f81038c3c3e8eea4f7590"
+  },
+  {
+    "file": "reading-zh-CN.png",
+    "sha256": "758888ad7d849f3cd88294153d23f78ab01beb8e835fca54e147da566d6bffb7"
+  },
+  {
+    "file": "reading-options-zh-CN.png",
+    "sha256": "add536d61689bf06e486fdb17862e966bfe17c8125112a0b6812961854a9c661"
+  },
+  {
+    "file": "overlay-zh-CN.png",
+    "sha256": "299fe3b0b14c7c58ba226b0ba725277363e6d915f77c0734c9ae23865676ab48"
+  },
+  {
+    "file": "overlay-minimal-zh-CN.png",
+    "sha256": "57d8adb9358be0a22baf528c0ae8d378ea218c5169b8aa0aaa6efaacf08d8045"
+  },
+  {
+    "file": "overlay-ghost-zh-CN.png",
+    "sha256": "e0c49f7749736bb5ce5dc90c8e4252d1d25a801fde238bde06c9f9342591cc98"
+  },
+  {
+    "file": "about-zh-CN.png",
+    "sha256": "985afb2f6d8720730a11fe20edeb84e019bb085dcfe0b527209b37b4e57e8c95"
+  }
+]
