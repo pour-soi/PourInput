@@ -274,7 +274,7 @@ class ReadingUiTests(unittest.TestCase):
         reader._finish_import(None, "Import failed: broken file")
         self.assertNotIn("Import", reader.error)
         locale.setLanguage("en")
-        self.assertEqual(reader.strings["reading.normal"], "Normal")
+        self.assertEqual(reader.strings["reading.normal"], "Standard")
         self.assertEqual(reader.hideChoices[2]["label"], "Back button")
         self.assertEqual(chinese_keys, {key for key in reader.strings if key.startswith("reading.")})
         self.assertEqual(reader.model.state, before)
