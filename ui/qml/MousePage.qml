@@ -1189,6 +1189,7 @@ Item {
                     // ── Action picker ─────────────────────────
                     Rectangle {
                         id: actionPicker
+                        objectName: "actionPicker"
                         width: parent.width - 64
                         anchors.horizontalCenter: parent.horizontalCenter
                         height: selectedButton !== ""
@@ -1243,73 +1244,32 @@ Item {
                                 }
                             }
 
-                            // Horizontal scroll: left + right rows
+                            // A tab selects the edit target; changing tabs never writes a mapping.
                             Column {
+                                id: horizontalEditor
                                 width: parent.width
-                                spacing: 14
+                                spacing: 12
                                 visible: selectedButton === "hscroll_left"
-
-                                Text {
-                                    text: s["mouse.scroll_left"]
-                                    font { family: uiState.fontFamily; pixelSize: 11;
-                                           capitalization: Font.AllUppercase; letterSpacing: 1 }
-                                    color: theme.textDim
+                                property string targetButton: scrollTabs.currentIndex === 0 ? "hscroll_left" : "hscroll_right"
+                                onVisibleChanged: if (visible) scrollTabs.currentIndex = 0
+                                TabBar {
+                                    id: scrollTabs
+                                    objectName: "scrollTabs"
+                                    width: Math.min(parent.width, 360)
+                                    TabButton { text: s["mouse.scroll_left"] }
+                                    TabButton { text: s["mouse.scroll_right"] }
                                 }
-
-                                Flow {
-                                    width: parent.width; spacing: 8
-                                    Repeater {
-                                        model: backend.allActions
-                                        delegate: ActionChip {
-                                            actionId: modelData.id
-                                            actionLabel: modelData.id === "__custom__" && isCustomAction(hscrollLeftActionId)
-                                                         ? customLabel(hscrollLeftActionId)
-                                                         : (lm.strings, lm.trAction(modelData.label))
-                                            isCurrent: modelData.id === "__custom__"
-                                                       ? isCustomAction(hscrollLeftActionId)
-                                                       : modelData.id === hscrollLeftActionId
-                                            onPicked: function(aid) {
-                                                if (aid === "__custom__") {
-                                                    keyCaptureDialog.open(selectedProfile, "hscroll_left")
-                                                    return
-                                                }
-                                                backend.setProfileMapping(
-                                                    selectedProfile, "hscroll_left", aid)
-                                            }
+                                ActionSelector {
+                                    objectName: "horizontalActionSelector"
+                                    width: parent.width
+                                    editorKey: selectedProfile + ":" + horizontalEditor.targetButton
+                                    currentAction: horizontalEditor.targetButton === "hscroll_left" ? hscrollLeftActionId : hscrollRightActionId
+                                    onPicked: function(aid) {
+                                        if (aid === "__custom__") {
+                                            keyCaptureDialog.open(selectedProfile, horizontalEditor.targetButton)
+                                            return
                                         }
-                                    }
-                                }
-
-                                Item { width: 1; height: 4 }
-
-                                Text {
-                                    text: s["mouse.scroll_right"]
-                                    font { family: uiState.fontFamily; pixelSize: 11;
-                                           capitalization: Font.AllUppercase; letterSpacing: 1 }
-                                    color: theme.textDim
-                                }
-
-                                Flow {
-                                    width: parent.width; spacing: 8
-                                    Repeater {
-                                        model: backend.allActions
-                                        delegate: ActionChip {
-                                            actionId: modelData.id
-                                            actionLabel: modelData.id === "__custom__" && isCustomAction(hscrollRightActionId)
-                                                         ? customLabel(hscrollRightActionId)
-                                                         : (lm.strings, lm.trAction(modelData.label))
-                                            isCurrent: modelData.id === "__custom__"
-                                                       ? isCustomAction(hscrollRightActionId)
-                                                       : modelData.id === hscrollRightActionId
-                                            onPicked: function(aid) {
-                                                if (aid === "__custom__") {
-                                                    keyCaptureDialog.open(selectedProfile, "hscroll_right")
-                                                    return
-                                                }
-                                                backend.setProfileMapping(
-                                                    selectedProfile, "hscroll_right", aid)
-                                            }
-                                        }
+                                        backend.setProfileMapping(selectedProfile, horizontalEditor.targetButton, aid)
                                     }
                                 }
                             }
@@ -1548,101 +1508,42 @@ Item {
                                 }
                             }
 
-                            // Single button: categorized chips
+                            // Both targets use the same browser; tabs only select the edit target.
                             Column {
+                                id: buttonEditor
                                 width: parent.width
                                 spacing: 14
                                 visible: selectedButton !== ""
                                          && selectedButton !== "hscroll_left"
                                          && !(selectedButton === "gesture"
                                               && backend.supportsGestureDirections)
+                                property string physicalButton: selectedButton
+                                property bool editingLong: supportsMultiActionButton(selectedButton) && buttonTabs.currentIndex === 1
+                                property string targetButton: editingLong ? longMappingKey(selectedButton) : selectedButton
+                                onPhysicalButtonChanged: buttonTabs.currentIndex = 0
+                                onVisibleChanged: if (visible) buttonTabs.currentIndex = 0
 
-                                Text {
+                                TabBar {
+                                    id: buttonTabs
+                                    objectName: "buttonTabs"
+                                    width: Math.min(parent.width, 360)
                                     visible: supportsMultiActionButton(selectedButton)
-                                    text: s["mouse.click_action"] || "Click Action"
-                                    font { family: uiState.fontFamily; pixelSize: 11;
-                                           capitalization: Font.AllUppercase;
-                                           letterSpacing: 1 }
-                                    color: theme.textDim
+                                    TabButton { text: s["mouse.click_tab"] }
+                                    TabButton { text: s["mouse.long_press_tab"] }
                                 }
-
-                                Repeater {
-                                    model: backend.actionCategories
-
-                                    delegate: Column {
-                                        width: parent.width
-                                        spacing: 8
-
-                                        Text {
-                                            text: { var _lang = lm.strings; return lm.trCategory(modelData.category) }
-                                            font { family: uiState.fontFamily; pixelSize: 11;
-                                                   capitalization: Font.AllUppercase;
-                                                   letterSpacing: 1 }
-                                            color: theme.textDim
-                                        }
-
-                                        Flow {
-                                            width: parent.width; spacing: 8
-                                            Repeater {
-                                                model: modelData.actions
-                                                delegate: ActionChip {
-                                                    actionId: modelData.id
-                                                    actionLabel: modelData.id === "__custom__" && isCustomAction(selectedActionId)
-                                                                 ? customLabel(selectedActionId)
-                                                                 : (lm.strings, lm.trAction(modelData.label))
-                                                    isCurrent: modelData.id === "__custom__"
-                                                               ? isCustomAction(selectedActionId)
-                                                               : modelData.id === selectedActionId
-                                                    onPicked: function(aid) {
-                                                        if (aid === "__custom__") {
-                                                            keyCaptureDialog.open(selectedProfile, selectedButton)
-                                                            return
-                                                        }
-                                                        backend.setProfileMapping(
-                                                            selectedProfile,
-                                                            selectedButton, aid)
-                                                        selectedActionId = aid
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-
-                                Column {
+                                ActionSelector {
+                                    objectName: "buttonActionSelector"
                                     width: parent.width
-                                    spacing: 8
-                                    visible: supportsMultiActionButton(selectedButton)
-
-                                    Text {
-                                        text: s["mouse.long_press_action"] || "Long Press Action"
-                                        font { family: uiState.fontFamily; pixelSize: 11;
-                                               capitalization: Font.AllUppercase;
-                                               letterSpacing: 1 }
-                                        color: theme.textDim
-                                    }
-
-                                    ComboBox {
-                                        width: parent.width
-                                        model: backend.allActions
-                                        textRole: "label"
-                                        delegate: actionComboDelegate
-                                        currentIndex: actionIndexForId(selectedLongActionId)
-                                        displayText: isCustomAction(selectedLongActionId)
-                                                     ? customLabel(selectedLongActionId)
-                                                     : (lm.strings, lm.trAction(currentText))
-                                        onActivated: function(index) {
-                                            var aid = backend.allActions[index].id
-                                            var targetButton = longMappingKey(selectedButton)
-                                            if (aid === "__custom__") {
-                                                keyCaptureDialog.open(selectedProfile, targetButton)
-                                                return
-                                            }
-                                            backend.setProfileMapping(
-                                                selectedProfile,
-                                                targetButton, aid)
-                                            selectedLongActionId = aid
+                                    editorKey: selectedProfile + ":" + buttonEditor.targetButton
+                                    currentAction: buttonEditor.editingLong ? selectedLongActionId : selectedActionId
+                                    onPicked: function(aid) {
+                                        if (aid === "__custom__") {
+                                            keyCaptureDialog.open(selectedProfile, buttonEditor.targetButton)
+                                            return
                                         }
+                                        backend.setProfileMapping(selectedProfile, buttonEditor.targetButton, aid)
+                                        if (buttonEditor.editingLong) selectedLongActionId = aid
+                                        else selectedActionId = aid
                                     }
                                 }
                             }
@@ -2627,6 +2528,7 @@ Item {
     // ── Key capture dialog for custom shortcuts ──────────────
     KeyCaptureDialog {
         id: keyCaptureDialog
+        objectName: "keyCaptureDialog"
         onCaptured: function(comboString) {
             backend.setProfileMapping(
                 keyCaptureDialog.targetProfile,

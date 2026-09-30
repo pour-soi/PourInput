@@ -11,10 +11,12 @@ Rectangle {
     property string actionLabel: ""
     property bool isCurrent: false
 
+    property real maximumWidth: 10000
+
     signal picked(string aid)
 
-    width: chipText.implicitWidth + 24
-    height: 34
+    width: Math.min(maximumWidth, chipText.implicitWidth + 24)
+    height: Math.max(34, chipText.implicitHeight + 16)
     radius: 9
     activeFocusOnTab: true
 
@@ -38,6 +40,8 @@ Rectangle {
     Text {
         id: chipText
         anchors.centerIn: parent
+        width: parent.width - 24
+        wrapMode: Text.Wrap
         text: actionLabel
         font { family: uiState.fontFamily; pixelSize: 12 }
         color: isCurrent ? theme.bgSidebar : theme.textPrimary
