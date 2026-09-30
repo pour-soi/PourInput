@@ -83,6 +83,18 @@ def apply_application_font(app, language, base_font):
         available_families=QFontDatabase.families(),
         system_families=base_families,
     )
+    # QML Text.font.family supplies one family, losing QFont's explicit stack.
+    # Register the installed CJK alternatives for those single-family requests too.
+    if sys.platform == "win32":
+        cjk = [family for family in WINDOWS_CHINESE_FONT_STACK
+               if family in QFontDatabase.families()]
+        for primary in families:
+            if primary not in WINDOWS_CHINESE_FONT_STACK:
+                existing = QFont.substitutes(primary)
+                additions = [family for family in cjk if family not in existing]
+                if additions:
+                    QFont.insertSubstitutions(primary, additions)
+    font = QFont(base_font)
     font.setFamilies(families)
     app.setFont(font)
     return families[0]

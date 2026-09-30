@@ -6,6 +6,7 @@ import "Theme.js" as Theme
 
 Item {
     id: scrollPage
+    objectName: "settingsPage"
     readonly property var theme: Theme.palette(uiState.darkMode)
 
     // Reactive shortcut — all s["key"] bindings update when lm.languageChanged fires
@@ -64,8 +65,31 @@ Item {
         return presets
     }
 
+
+    component SettingsButton: Button {
+        id: control
+        implicitHeight: 34
+        topInset: 0; bottomInset: 0
+        horizontalPadding: 14
+        font { family: uiState.fontFamily; pixelSize: 12 }
+        contentItem: Text {
+            text: control.text; font: control.font
+            color: scrollPage.theme.textPrimary
+            opacity: control.enabled ? 1 : 0.5
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+        }
+        background: Rectangle {
+            radius: 9
+            color: control.hovered ? scrollPage.theme.bgCardHover : scrollPage.theme.bgCard
+            border.color: scrollPage.theme.border
+            opacity: control.enabled ? 1 : 0.5
+        }
+    }
+
     ScrollView {
         id: pageScroll
+        objectName: "settingsScroll"
         anchors.fill: parent
         clip: true
         contentWidth: availableWidth
@@ -77,7 +101,7 @@ Item {
 
             Item {
                 width: parent.width
-                height: 88
+                height: 80
 
                 Column {
                     anchors {
@@ -137,7 +161,7 @@ Item {
                         top: parent.top
                         margins: Theme.space16
                     }
-                    spacing: 12
+                    spacing: 10
 
                     Text {
                         text: s["scroll.pointer_speed"]
@@ -166,7 +190,7 @@ Item {
 
                     RowLayout {
                         width: parent.width
-                        spacing: 12
+                        spacing: 10
 
                         Text {
                             text: backend.deviceDpiMin
@@ -504,7 +528,7 @@ Item {
                 }
             }
 
-            Item { width: 1; height: 16 }
+            Item { width: 1; height: 14 }
 
             // ── Appearance ────────────────────────────────────────
             Rectangle {
@@ -524,7 +548,7 @@ Item {
                         top: parent.top
                         margins: Theme.space16
                     }
-                    spacing: 12
+                    spacing: 10
 
                     Text {
                         text: s["scroll.appearance"]
@@ -599,7 +623,7 @@ Item {
                 }
             }
 
-            Item { width: 1; height: 16 }
+            Item { width: 1; height: 14 }
 
             // ── Language ──────────────────────────────────────────
             Rectangle {
@@ -613,13 +637,14 @@ Item {
 
                 Column {
                     id: languageContent
+                    objectName: "languageContent"
                     anchors {
                         left: parent.left
                         right: parent.right
                         top: parent.top
                         margins: Theme.space16
                     }
-                    spacing: 12
+                    spacing: 10
 
                     Text {
                         text: s["scroll.language"]
@@ -672,6 +697,7 @@ Item {
 
                                 Text {
                                     id: langText
+                                    objectName: "language_" + modelData.code
                                     anchors.centerIn: parent
                                     text: modelData.name
                                     font {
@@ -697,7 +723,7 @@ Item {
                 }
             }
 
-            Item { width: 1; height: 16 }
+            Item { width: 1; height: 14 }
 
             // ── Startup ───────────────────────────────────────────
             Rectangle {
@@ -712,13 +738,14 @@ Item {
 
                 Column {
                     id: startupContent
+                    objectName: "startupContent"
                     anchors {
                         left: parent.left
                         right: parent.right
                         top: parent.top
                         margins: Theme.space16
                     }
-                    spacing: 12
+                    spacing: 10
 
                     Text {
                         text: s["scroll.startup"]
@@ -824,11 +851,11 @@ Item {
                                 topMargin: 10
                                 bottomMargin: 10
                             }
-                            spacing: 12
+                            spacing: 10
 
                             RowLayout {
                                 Layout.fillWidth: true
-                                spacing: 12
+                                spacing: 10
 
                                 Column {
                                     Layout.fillWidth: true
@@ -888,13 +915,13 @@ Item {
                                     value: backend.updateInstallProgress
                                 }
 
-                                Button {
+                                SettingsButton {
                                     text: s["scroll.update_check"]
                                     enabled: !backend.updateInstallInProgress
                                     onClicked: backend.manualCheckForUpdates()
                                 }
 
-                                Button {
+                                SettingsButton {
                                     text: backend.isWindows ? s["scroll.update_download"] : s["scroll.update_verify"]
                                     visible: backend.latestUpdateVersion !== ""
                                              && !backend.updateInstallCanInstall
@@ -903,7 +930,7 @@ Item {
                                     onClicked: backend.prepareLatestUpdate()
                                 }
 
-                                Button {
+                                SettingsButton {
                                     text: s["scroll.update_cancel"]
                                     visible: backend.updateInstallStatus === "checking"
                                              || backend.updateInstallStatus === "downloading"
@@ -911,14 +938,14 @@ Item {
                                     onClicked: backend.cancelUpdatePreparation()
                                 }
 
-                                Button {
+                                SettingsButton {
                                     text: s["scroll.update_install"]
                                     visible: backend.updateInstallCanInstall && backend.updateInstallEnabled
                                     enabled: !backend.updateInstallInProgress
                                     onClicked: backend.installPreparedUpdate()
                                 }
 
-                                Button {
+                                SettingsButton {
                                     text: s["scroll.update_open_release"]
                                     visible: backend.latestUpdateVersion !== ""
                                     enabled: !backend.updateInstallInProgress
@@ -932,7 +959,7 @@ Item {
 
             Item {
                 width: 1
-                height: backend.supportsStartAtLogin ? 16 : 0
+                height: backend.supportsStartAtLogin ? 14 : 0
             }
 
             // ── Screenshots ───────────────────────────────────────
@@ -947,13 +974,14 @@ Item {
 
                 Column {
                     id: screenshotContent
+                    objectName: "screenshotContent"
                     anchors {
                         left: parent.left
                         right: parent.right
                         top: parent.top
                         margins: Theme.space16
                     }
-                    spacing: 12
+                    spacing: 10
 
                     Text {
                         text: s["scroll.screenshots"]
@@ -1086,7 +1114,7 @@ Item {
                 }
             }
 
-            Item { width: 1; height: 16 }
+            Item { width: 1; height: 14 }
 
             // ── Scroll Direction ──────────────────────────────────
             Rectangle {
@@ -1100,13 +1128,14 @@ Item {
 
                 Column {
                     id: scrollContent
+                    objectName: "scrollContent"
                     anchors {
                         left: parent.left
                         right: parent.right
                         top: parent.top
                         margins: Theme.space16
                     }
-                    spacing: 12
+                    spacing: 10
 
                     Text {
                         text: s["scroll.scroll_direction"]
@@ -1208,7 +1237,7 @@ Item {
                                 leftMargin: 16
                                 rightMargin: 16
                             }
-                            spacing: 12
+                            spacing: 10
 
                             Column {
                                 Layout.fillWidth: true
@@ -1247,7 +1276,7 @@ Item {
                 }
             }
 
-            Item { width: 1; height: 16 }
+            Item { width: 1; height: 14 }
 
             // ── DPI note ──────────────────────────────────────────
             Rectangle {
