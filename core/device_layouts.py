@@ -101,6 +101,22 @@ GENERIC_MOUSE_LAYOUT = {
     "hotspots": [],
 }
 
+# Presentation only: standard Windows buttons already handled by Generic Mouse Mode.
+GENERIC_INPUT_LAYOUT = {
+    "image_asset": "generic_mouse.svg",
+    "image_width": 400,
+    "image_height": 440,
+    "interactive": True,
+    "hotspots": [
+        {"buttonKey": "middle", "label": "Middle Button", "normX": 0.568,
+         "normY": 0.270, "labelSide": "right", "summaryType": "mapping"},
+        {"buttonKey": "generic_xbutton2", "label": "Forward button", "normX": 0.218,
+         "normY": 0.501, "labelSide": "left", "summaryType": "mapping"},
+        {"buttonKey": "generic_xbutton1", "label": "Back button", "normX": 0.263,
+         "normY": 0.607, "labelSide": "left", "summaryType": "mapping"},
+    ],
+}
+
 MX_ANYWHERE_LAYOUT = {
     "key": "mx_anywhere",
     "label": "MX Anywhere family",

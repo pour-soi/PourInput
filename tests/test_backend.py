@@ -1121,6 +1121,8 @@ class BackendDeviceLayoutTests(unittest.TestCase):
             {"buttonKey": "xbutton2", "label": "Forward"},
             {"buttonKey": "middle", "label": "Middle"},
         ]
+        # This contract is for a connected dedicated device with Generic Mode on.
+        backend._mouse_connected = True
         backend._device_layout = {"hotspots": physical_hotspots}
 
         self.assertEqual(

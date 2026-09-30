@@ -5,12 +5,13 @@ import QtQuick.Layouts
 import "Theme.js" as Theme
 
 /*  Unified Mouse + Profiles page.
-    Left panel  — profile list with add/delete.
-    Right panel — interactive mouse image with hotspot overlay & action picker.
+    Top profile selector with add/delete.
+    Interactive mouse image with hotspot overlay & action picker.
     Selecting a profile switches which mappings are shown / edited.            */
 
 Item {
     id: mousePage
+    objectName: "mousePage"
     readonly property var theme: Theme.palette(uiState.darkMode)
     readonly property bool hasBlockingDialog: addAppDialog.visible
                                              || deleteDialog.visible
@@ -501,6 +502,17 @@ Item {
         return actionFor(hotspot.buttonKey)
     }
 
+    function hotspotConfigured(hotspot) {
+        var keys = [hotspot.buttonKey]
+        if (hotspot.summaryType === "hscroll") keys = ["hscroll_left", "hscroll_right"]
+        if (hotspot.summaryType === "gesture" && backend.supportsGestureDirections)
+            keys = ["gesture", "gesture_left", "gesture_right", "gesture_up", "gesture_down"]
+        return keys.some(function(key) {
+            return actionFor_id(key) !== "none"
+                   || (supportsMultiActionButton(key) && longActionIdFor(key) !== "none")
+        })
+    }
+
     function layoutHasButton(buttonKey) {
         var hotspots = backend.deviceHotspots
         for (var i = 0; i < hotspots.length; i++) {
@@ -538,220 +550,13 @@ Item {
         }
     }
 
-    // ── Main two-column layout ────────────────────────────────
+    // ── Mouse page layout ────────────────────────────────
     Row {
         anchors.fill: parent
         spacing: 0
 
-        // ══════════════════════════════════════════════════════
-        // ── Left panel: profile list ─────────────────────────
-        // ══════════════════════════════════════════════════════
-        Rectangle {
-            id: leftPanel
-            width: 240
-            height: parent.height
-            color: theme.bgElevated
-            border.width: 0
-
-            Column {
-                anchors.fill: parent
-                spacing: 0
-
-                // Title bar
-                Item {
-                    width: parent.width; height: 60
-
-                    Text {
-                        anchors {
-                            left: parent.left; leftMargin: Theme.space16
-                            verticalCenter: parent.verticalCenter
-                        }
-                                text: s["mouse.profiles"]
-                                font { family: uiState.fontFamily; pixelSize: 15; bold: true }
-                                color: theme.textPrimary
-                    }
-                }
-
-                Rectangle { width: parent.width; height: 1; color: theme.border }
-
-                // Profile items
-                ListView {
-                    id: profileList
-                    width: parent.width
-                    height: parent.height - 62 - addProfileSection.height
-                    model: backend.profiles
-                    clip: true
-                    boundsBehavior: Flickable.StopAtBounds
-
-                    delegate: Rectangle {
-                        width: profileList.width
-                        height: 52
-                        color: selectedProfile === modelData.name
-                               ? theme.accentDim
-                               : profItemMa.containsMouse
-                                 ? Qt.rgba(1, 1, 1, 0.03)
-                                 : "transparent"
-                        Behavior on color { ColorAnimation { duration: 120 } }
-
-                        Row {
-                            anchors {
-                                fill: parent
-                                leftMargin: 10; rightMargin: 12
-                            }
-                            spacing: 8
-
-                            // Active indicator
-                            Rectangle {
-                                width: 2; height: 24; radius: 1
-                                color: modelData.isActive
-                                       ? theme.accent : "transparent"
-                                anchors.verticalCenter: parent.verticalCenter
-                            }
-
-                            // App icons
-                            Row {
-                                spacing: -4
-                                anchors.verticalCenter: parent.verticalCenter
-                                visible: modelData.appIcons !== undefined
-                                         && modelData.appIcons.length > 0
-
-                                Repeater {
-                                    model: modelData.appIcons
-                                    delegate: Image {
-                                        source: modelData || ""
-                                        width: 24; height: 24
-                                        sourceSize { width: 24; height: 24 }
-                                        fillMode: Image.PreserveAspectFit
-                                        visible: source !== ""
-                                        smooth: true; mipmap: true
-                                        asynchronous: true
-                                        cache: true
-                                    }
-                                }
-                            }
-
-                            Column {
-                                anchors.verticalCenter: parent.verticalCenter
-                                spacing: 2
-
-                                Text {
-                                    text: profileDisplayLabel(modelData)
-                                    font {
-                                        family: uiState.fontFamily
-                                        pixelSize: 12; weight: Font.DemiBold
-                                    }
-                                    color: theme.textPrimary
-                                    elide: Text.ElideRight
-                                    width: leftPanel.width - 70
-                                }
-                                Text {
-                                    text: modelData.displayApps.length
-                                          ? modelData.displayApps.join(", ")
-                                          : (s["mouse.all_applications"] || "All applications")
-                                    font { family: uiState.fontFamily; pixelSize: 10 }
-                                    color: theme.textSecondary
-                                    elide: Text.ElideRight
-                                    width: leftPanel.width - 70
-                                }
-                            }
-                        }
-
-                        MouseArea {
-                            id: profItemMa
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: selectProfile(modelData.name)
-                        }
-                    }
-                }
-
-                Rectangle { width: parent.width; height: 1; color: theme.border }
-
-                // Add profile controls
-                Item {
-                    id: addProfileSection
-                    width: parent.width
-                    height: 76
-
-                    Rectangle {
-                        anchors {
-                            fill: parent
-                            leftMargin: 8
-                            rightMargin: 8
-                            topMargin: 8
-                            bottomMargin: 8
-                        }
-                        radius: Theme.radiusControl
-                        color: theme.bgSubtle
-                        border.width: 1
-                        border.color: theme.border
-
-                        Row {
-                            anchors.fill: parent
-                            anchors.leftMargin: 12
-                            anchors.rightMargin: 12
-                            spacing: 8
-
-                            Rectangle {
-                                width: 28
-                                height: 28
-                                radius: 8
-                                anchors.verticalCenter: parent.verticalCenter
-                                color: Qt.rgba(0.36, 0.56, 0.95, uiState.darkMode ? 0.16 : 0.14)
-
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: "+"
-                                    font { family: uiState.fontFamily; pixelSize: 16; bold: true }
-                                    color: theme.accent
-                                }
-                            }
-
-                            Column {
-                                anchors.verticalCenter: parent.verticalCenter
-                                spacing: 2
-
-                                Text {
-                                    text: s["mouse.add_app_profile"]
-                                    font { family: uiState.fontFamily; pixelSize: 11; bold: true }
-                                    color: theme.textPrimary
-                                }
-
-                                Text {
-                                    text: s["mouse.search_installed_apps"]
-                                    font { family: uiState.fontFamily; pixelSize: 10 }
-                                    color: theme.textSecondary
-                                    elide: Text.ElideRight
-                                    width: leftPanel.width - 110
-                                }
-                            }
-                        }
-
-                        MouseArea {
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: openAddProfileDialog()
-                        }
-                    }
-                }
-            }
-
-            Rectangle {
-                anchors.top: parent.top
-                anchors.bottom: parent.bottom
-                anchors.right: parent.right
-                width: 1
-                color: theme.border
-            }
-        }
-
-        // ══════════════════════════════════════════════════════
-        // ── Right panel: mouse image + hotspots + picker ─────
-        // ══════════════════════════════════════════════════════
         ScrollView {
-            width: parent.width - leftPanel.width
+            width: parent.width
             height: parent.height
             contentWidth: availableWidth
             clip: true
@@ -765,117 +570,200 @@ Item {
                     width: parent.width
                     spacing: 0
 
-                    // ── Header ────────────────────────────────
-                    Item {
-                        width: parent.width; height: 88
-
-                        Row {
-                            anchors {
-                                left: parent.left; leftMargin: Theme.space32
-                                verticalCenter: parent.verticalCenter
+                    Item { width: 1; height: Theme.space16 }
+                    RowLayout {
+                        width: parent.width - 64
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        spacing: Theme.space8
+                        Label {
+                            text: s["mouse.profile_selector"]
+                            color: theme.textPrimary
+                            font.family: uiState.fontFamily
+                        }
+                        ComboBox {
+                            objectName: "profileSelector"
+                            Layout.preferredWidth: Math.min(280, parent.width - 250)
+                            model: backend.profiles
+                            textRole: "label"
+                            currentIndex: {
+                                for (var i = 0; i < model.length; ++i)
+                                    if (model[i].name === selectedProfile) return i
+                                return -1
                             }
-                            spacing: Theme.space12
+                            displayText: selectedProfileLabel
+                            font.family: uiState.fontFamily
+                            delegate: ItemDelegate {
+                                width: ListView.view.width
+                                text: profileDisplayLabel(modelData)
+                                highlighted: modelData.name === selectedProfile
+                                font.family: uiState.fontFamily
+                            }
+                            onActivated: selectProfile(model[index].name)
+                            Accessible.name: s["mouse.profile_selector"]
+                        }
+                        Button {
+                            objectName: "addProfileButton"
+                            text: "+"
+                            implicitWidth: 40
+                            leftPadding: 8
+                            rightPadding: 8
+                            font.family: uiState.fontFamily
+                            background: Rectangle {
+                                radius: Theme.radiusControl
+                                color: parent.hovered ? theme.accentDim : theme.bgCard
+                                border.color: theme.border
+                            }
+                            Accessible.name: s["mouse.add_app_profile"]
+                            ToolTip.visible: hovered
+                            ToolTip.text: s["mouse.add_app_profile"]
+                            onClicked: openAddProfileDialog()
+                        }
+                        // Delete profile button (not for default)
+                        Rectangle {
+                            objectName: "deleteProfileButton"
+                            visible: selectedProfile !== ""
+                                     && selectedProfile !== "default"
+                            implicitWidth: delRow.implicitWidth + 18
+                            implicitHeight: 28
+                            radius: 10
+                            color: delMa.containsMouse ? theme.danger : theme.dangerBg
+                            Behavior on color { ColorAnimation { duration: 120 } }
 
-                            Column {
-                                spacing: 3
-                                anchors.verticalCenter: parent.verticalCenter
+                            Row {
+                                id: delRow
+                                anchors.centerIn: parent
+                                spacing: 6
 
-                                Row {
-                                    spacing: 8
-
-                                    Text {
-                                        text: displayDeviceName
-                                        font { family: uiState.fontFamily; pixelSize: 24; bold: true }
-                                        color: theme.textPrimary
-                                    }
-
-                                    // Profile badge
-                                    Rectangle {
-                                        visible: selectedProfileLabel !== ""
-                                        width: profBadgeText.implicitWidth + 16
-                                        height: 22; radius: 11
-                                        color: Qt.rgba(0.36, 0.56, 0.95, 0.12)
-                                        anchors.verticalCenter: parent.verticalCenter
-
-                                        Text {
-                                            id: profBadgeText
-                                            anchors.centerIn: parent
-                                            text: selectedProfileLabel
-                                            font { family: uiState.fontFamily; pixelSize: 11 }
-                                            color: theme.accent
-                                        }
-                                    }
+                                AppIcon {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    width: 14
+                                    height: 14
+                                    name: "trash"
+                                    iconColor: uiState.darkMode ? theme.textPrimary : theme.danger
                                 }
 
                                 Text {
-                                    text: !canConfigureMouse
-                                          ? s["mouse.turn_on_mouse"]
-                                          : backend.hasInteractiveDeviceLayout
-                                            ? s["mouse.click_dot"]
-                                            : s["mouse.choose_layout"]
-                                    font { family: uiState.fontFamily; pixelSize: 13 }
-                                    color: theme.textSecondary
+                                    text: s["mouse.delete_profile"]
+                                    font { family: uiState.fontFamily; pixelSize: 10; bold: true }
+                                    color: uiState.darkMode ? theme.textPrimary : theme.danger
+                                }
+                            }
+
+                            MouseArea {
+                                id: delMa
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    pendingDeleteProfile = selectedProfile
+                                    deleteDialog.open()
                                 }
                             }
                         }
 
-                        // Right-side status row: delete button + battery + connection
-                        Row {
+                        Item { Layout.fillWidth: true }
+                    }
+                    Item { width: 1; height: Theme.space12 }
+
+                    // ── Header ────────────────────────────────
+                    Item {
+                        width: parent.width; height: deviceStatusRow.implicitHeight + 24
+
+                        // Device status and layout menu
+                        Flow {
+                            id: deviceStatusRow
+                            width: parent.width - 64
                             anchors {
-                                right: parent.right; rightMargin: Theme.space32
+                                left: parent.left; leftMargin: Theme.space32
                                 verticalCenter: parent.verticalCenter
                             }
                             spacing: Theme.space8
 
-                            // Delete profile button (not for default)
+                            // Layout picker pill
                             Rectangle {
-                                visible: selectedProfile !== ""
-                                         && selectedProfile !== "default"
-                                width: delRow.implicitWidth + 18
-                                height: 28
-                                radius: 10
-                                color: delMa.containsMouse ? theme.danger : theme.dangerBg
-                                Behavior on color { ColorAnimation { duration: 120 } }
-                                anchors.verticalCenter: parent.verticalCenter
+                                visible: backend.mouseConnected
+                                width: layoutPillRow.implicitWidth + 24
+                                height: 28; radius: Theme.radiusSmall
+                                border.width: 1
+                                border.color: theme.border
+                                color: layoutPillMa.containsMouse
+                                       ? theme.bgCardHover
+                                       : (backend.deviceLayoutOverrideKey !== ""
+                                          ? Qt.rgba(0.95, 0.7, 0.2, 0.18)
+                                          : theme.bgCard)
 
                                 Row {
-                                    id: delRow
+                                    id: layoutPillRow
                                     anchors.centerIn: parent
-                                    spacing: 6
-
-                                    AppIcon {
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        width: 14
-                                        height: 14
-                                        name: "trash"
-                                        iconColor: uiState.darkMode ? theme.textPrimary : theme.danger
-                                    }
+                                    spacing: 4
 
                                     Text {
-                                        text: s["mouse.delete_profile"]
-                                        font { family: uiState.fontFamily; pixelSize: 10; bold: true }
-                                        color: uiState.darkMode ? theme.textPrimary : theme.danger
+                                        text: {
+                                            if (backend.deviceLayoutOverrideKey !== "")
+                                                return currentLayoutChoiceLabel()
+                                            return displayDeviceName || (s["mouse.auto_detect"] || "Auto-detect")
+                                        }
+                                        font { family: uiState.fontFamily; pixelSize: 10 }
+                                        color: backend.deviceLayoutOverrideKey !== ""
+                                               ? "#d4a017" : theme.textPrimary
+                                        anchors.verticalCenter: parent.verticalCenter
+                                    }
+                                    Text {
+                                        text: "\u25BE"
+                                        font.pixelSize: 9
+                                        color: theme.textSecondary
+                                        anchors.verticalCenter: parent.verticalCenter
                                     }
                                 }
 
                                 MouseArea {
-                                    id: delMa
+                                    id: layoutPillMa
                                     anchors.fill: parent
                                     hoverEnabled: true
                                     cursorShape: Qt.PointingHandCursor
-                                    onClicked: {
-                                        pendingDeleteProfile = selectedProfile
-                                        deleteDialog.open()
+                                    onClicked: layoutMenu.open()
+                                }
+
+                                Menu {
+                                    id: layoutMenu
+                                    y: parent.height + 4
+
+                                    MenuItem {
+                                        text: s["mouse.copy_device_info"]
+                                        enabled: backend.mouseConnected
+                                        onTriggered: {
+                                            var info = backend.dumpDeviceInfo()
+                                            if (info) {
+                                                backend.copyToClipboard(info)
+                                                backend.statusMessage(s["mouse.device_info_copied"])
+                                            } else {
+                                                backend.statusMessage(s["mouse.no_device_connected"])
+                                            }
+                                        }
+                                    }
+                                    MenuSeparator { }
+                                    Repeater {
+                                        model: backend.manualLayoutChoices
+                                        MenuItem {
+                                            text: {
+                                                var lbl = modelData.label || ""
+                                                return lbl === "Auto-detect"
+                                                       ? (s["mouse.auto_detect"] || lbl)
+                                                       : lbl
+                                            }
+                                            font { family: uiState.fontFamily; pixelSize: 11 }
+                                            highlighted: modelData.key === backend.deviceLayoutOverrideKey
+                                                         || (modelData.key === "" && backend.deviceLayoutOverrideKey === "")
+                                            onTriggered: backend.setDeviceLayoutOverride(modelData.key)
+                                        }
                                     }
                                 }
                             }
-
                             // Battery badge
                             Rectangle {
                                 visible: backend.batteryLevel >= 0
                                 width: battRow.implicitWidth + 16
                                 height: 22; radius: 11
-                                anchors.verticalCenter: parent.verticalCenter
                                 color: {
                                     var lvl = backend.batteryLevel
                                     if (lvl <= 20) return Qt.rgba(0.88, 0.2, 0.2, 0.18)
@@ -914,11 +802,11 @@ Item {
                                 }
                             }
 
-                            // Connection status badge
+                            // Keep exceptional connection states visible.
                             Rectangle {
+                                visible: backend.deviceStatusKind === "no_supported_mouse"
                                 width: statusRow.implicitWidth + 16
                                 height: 24; radius: 12
-                                anchors.verticalCenter: parent.verticalCenter
                                 color: backend.mouseConnected
                                        ? Qt.rgba(0.36, 0.56, 0.95, 0.12)
                                        : (backend.deviceStatusKind === "generic_ready"
@@ -951,71 +839,7 @@ Item {
                                 }
                             }
 
-                            // Layout picker pill
-                            Rectangle {
-                                visible: backend.mouseConnected
-                                width: layoutPillRow.implicitWidth + 16
-                                height: 24; radius: 12
-                                anchors.verticalCenter: parent.verticalCenter
-                                color: layoutPillMa.containsMouse
-                                       ? Qt.rgba(0.5, 0.5, 0.5, 0.18)
-                                       : (backend.deviceLayoutOverrideKey !== ""
-                                          ? Qt.rgba(0.95, 0.7, 0.2, 0.18)
-                                          : Qt.rgba(0.5, 0.5, 0.5, 0.10))
 
-                                Row {
-                                    id: layoutPillRow
-                                    anchors.centerIn: parent
-                                    spacing: 4
-
-                                    Text {
-                                        text: {
-                                            if (backend.deviceLayoutOverrideKey !== "")
-                                                return currentLayoutChoiceLabel()
-                                            return backend.deviceDisplayName || (s["mouse.auto_detect"] || "Auto-detect")
-                                        }
-                                        font { family: uiState.fontFamily; pixelSize: 10 }
-                                        color: backend.deviceLayoutOverrideKey !== ""
-                                               ? "#d4a017" : theme.textSecondary
-                                        anchors.verticalCenter: parent.verticalCenter
-                                    }
-                                    Text {
-                                        text: "\u25BE"
-                                        font.pixelSize: 9
-                                        color: theme.textSecondary
-                                        anchors.verticalCenter: parent.verticalCenter
-                                    }
-                                }
-
-                                MouseArea {
-                                    id: layoutPillMa
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: layoutMenu.open()
-                                }
-
-                                Menu {
-                                    id: layoutMenu
-                                    y: parent.height + 4
-
-                                    Repeater {
-                                        model: backend.manualLayoutChoices
-                                        MenuItem {
-                                            text: {
-                                                var lbl = modelData.label || ""
-                                                return lbl === "Auto-detect"
-                                                       ? (s["mouse.auto_detect"] || lbl)
-                                                       : lbl
-                                            }
-                                            font { family: uiState.fontFamily; pixelSize: 11 }
-                                            highlighted: modelData.key === backend.deviceLayoutOverrideKey
-                                                         || (modelData.key === "" && backend.deviceLayoutOverrideKey === "")
-                                            onTriggered: backend.setDeviceLayoutOverride(modelData.key)
-                                        }
-                                    }
-                                }
-                            }
                         }
                     }
 
@@ -1076,7 +900,37 @@ Item {
                     Item {
                         id: mouseImageArea
                         width: parent.width
-                        height: canConfigureMouse ? 420 : 340
+                        property int layoutRevision: 0
+                        property real labelColumnWidth: Math.min(240, (width - 460) / 2)
+                        function sideItems(side) {
+                            var revision = layoutRevision
+                            var items = []
+                            for (var i = 0; i < hotspotRepeater.count; ++i) {
+                                var item = hotspotRepeater.itemAt(i)
+                                if (item && item.labelSide === side) items.push(item)
+                            }
+                            return items.sort(function(a, b) { return a.normY - b.normY || a.index - b.index })
+                        }
+                        function columnHeight(side) {
+                            return sideItems(side).reduce(function(total, item) {
+                                return total + item.labelHeight + 12
+                            }, -12)
+                        }
+                        function labelTop(index, side) {
+                            var items = sideItems(side)
+                            if (!items.length) return 20
+                            var total = columnHeight(side)
+                            var center = (items[0].cy + items[items.length - 1].cy) / 2
+                            var top = Math.max(20, Math.min(height - total - 20, center - total / 2))
+                            for (var i = 0; i < items.length; ++i) {
+                                if (items[i].index === index) return top
+                                top += items[i].labelHeight + 12
+                            }
+                            return top
+                        }
+                        height: canConfigureMouse
+                                ? Math.max(420, columnHeight("left") + 40,
+                                           columnHeight("right") + 40) : 340
 
                         Rectangle {
                             anchors.fill: parent
@@ -1085,10 +939,13 @@ Item {
 
                         Image {
                             id: mouseImg
+                            objectName: "mouseMapImage"
                             source: backend.deviceImageSource
                             fillMode: Image.PreserveAspectFit
-                            width: backend.deviceImageWidth
-                            height: backend.deviceImageHeight
+                            width: Math.min(backend.deviceImageWidth,
+                                            parent.width - 2 * parent.labelColumnWidth - 64,
+                                            (parent.height - 40) * backend.deviceImageWidth / backend.deviceImageHeight)
+                            height: width * backend.deviceImageHeight / backend.deviceImageWidth
                             anchors.centerIn: parent
                             visible: canConfigureMouse
                             smooth: true
@@ -1203,7 +1060,10 @@ Item {
                         }
 
                         Repeater {
+                            id: hotspotRepeater
                             model: backend.deviceHotspots
+                            onItemAdded: mouseImageArea.layoutRevision++
+                            onItemRemoved: mouseImageArea.layoutRevision++
 
                             delegate: HotspotDot {
                                 required property int index
@@ -1214,11 +1074,15 @@ Item {
                                 normY: Number(hotspot["normY"] || 0)
                                 buttonKey: String(hotspot["buttonKey"] || "")
                                 isHScroll: hotspot["isHScroll"] === true
-                                label: String(hotspot["label"] || hotspot["buttonKey"] || "")
+                                label: isHScroll ? "Horizontal scroll"
+                                                 : String(hotspot["label"] || hotspot["buttonKey"] || "")
                                 sublabel: hotspotSublabel(hotspot)
-                                labelSide: String(hotspot["labelSide"] || "right")
-                                labelOffX: hotspot["labelOffX"] === undefined ? 120 : Number(hotspot["labelOffX"])
-                                labelOffY: hotspot["labelOffY"] === undefined ? -30 : Number(hotspot["labelOffY"])
+                                labelWidth: mouseImageArea.labelColumnWidth
+                                labelX: labelSide === "left" ? mouseImg.x - labelWidth - 24
+                                                           : mouseImg.x + mouseImg.width + 24
+                                labelY: mouseImageArea.labelTop(index, labelSide)
+                                configured: hotspotConfigured(hotspot)
+                                labelSide: normX < 0.5 ? "left" : "right"
                             }
                         }
 
@@ -1944,76 +1808,6 @@ Item {
                         }
                     }
 
-                    // ── Device info share card (always visible when connected)
-                    Rectangle {
-                        visible: backend.mouseConnected
-                        width: parent.width - 64
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        height: shareDevRow.implicitHeight + 24
-                        radius: 14
-                        color: theme.bgCard
-                        border.width: 1
-                        border.color: theme.border
-
-                        Row {
-                            id: shareDevRow
-                            anchors.centerIn: parent
-                            spacing: 10
-
-                            Text {
-                                text: s["mouse.share_device_details"] || "Help us support your mouse"
-                                font { family: uiState.fontFamily; pixelSize: 12 }
-                                color: theme.textSecondary
-                                anchors.verticalCenter: parent.verticalCenter
-                            }
-
-                            Rectangle {
-                                width: shareDevBtnRow.implicitWidth + 20
-                                height: 30; radius: 10
-                                color: shareDevBtnMa.containsMouse
-                                       ? Qt.rgba(0.36, 0.56, 0.95, 0.22)
-                                       : Qt.rgba(0.36, 0.56, 0.95, 0.12)
-                                anchors.verticalCenter: parent.verticalCenter
-
-                                Row {
-                                    id: shareDevBtnRow
-                                    anchors.centerIn: parent
-                                    spacing: 6
-
-                                    Text {
-                                        text: "\uD83D\uDCCB"
-                                        font.pixelSize: 13
-                                        anchors.verticalCenter: parent.verticalCenter
-                                    }
-                                    Text {
-                                        text: s["mouse.copy_device_info"] || "Copy device info"
-                                        font { family: uiState.fontFamily; pixelSize: 11; bold: true }
-                                        color: theme.accent
-                                        anchors.verticalCenter: parent.verticalCenter
-                                    }
-                                }
-
-                                MouseArea {
-                                    id: shareDevBtnMa
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: {
-                                        var info = backend.dumpDeviceInfo()
-                                        if (info) {
-                                            backend.copyToClipboard(info)
-                                            backend.statusMessage(
-                                                s["mouse.device_info_copied"] || "Device info copied to clipboard -- paste it into a GitHub issue!")
-                                        } else {
-                                            backend.statusMessage(
-                                                s["mouse.no_device_connected"] || "No device connected")
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
                     Rectangle {
                         width: parent.width - 64
                         anchors.horizontalCenter: parent.horizontalCenter
@@ -2302,6 +2096,7 @@ Item {
 
     Dialog {
         id: addAppDialog
+        objectName: "addAppDialog"
         parent: Overlay.overlay
         modal: true
         focus: true
@@ -2778,6 +2573,7 @@ Item {
 
     Dialog {
         id: deleteDialog
+        objectName: "deleteProfileDialog"
         parent: Overlay.overlay
         modal: true
         focus: true

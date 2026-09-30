@@ -28,7 +28,7 @@ from core.config import (
     resolve_windows_xbutton_mapping_key,
 )
 from core import app_catalog
-from core.device_layouts import get_device_layout, get_manual_layout_choices
+from core.device_layouts import GENERIC_INPUT_LAYOUT, get_device_layout, get_manual_layout_choices
 from core.key_registry import (
     ShortcutParseError,
     canonical_shortcut_text,
@@ -706,13 +706,21 @@ class Backend(QObject):
     def deviceDpiMax(self):
         return self._device_dpi_max
 
+    def _mouse_visual_layout(self):
+        # Do not change device identity or capabilities when choosing generic art.
+        if self._generic_mouse_enabled() and (
+            not self._mouse_connected or self._device_layout.get("key") == "generic_mouse"
+        ):
+            return GENERIC_INPUT_LAYOUT
+        return self._device_layout
+
     @Property(str, notify=deviceLayoutChanged)
     def deviceImageAsset(self):
-        return self._device_layout.get("image_asset", "mouse.png")
+        return self._mouse_visual_layout().get("image_asset", "mouse.png")
 
     @Property(str, notify=deviceLayoutChanged)
     def deviceImageSource(self):
-        asset = self._device_layout.get("image_asset", "mouse.png")
+        asset = self._mouse_visual_layout().get("image_asset", "mouse.png")
         if "/" in str(self._root_dir) and "\\" not in str(self._root_dir):
             path = posixpath.join(str(self._root_dir), "images", asset)
         else:
@@ -721,23 +729,23 @@ class Backend(QObject):
 
     @Property(int, notify=deviceLayoutChanged)
     def deviceImageWidth(self):
-        return int(self._device_layout.get("image_width", 460))
+        return int(self._mouse_visual_layout().get("image_width", 460))
 
     @Property(int, notify=deviceLayoutChanged)
     def deviceImageHeight(self):
-        return int(self._device_layout.get("image_height", 360))
+        return int(self._mouse_visual_layout().get("image_height", 360))
 
     @Property(bool, notify=deviceLayoutChanged)
     def hasInteractiveDeviceLayout(self):
-        return bool(self._device_layout.get("interactive", True))
+        return bool(self._mouse_visual_layout().get("interactive", True))
 
     @Property(str, notify=deviceLayoutChanged)
     def deviceLayoutNote(self):
-        return self._device_layout.get("note", "")
+        return self._mouse_visual_layout().get("note", "")
 
     @Property(list, notify=deviceLayoutChanged)
     def deviceHotspots(self):
-        hotspots = self._device_layout.get("hotspots", [])
+        hotspots = self._mouse_visual_layout().get("hotspots", [])
         if not self._generic_mouse_enabled():
             return list(hotspots)
 

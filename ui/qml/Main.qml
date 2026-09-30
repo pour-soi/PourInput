@@ -100,8 +100,8 @@ ApplicationWindow {
                     Repeater {
                         model: [
                             { icon: "mouse-simple", tipKey: "nav.mouse_profiles", page: 0 },
-                            { icon: "sliders-horizontal", tipKey: "nav.point_scroll", page: 1 },
-                            { icon: "book-open", tipKey: "nav.reading", page: 2 }
+                            { icon: "book-open", tipKey: "nav.reading", page: 2 },
+                            { icon: "sliders-horizontal", tipKey: "nav.point_scroll", page: 1 }
                         ]
 
                         delegate: FocusScope {

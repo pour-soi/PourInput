@@ -5,11 +5,12 @@ import "Theme.js" as Theme
     Position is given as normalised coordinates (0-1) within the
     source image, so it adapts when the image is scaled.
 
-    An annotation label with a connecting line is drawn from the
-    dot to an offset position.                                    */
+    MousePage assigns non-overlapping annotation columns; connecting
+    lines track their measured positions.                                    */
 
 Item {
     id: hotspot
+    objectName: "hotspot_" + buttonKey
     readonly property var theme: Theme.palette(uiState.darkMode)
 
     // ── Required properties ───────────────────────────────────
@@ -22,8 +23,6 @@ Item {
     property string label: ""
     property string sublabel: ""
     property string labelSide: "right"    // "left" or "right"
-    property real labelOffX: 120          // x offset for annotation
-    property real labelOffY: -30          // y offset for annotation
 
     // ── Computed centre ───────────────────────────────────────
     property real cx: imgItem.x + imgItem.offX + normX * imgItem.paintedWidth
@@ -31,26 +30,22 @@ Item {
 
     property bool isSelected: isHScroll ? mousePage.selectedButton === "hscroll_left"
                                         : mousePage.selectedButton === buttonKey
+    property bool configured: true
     property bool isHovered: dotMa.containsMouse
-    property real labelWidth: labelCol.implicitWidth + 20
+    property real labelWidth: 220
     property real labelHeight: labelCol.implicitHeight + 14
-    property real leftCandidateX: cx + labelOffX - labelWidth - 14
-    property real rightCandidateX: cx + labelOffX + 6
-    property bool leftFits: leftCandidateX >= 8
-    property bool rightFits: rightCandidateX + labelWidth <= width - 8
-    property string effectiveLabelSide: labelSide === "left"
-                                       ? (leftFits || !rightFits ? "left" : "right")
-                                       : (rightFits || !leftFits ? "right" : "left")
-    property real unclampedLabelX: effectiveLabelSide === "left"
-                                   ? leftCandidateX : rightCandidateX
-    property real labelX: Math.max(8, Math.min(width - labelWidth - 8, unclampedLabelX))
-    property real labelY: Math.max(8, Math.min(height - labelHeight - 8, cy + labelOffY - 8))
+    property real labelX: 16
+    property real labelY: 20
     property real labelCenterX: labelX + labelWidth / 2
     property bool sourceIsRightOfLabel: cx >= labelCenterX
     property real lineEndX: sourceIsRightOfLabel
                             ? labelX + labelWidth - 6
                             : labelX + 6
     property real lineEndY: labelY + labelHeight / 2
+    // Leave the image horizontally, then fan out only in the exterior gutter.
+    property real lineBendX: labelSide === "left" ? imgItem.x - 8 : imgItem.x + imgItem.width + 8
+    property real connectorOpacity: isSelected ? 0.8 : mousePage.selectedButton !== "" ? 0.12 : 0.23
+
 
     activeFocusOnTab: true
     Accessible.role: Accessible.Button
@@ -98,9 +93,9 @@ Item {
         x: cx - width / 2
         y: cy - height / 2
         width: 16; height: 16; radius: 8
-        color: isSelected ? theme.accentHover : theme.accent
+        color: configured ? (isSelected ? theme.accentHover : theme.accent) : theme.bg
         border.width: 2
-        border.color: hotspot.activeFocus ? theme.textPrimary : Qt.rgba(0, 0, 0, 0.3)
+        border.color: hotspot.activeFocus ? theme.textPrimary : theme.accent
 
         scale: isHovered ? 1.2 : 1.0
         Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
@@ -126,11 +121,13 @@ Item {
         onPaint: {
             var ctx = getContext("2d")
             ctx.clearRect(0, 0, width, height)
-            ctx.strokeStyle = isSelected ? theme.accent : Qt.rgba(0.36, 0.56, 0.95, 0.35)
+            ctx.strokeStyle = theme.accent
+            ctx.globalAlpha = connectorOpacity
             ctx.lineWidth = 1
-            ctx.setLineDash([4, 3])
+            ctx.setLineDash([])
             ctx.beginPath()
             ctx.moveTo(cx, cy)
+            ctx.lineTo(lineBendX, cy)
             ctx.lineTo(lineEndX, lineEndY)
             ctx.stroke()
         }
@@ -143,6 +140,10 @@ Item {
             function onIsSelectedChanged() { lineCanvas.requestPaint() }
             function onLabelXChanged() { lineCanvas.requestPaint() }
             function onLabelYChanged() { lineCanvas.requestPaint() }
+            function onLineEndXChanged() { lineCanvas.requestPaint() }
+            function onLineEndYChanged() { lineCanvas.requestPaint() }
+            function onLineBendXChanged() { lineCanvas.requestPaint() }
+            function onConnectorOpacityChanged() { lineCanvas.requestPaint() }
         }
         Component.onCompleted: requestPaint()
     }
@@ -172,11 +173,14 @@ Item {
                 left: parent.left; leftMargin: 10
                 verticalCenter: parent.verticalCenter
             }
-            spacing: 1
+            width: parent.width - 20
+            spacing: 4
 
             Text {
                 // lm.strings read creates a binding dependency → auto-updates on language change
                 text: { var _lang = lm.strings; return lm.trButton(hotspot.label) }
+                width: parent.width
+                wrapMode: Text.Wrap
                 font { family: uiState.fontFamily; pixelSize: 12; bold: true }
                 color: isSelected ? theme.accent : theme.textPrimary
             }
@@ -186,8 +190,8 @@ Item {
                 font { family: uiState.fontFamily; pixelSize: 10 }
                 color: theme.textSecondary
                 visible: hotspot.sublabel !== ""
-                width: Math.min(implicitWidth, 220)
-                elide: Text.ElideRight
+                width: parent.width
+                wrapMode: Text.Wrap
             }
         }
 
@@ -205,6 +209,7 @@ Item {
         x: lineEndX - 3
         y: lineEndY - 3
         width: 6; height: 6; radius: 3
-        color: isSelected ? theme.accent : Qt.rgba(0.36, 0.56, 0.95, 0.5)
+        color: theme.accent
+        opacity: connectorOpacity
     }
 }

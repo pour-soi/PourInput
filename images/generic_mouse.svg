@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="440" viewBox="0 0 400 440">
+  <!-- Original PourInput three-quarter device illustration. No external branding. -->
+  <defs>
+    <linearGradient id="side" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#27343f"/><stop offset="1" stop-color="#4b5965"/></linearGradient>
+    <linearGradient id="button" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#a0aab3"/><stop offset="1" stop-color="#62717e"/></linearGradient>
+    <linearGradient id="wheel" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#26323b"/><stop offset=".45" stop-color="#778590"/><stop offset="1" stop-color="#202c36"/></linearGradient>
+    <radialGradient id="palm" cx=".38" cy=".28" r=".85"><stop stop-color="#8a96a0"/><stop offset=".52" stop-color="#65737f"/><stop offset="1" stop-color="#3e4c58"/></radialGradient>
+    <linearGradient id="rightButton" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#87939e"/><stop offset=".6" stop-color="#6b7a86"/><stop offset="1" stop-color="#536370"/></linearGradient>
+    <linearGradient id="recess" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#263540"/><stop offset=".5" stop-color="#465662"/><stop offset="1" stop-color="#697a86"/></linearGradient>
+    <linearGradient id="sideKey" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#82919c"/><stop offset=".35" stop-color="#60717f"/><stop offset="1" stop-color="#364753"/></linearGradient>
+  </defs>
+  <ellipse cx="202" cy="390" rx="125" ry="19" fill="#33475d" opacity=".07"/>
+  <path d="M116 110C64 146 27 235 51 308C77 387 171 438 237 406C305 373 354 303 336 236L287 94Z" fill="url(#side)" stroke="#263440" stroke-width="1.5"/>
+  <path d="M116 110C153 55 227 30 268 66C298 94 317 151 335 214C354 275 310 344 238 379C190 404 120 382 88 299C55 215 74 164 116 110Z" fill="url(#palm)" stroke="#53626e" stroke-width="1.4"/>
+  <path d="M115 111C150 65 198 41 231 49C224 89 228 130 247 181C218 194 185 204 145 205C120 173 108 141 115 111Z" fill="url(#button)"/>
+  <path d="M236 51C278 53 304 113 330 202C305 202 277 194 253 181C235 132 228 91 236 51Z" fill="url(#rightButton)"/>
+  <path d="M233 53C226 92 230 132 250 183" fill="none" stroke="#293844" stroke-width="2.5"/>
+  <path d="M236 55C230 94 234 132 253 179" fill="none" stroke="#bec7ce" stroke-width=".8" opacity=".5"/>
+  <path d="M145 208C183 209 219 198 249 184C278 199 305 207 332 205" fill="none" stroke="#334450" stroke-width="2.5"/>
+  <path d="M149 211C184 213 220 202 249 188C278 203 305 211 330 209" fill="none" stroke="#aebac3" stroke-width="1" opacity=".35"/>
+  <path d="M120 110C152 67 192 47 222 50M96 301C127 376 183 396 235 375" fill="none" stroke="#c0c9d0" stroke-width="1.2" opacity=".5"/>
+  <path d="M170 226C206 217 250 218 282 245" fill="none" stroke="#c4cdd4" stroke-width="1.2" opacity=".12"/>
+  <g transform="rotate(-24 227 119)">
+    <rect x="207" y="81" width="40" height="78" rx="19" fill="#a6b1ba" opacity=".48"/>
+    <rect x="208" y="82" width="38" height="75" rx="18" fill="url(#recess)"/>
+    <rect x="212" y="87" width="30" height="65" rx="14" fill="#1e2d37"/>
+    <path d="M214 139V104Q214 90 226 90" fill="none" stroke="#9aa9b4" stroke-width="1.4" opacity=".65"/>
+    <rect x="216" y="92" width="22" height="55" rx="10" fill="url(#wheel)"/>
+    <path d="M219 98h16m-17 5h18m-18 5h18m-18 5h18m-18 5h18m-18 5h18m-18 5h18m-18 5h18m-17 5h16m-15 5h14" stroke="#b6c1c9" stroke-width="1" opacity=".6"/>
+    <path d="M217 104v29M237 104v29" stroke="#c5cfd6" stroke-width=".8" opacity=".6"/>
+    <path d="M216 151Q229 158 240 146" fill="none" stroke="#a7b6c0" stroke-width=".9" opacity=".45"/>
+  </g>
+  <!-- Two existing side keys, inset into the flank rather than applied on top. -->
+  <path d="M75 189C86 186 96 209 104 230L125 278Q130 296 117 299C105 300 99 282 91 262L72 215Q65 197 75 189Z" fill="url(#recess)" opacity=".85"/>
+  <path d="M78 198Q84 195 90 204L101 229Q105 238 97 242Q90 244 85 235L74 211Q70 202 78 198Z" fill="#273743"/>
+  <path d="M79 202Q83 200 87 207L98 230Q100 235 96 237Q92 239 89 233L78 211Q75 205 79 202Z" fill="url(#sideKey)"/>
+  <path d="M79 203Q82 201 85 205L96 229" fill="none" stroke="#bac5ce" stroke-width=".9" opacity=".7"/>
+  <path d="M96 245Q103 242 108 251L120 276Q124 285 115 290Q108 292 103 282L91 258Q87 249 96 245Z" fill="#273743"/>
+  <path d="M97 249Q101 247 105 254L117 277Q119 283 114 285Q110 286 107 280L95 257Q93 252 97 249Z" fill="url(#sideKey)"/>
+  <path d="M97 250Q100 248 103 253L114 276" fill="none" stroke="#bac5ce" stroke-width=".9" opacity=".65"/>
+  <path d="M75 266C90 323 131 376 179 394" fill="none" stroke="#7d8d98" stroke-width="1" opacity=".38"/>
+
+</svg>

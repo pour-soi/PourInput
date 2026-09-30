@@ -75,6 +75,7 @@ _TRANSLATIONS = {
         "nav.open_page": "Open %1",
 
         # Mouse page — profile list
+        "mouse.profile_selector": "Profile",
         "mouse.profiles": "Profiles",
         "mouse.default_profile": "Default (All Apps)",
         "mouse.all_applications": "All applications",
@@ -425,6 +426,7 @@ _TRANSLATIONS = {
         "nav.about": "\u5173\u4e8e",
         "nav.open_page": "\u6253\u5f00 %1",
 
+        "mouse.profile_selector": "配置",
         "mouse.profiles": "\u914d\u7f6e\u6587\u4ef6",
         "mouse.default_profile": "\u9ed8\u8ba4\uff08\u6240\u6709\u5e94\u7528\uff09",
         "mouse.all_applications": "\u6240\u6709\u5e94\u7528\u7a0b\u5e8f",
@@ -697,6 +699,7 @@ _TRANSLATIONS = {
         "nav.reading": "閱讀",
         "nav.about": "\u95dc\u65bc",
 
+        "mouse.profile_selector": "設定檔",
         "mouse.profiles": "\u8a2d\u5b9a\u6a94",
         "mouse.default_profile": "\u9810\u8a2d\uff08\u6240\u6709\u61c9\u7528\u7a0b\u5f0f\uff09",
         "mouse.all_applications": "\u6240\u6709\u61c9\u7528\u7a0b\u5f0f",
@@ -938,6 +941,7 @@ _BUTTON_TR: dict[str, dict[str, str]] = {
         "Forward button":         "\u524d\u8fdb\u952e",
         "Side Button 1 — Back":   "\u4fa7\u952e 1 — \u540e\u9000",
         "Side Button 2 — Forward":"\u4fa7\u952e 2 — \u524d\u8fdb",
+        "Horizontal scroll": "水平滚动",
         "Horizontal scroll left": "\u6c34\u5e73\u5de6\u6eda",
         "Horizontal scroll right":"\u6c34\u5e73\u53f3\u6eda",
         "Horizontal Scroll":      "\u6c34\u5e73\u6eda\u52a8",
@@ -954,6 +958,7 @@ _BUTTON_TR: dict[str, dict[str, str]] = {
         "Forward button":         "\u524d\u9032\u9375",
         "Side Button 1 — Back":   "\u5074\u9375 1 — \u5f8c\u9000",
         "Side Button 2 — Forward":"\u5074\u9375 2 — \u524d\u9032",
+        "Horizontal scroll": "水平捲動",
         "Horizontal scroll left": "\u6c34\u5e73\u5de6\u6372",
         "Horizontal scroll right":"\u6c34\u5e73\u53f3\u6372",
         "Horizontal Scroll":      "\u6c34\u5e73\u6372\u52d5",
