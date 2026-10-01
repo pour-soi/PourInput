@@ -1,0 +1,38 @@
+PourInput isolated real-machine UI test (Windows only)
+
+Not a production entry point. No app has been launched by preparation/tests.
+Do not run until review is approved. Exit normal PourInput through its tray first.
+
+Launch in PowerShell after approval:
+& 'F:\文档在这里\mx project\.venv\Scripts\python.exe' -B 'C:\Users\Ivy\.codex\worktrees\pourinput-ui-refinement\mx project\tools\isolated_ui_test.py'
+
+Each launch creates a NEW pourinput-ui-test-* directory under Windows Temp and
+prints its exact path. Config/profiles live in roaming/PourInput/config.json;
+Reading imports, metadata and position live in roaming/PourInput/reader.
+Logs, local app state, home and temporary paths are redirected inside this root.
+No existing PourInput data is copied or loaded. Test state is not reused on relaunch.
+All initial and newly created profile mappings are none/pass-through.
+Assign actions manually for testing. Reading starts empty and off; import sample books only.
+Screenshot output initially goes to this root's screenshots folder.
+Do not deliberately select real-user folders in file dialogs during testing.
+
+The existing normal/test shared mutex remains unchanged. A running normal instance
+blocks the test startup; no process is killed and no hardware hooks start.
+The title/tray name is PourInput UI Refinement Test.
+Startup registration and updates are disabled in this process, including UI slots.
+Automatic saved DPI/SmartShift replay is disabled for this test entry point;
+explicit Settings actions still change the device when you choose them manually.
+This entry does not change production files or production launch behavior.
+
+Manual checklist:
+- Mouse layout, English/Chinese, 920x620 and 1280x900, Windows 100/125/150% scaling.
+- Test profile selection and automatic foreground-app profile switching.
+- MX image/hotspots, Generic Mode/image and supported middle/side-button behavior.
+- Pass-through/assigned hotspot states, selected ring/label/connectors.
+- Independently configure/test Click, Long Press, Horizontal Left and Right.
+- Reading: sample TXT/EPUB, chapters, scrolling, panel appearance/resize,
+  auto-scroll, hide once/show again and wheel navigation while hidden.
+- Settings alignment, mixed-script text and both Language selection states.
+- Exit the test through the tray before restarting normal PourInput.
+
+Do not use Start-at-login/update controls as functional validation: intentionally disabled.
