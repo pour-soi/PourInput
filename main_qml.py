@@ -1103,6 +1103,9 @@ def _schedule_tray_minimized_notice(tray, locale_mgr) -> None:
     QTimer.singleShot(400, _tray_minimized_notice)
 
 
+WINDOW_STATE_FILE = None
+
+
 def main():
     # Re-exec through a `PourInput`-named symlink BEFORE anything Qt or
     # AppKit related runs. Necessary because macOS reads the Dock label /
@@ -1270,6 +1273,10 @@ def main():
         sys.exit(1)
 
     root_window = qml_engine.rootObjects()[0]
+    from ui.window_state import WindowSizeState
+    window_state = WindowSizeState(
+        root_window, WINDOW_STATE_FILE or os.path.join(CONFIG_DIR, "window-size.json"))
+    app.aboutToQuit.connect(window_state.save)
 
     def show_main_window():
         # Promote BEFORE show so the window registers with WindowServer's

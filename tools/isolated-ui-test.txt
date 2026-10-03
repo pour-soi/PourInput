@@ -10,7 +10,9 @@ Each launch creates a NEW pourinput-ui-test-* directory under Windows Temp and
 prints its exact path. Config/profiles live in roaming/PourInput/config.json;
 Reading imports, metadata and position live in roaming/PourInput/reader.
 Logs, local app state, home and temporary paths are redirected inside this root.
-No existing PourInput data is copied or loaded. Test state is not reused on relaunch.
+No existing PourInput data is copied or loaded. Only normal window width/height
+persist across launches, in Windows Temp/pourinput-ui-refinement-window-size.json.
+All other test state is new on relaunch; maximized/minimized state is not retained.
 All initial and newly created profile mappings are none/pass-through.
 Assign actions manually for testing. Reading starts empty and off; import sample books only.
 Screenshot output initially goes to this root's screenshots folder.

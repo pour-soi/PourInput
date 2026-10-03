@@ -7,14 +7,14 @@ import sys
 import unittest
 from unittest.mock import Mock, patch
 from PySide6.QtCore import QObject, QMetaObject, Q_ARG
-from tools.isolated_ui_test import TITLE, run, test_backend, test_engine
+from tools.isolated_ui_test import TITLE, WINDOW_STATE_FILE, run, test_backend, test_engine
 
 
 class IsolatedLaunchTests(unittest.TestCase):
     def test_fresh_process_uses_only_disposable_state_and_neutral_defaults(self):
         script = '''
 import json
-from tools.isolated_ui_test import prepare
+from tools.isolated_ui_test import prepare, WINDOW_STATE_FILE
 root = prepare()
 from core import config
 cfg = config.load_config(strict=True)
@@ -25,6 +25,8 @@ assert str(config.CONFIG_DIR).startswith(str(root))
 assert not (root / 'roaming/PourInput/reader').exists()
 assert not cfg['settings']['check_for_updates']
 assert not cfg['settings']['start_at_login']
+assert not str(WINDOW_STATE_FILE).startswith(str(root))
+assert WINDOW_STATE_FILE.name == 'pourinput-ui-refinement-window-size.json'
 print('ISOLATION_OK')
 '''
         result = subprocess.run([sys.executable, '-B', '-c', script], cwd=Path(__file__).resolve().parents[1], capture_output=True, text=True)
@@ -40,6 +42,7 @@ print('ISOLATION_OK')
         main.Engine = object
         def fake_main():
             self.assertEqual(main.APP_NAME, TITLE)
+            self.assertEqual(main.WINDOW_STATE_FILE, WINDOW_STATE_FILE)
             self.assertFalse(startup.supports_login_startup())
             self.assertFalse(main._acquire_windows_single_instance_mutex())
             return 0

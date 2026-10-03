@@ -10,6 +10,7 @@ from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 TITLE = "PourInput UI Refinement Test"
+WINDOW_STATE_FILE = Path(tempfile.gettempdir()) / "pourinput-ui-refinement-window-size.json"
 
 
 def prepare():
@@ -100,6 +101,7 @@ def run():
     with patch("core.startup.supports_login_startup", return_value=False):
         import main_qml
         main_qml.APP_NAME = TITLE
+        main_qml.WINDOW_STATE_FILE = WINDOW_STATE_FILE
         main_qml.Backend = test_backend(main_qml.Backend)
         main_qml.Engine = test_engine(main_qml.Engine)
         original_acquire = main_qml._acquire_windows_single_instance_mutex

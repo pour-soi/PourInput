@@ -50,58 +50,96 @@ class ActionSelectorUiTests(unittest.TestCase):
             Path(output).mkdir(parents=True, exist_ok=True)
             self.assertTrue(self.window.grabWindow().save(str(Path(output) / (name + ".png"))))
 
-    def test_categories_selected_action_and_languages(self):
+    def assert_category(self, selector, selected):
+        self.assertEqual(selector.property("activeCategory"), selected)
+        visible_actions = set()
+        for category in self.backend.actionCategories:
+            active = category["category"] == selected
+            self.assertEqual(self.find(selector, "category_" + category["category"]).property("checked"), active)
+            for action in category["actions"]:
+                chip = self.find(selector, "action_" + action["id"])
+                self.assertIsNotNone(chip)
+                self.assertEqual(chip.isVisible(), active, action["id"])
+                self.assertEqual(chip.parentItem().parentItem().isVisible(), active, category["category"])
+                if chip.isVisible():
+                    visible_actions.add(action["id"])
+        self.assertTrue(visible_actions)
+
+    def test_single_category_navigation_selected_action_and_languages(self):
+        self.backend.setProfileMapping("default", "middle_long", "copy")
+        QTest.qWait(2200)  # Let the existing saved toast expire before captures.
         self.evaluate('selectButton("middle")')
         QTest.qWait(320)
         selector = self.window.findChild(QObject, "buttonActionSelector")
-        expected = {a["id"] for c in self.backend.actionCategories for a in c["actions"]}
-        for action in expected:
-            self.assertIsNotNone(self.find(selector, "action_" + action))
-        self.assertTrue(self.find(selector, "category_Screenshot").property("checked"))
-        self.assertFalse(self.find(selector, "category_Browser").property("checked"))
+        mappings = self.backend._cfg["profiles"]["default"]["mappings"]
+        original = copy.deepcopy(mappings)
+        self.assert_category(selector, "Screenshot")
+        self.assertTrue(self.find(selector, "action_screenshot_region_clip").property("isCurrent"))
         self.screenshot("category-before-click")
         header = self.find(selector, "category_Browser")
         point = header.mapToScene(header.boundingRect().center()).toPoint()
         QTest.mouseClick(self.window, Qt.LeftButton, Qt.NoModifier, point)
         QTest.qWait(50)
-        self.assertTrue(self.find(selector, "category_Browser").property("checked"))
-        self.assertTrue(self.find(selector, "action_browser_back").isVisible())
-        self.call(self.find(selector, "category_Browser"), "clicked")
-        QTest.qWait(2200)  # Let the existing saved toast expire before captures.
+        self.assert_category(selector, "Browser")
+        QTest.mouseClick(self.window, Qt.LeftButton, Qt.NoModifier, point)
+        QTest.qWait(50)
+        self.assert_category(selector, "Browser")
+        self.assertEqual(mappings, original)
+        self.assertEqual(selector.property("currentAction"), "screenshot_region_clip")
+        header.setProperty("focus", False)  # Keep navigation focus out of review captures.
+
+        # Reopening the editor restores the assigned category, not the last browsed one.
+        self.evaluate('selectButton("middle")')
+        QTest.qWait(320)
+        self.evaluate('selectButton("middle")')
+        QTest.qWait(320)
+        self.assert_category(selector, "Screenshot")
+        tabs = self.window.findChild(QObject, "buttonTabs")
         for language in ("en", "zh_CN"):
             self.lm.setLanguage(language)
             if language == "zh_CN":
-                self.assertEqual(self.lm.trCategory("Mouse"), "\u9f20\u6807")
+                self.assertEqual(self.lm.trCategory("Mouse"), "鼠标")
             for width, height in ((920, 620), (1280, 900)):
                 self.window.resize(width, height)
-                self.screenshot(f"normal-{language}-{width}")
-                for category in self.backend.actionCategories:
-                    button = self.find(selector, "category_" + category["category"])
-                    self.assertLessEqual(button.width(), selector.width())
-            tabs = self.window.findChild(QObject, "buttonTabs")
-            tabs.setProperty("currentIndex", 1)
-            self.screenshot(f"long-press-{language}")
-            tabs.setProperty("currentIndex", 0)
-            QTest.qWait(50)
-        self.call(self.find(selector, "category_Screenshot"), "clicked")
-        self.assertFalse(self.find(selector, "action_screenshot_region_clip").isVisible())
-        self.screenshot("collapsed-categories")
-        self.evaluate('selectButton("middle")')
-        QTest.qWait(320)
-        self.evaluate('selectButton("middle")')
-        QTest.qWait(320)
-        self.assertTrue(self.find(selector, "category_Screenshot").property("checked"))
+                for category in ("Screenshot", "Media", "Navigation"):
+                    self.call(self.find(selector, "category_" + category), "clicked")
+                    self.assert_category(selector, category)
+                    self.assertEqual(mappings, original)
+                    self.screenshot(f"category-{category.lower()}-{language}-{width}")
+                    for entry in self.backend.actionCategories:
+                        button = self.find(selector, "category_" + entry["category"])
+                        self.assertLessEqual(button.width(), selector.width())
+                tabs.setProperty("currentIndex", 1)
+                QTest.qWait(50)
+                self.assertEqual(mappings, original)
+                self.assertEqual(selector.property("currentAction"), mappings.get("middle_long", "none"))
+                self.assert_category(selector, "Editing")
+                self.assertTrue(self.find(selector, "action_copy").property("isCurrent"))
+                self.screenshot(f"long-press-{language}-{width}")
+                tabs.setProperty("currentIndex", 0)
+                QTest.qWait(50)
+                self.assert_category(selector, "Screenshot")
+                self.assertTrue(self.find(selector, "action_screenshot_region_clip").property("isCurrent"))
+        from core.key_simulator import ACTIONS
+        for action in ACTIONS.values():
+            self.assertNotEqual(self.lm.trAction(action["label"]), action["label"])
         self.assertEqual([w for w in self.warnings if "Only binding to one of multiple key bindings" not in w], [])
 
     def test_horizontal_tabs_independent_and_custom_targets(self):
         self.evaluate("selectHScroll()")
+        QTest.qWait(320)
         tabs = self.window.findChild(QObject, "scrollTabs")
         selector = self.window.findChild(QObject, "horizontalActionSelector")
         mappings = self.backend._cfg["profiles"]["default"]["mappings"]
         original = copy.deepcopy(mappings)
         tabs.setProperty("currentIndex", 1)
         self.assertEqual(mappings, original)
+        QTest.qWait(50)
         self.assertEqual(selector.property("currentAction"), "screenshot_region_file")
+        self.assert_category(selector, "Screenshot")
+        self.call(self.find(selector, "category_Media"), "clicked")
+        self.assert_category(selector, "Media")
+        self.assertEqual(mappings, original)
         self.call(selector, "picked", "copy")
         self.assertEqual(mappings["hscroll_right"], "copy")
         self.assertEqual(mappings["hscroll_left"], original["hscroll_left"])
@@ -117,7 +155,7 @@ class ActionSelectorUiTests(unittest.TestCase):
             self.call(dialog, "close")
             self.assertEqual(mappings[target], "custom:ctrl+shift+k")
             self.assertEqual(mappings[other], before)
-            self.assertTrue(self.find(selector, "category_Custom").property("checked"))
+            self.assert_category(selector, "Custom")
         self.call(selector, "picked", "copy")
         tabs.setProperty("currentIndex", 0)
         self.call(selector, "picked", "screenshot_region_clip")
@@ -132,6 +170,9 @@ class ActionSelectorUiTests(unittest.TestCase):
                 self.window.resize(width, height)
                 for side in (0, 1):
                     tabs.setProperty("currentIndex", side)
+                    QTest.qWait(50)
+                    self.assert_category(selector, "Screenshot" if side == 0 else "Editing")
+                    self.assertEqual(selector.property("currentAction"), "screenshot_region_clip" if side == 0 else "copy")
                     self.screenshot(f"scroll-{'left' if side == 0 else 'right'}-{language}-{width}")
 
     def test_click_long_press_independence_and_custom_targets(self):
@@ -149,7 +190,11 @@ class ActionSelectorUiTests(unittest.TestCase):
             tabs.setProperty("currentIndex", side)
             QTest.qWait(50)
             self.assertEqual(mappings, before)
+            self.call(self.find(selector, "category_Navigation"), "clicked")
+            self.assert_category(selector, "Navigation")
+            self.assertEqual(mappings, before)
             self.call(selector, "picked", "copy")
+            self.assert_category(selector, "Editing")
             self.assertEqual(mappings[target], "copy")
             self.assertEqual(mappings.get(other), before.get(other))
             self.call(selector, "picked", "__custom__")
@@ -159,4 +204,4 @@ class ActionSelectorUiTests(unittest.TestCase):
             self.call(dialog, "close")
             self.assertEqual(mappings[target], "custom:ctrl+shift+k")
             self.assertEqual(mappings.get(other), before.get(other))
-            self.assertTrue(self.find(selector, "category_Custom").property("checked"))
+            self.assert_category(selector, "Custom")

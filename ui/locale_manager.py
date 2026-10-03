@@ -1021,6 +1021,13 @@ _CATEGORY_TR: dict[str, dict[str, str]] = {
 # Key combos in parentheses are preserved verbatim in the translated string.
 _ACTION_TR: dict[str, dict[str, str]] = {
     "zh_CN": {
+        "Cycle DPI Presets": "循环切换 DPI 预设",
+        "Left Click": "左键单击",
+        "Middle Click": "中键单击",
+        "Right Click": "右键单击",
+        "Back (Mouse Button 4)": "后退（鼠标侧键 4）",
+        "Forward (Mouse Button 5)": "前进（鼠标侧键 5）",
+
         # ── Other ─────────────────────────────────────────────────────
         "Do Nothing (Pass-through)":                "\u65e0\u64cd\u4f5c\uff08\u76f4\u901a\uff09",
 

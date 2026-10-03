@@ -71,7 +71,7 @@ Item {
         implicitHeight: 34
         topInset: 0; bottomInset: 0
         horizontalPadding: 14
-        font { family: uiState.fontFamily; pixelSize: 12 }
+        font { family: uiState.fontFamily; pixelSize: 15 }
         contentItem: Text {
             text: control.text; font: control.font
             color: scrollPage.theme.textPrimary
@@ -125,7 +125,7 @@ Item {
                         text: s["scroll.subtitle"]
                         font {
                             family: uiState.fontFamily
-                            pixelSize: 13
+                            pixelSize: 16
                         }
                         color: scrollPage.theme.textSecondary
                     }
@@ -183,7 +183,7 @@ Item {
                                 + s["scroll.pointer_speed_desc_range_suffix"]
                         font {
                             family: uiState.fontFamily
-                            pixelSize: 12
+                            pixelSize: 15
                         }
                         color: scrollPage.theme.textSecondary
                     }
@@ -196,7 +196,7 @@ Item {
                             text: backend.deviceDpiMin
                             font {
                                 family: uiState.fontFamily
-                                pixelSize: 11
+                                pixelSize: 14
                             }
                             color: scrollPage.theme.textDim
                         }
@@ -222,7 +222,7 @@ Item {
                             text: backend.deviceDpiMax
                             font {
                                 family: uiState.fontFamily
-                                pixelSize: 11
+                                pixelSize: 14
                             }
                             color: scrollPage.theme.textDim
                         }
@@ -261,7 +261,7 @@ Item {
                             text: s["scroll.presets"]
                             font {
                                 family: uiState.fontFamily
-                                pixelSize: 11
+                                pixelSize: 14
                             }
                             color: scrollPage.theme.textDim
                         }
@@ -292,7 +292,7 @@ Item {
                                     text: modelData
                                     font {
                                         family: uiState.fontFamily
-                                        pixelSize: 12
+                                        pixelSize: 15
                                     }
                                     color: dpiSlider.value === modelData
                                            ? scrollPage.theme.bgSidebar
@@ -361,7 +361,7 @@ Item {
                                 text: s["scroll.smart_shift_desc"]
                                 font {
                                     family: uiState.fontFamily
-                                    pixelSize: 12
+                                    pixelSize: 15
                                 }
                                 color: scrollPage.theme.textSecondary
                                 wrapMode: Text.WordWrap
@@ -389,7 +389,7 @@ Item {
                             text: s["scroll.sensitivity_value"]
                             font {
                                 family: uiState.fontFamily
-                                pixelSize: 11
+                                pixelSize: 14
                                 bold: true
                                 letterSpacing: 0.8
                             }
@@ -402,7 +402,7 @@ Item {
 
                             Text {
                                 text: "1"
-                                font { family: uiState.fontFamily; pixelSize: 11 }
+                                font { family: uiState.fontFamily; pixelSize: 14 }
                                 color: scrollPage.theme.textDim
                             }
 
@@ -425,7 +425,7 @@ Item {
 
                             Text {
                                 text: "50"
-                                font { family: uiState.fontFamily; pixelSize: 11 }
+                                font { family: uiState.fontFamily; pixelSize: 14 }
                                 color: scrollPage.theme.textDim
                             }
 
@@ -466,7 +466,7 @@ Item {
                             text: s["scroll.scroll_mode_section"]
                             font {
                                 family: uiState.fontFamily
-                                pixelSize: 11
+                                pixelSize: 14
                                 bold: true
                                 letterSpacing: 0.8
                             }
@@ -508,7 +508,7 @@ Item {
                                         text: s[modelData.labelKey] || modelData.labelKey
                                         font {
                                             family: uiState.fontFamily
-                                            pixelSize: 12
+                                            pixelSize: 15
                                             bold: backend.smartShiftMode === modelData.value
                                         }
                                         color: backend.smartShiftMode === modelData.value
@@ -564,7 +564,7 @@ Item {
                         text: s["scroll.appearance_desc"]
                         font {
                             family: uiState.fontFamily
-                            pixelSize: 12
+                            pixelSize: 15
                         }
                         color: scrollPage.theme.textSecondary
                     }
@@ -602,7 +602,7 @@ Item {
                                     text: modelData.label
                                     font {
                                         family: uiState.fontFamily
-                                        pixelSize: 12
+                                        pixelSize: 15
                                         bold: backend.appearanceMode === modelData.value
                                     }
                                     color: backend.appearanceMode === modelData.value
@@ -660,7 +660,7 @@ Item {
                         text: s["scroll.language_desc"]
                         font {
                             family: uiState.fontFamily
-                            pixelSize: 12
+                            pixelSize: 15
                         }
                         color: scrollPage.theme.textSecondary
                     }
@@ -702,7 +702,7 @@ Item {
                                     text: modelData.name
                                     font {
                                         family: uiState.fontFamily
-                                        pixelSize: 12
+                                        pixelSize: 15
                                         bold: lm.language === modelData.code
                                     }
                                     color: lm.language === modelData.code
@@ -761,7 +761,7 @@ Item {
                         text: s["scroll.startup_desc"]
                         font {
                             family: uiState.fontFamily
-                            pixelSize: 12
+                            pixelSize: 15
                         }
                         color: scrollPage.theme.textSecondary
                         wrapMode: Text.WordWrap
@@ -786,7 +786,7 @@ Item {
                                 text: s["scroll.start_at_login"]
                                 font {
                                     family: uiState.fontFamily
-                                    pixelSize: 13
+                                    pixelSize: 16
                                 }
                                 color: scrollPage.theme.textPrimary
                                 Layout.fillWidth: true
@@ -820,7 +820,7 @@ Item {
                                 text: s["scroll.start_minimized"]
                                 font {
                                     family: uiState.fontFamily
-                                    pixelSize: 13
+                                    pixelSize: 16
                                 }
                                 color: scrollPage.theme.textPrimary
                                 Layout.fillWidth: true
@@ -865,7 +865,7 @@ Item {
                                         text: s["scroll.check_for_updates"]
                                         font {
                                             family: uiState.fontFamily
-                                            pixelSize: 13
+                                            pixelSize: 16
                                         }
                                         color: scrollPage.theme.textPrimary
                                     }
@@ -875,7 +875,7 @@ Item {
                                         text: s["scroll.check_for_updates_desc"]
                                         font {
                                             family: uiState.fontFamily
-                                            pixelSize: 11
+                                            pixelSize: 14
                                         }
                                         color: scrollPage.theme.textSecondary
                                         wrapMode: Text.WordWrap
@@ -901,7 +901,7 @@ Item {
                                     text: scrollPage.updateStatusText()
                                     font {
                                         family: uiState.fontFamily
-                                        pixelSize: 11
+                                        pixelSize: 14
                                     }
                                     color: scrollPage.theme.textSecondary
                                     elide: Text.ElideRight
@@ -997,7 +997,7 @@ Item {
                         text: s["scroll.screenshots_desc"]
                         font {
                             family: uiState.fontFamily
-                            pixelSize: 12
+                            pixelSize: 15
                         }
                         color: scrollPage.theme.textSecondary
                         wrapMode: Text.WordWrap
@@ -1026,7 +1026,7 @@ Item {
                                     text: s["scroll.screenshots_save_to"]
                                     font {
                                         family: uiState.fontFamily
-                                        pixelSize: 12
+                                        pixelSize: 15
                                         bold: true
                                     }
                                     color: scrollPage.theme.textDim
@@ -1039,7 +1039,7 @@ Item {
                                     width: parent.width
                                     font {
                                         family: uiState.fontFamily
-                                        pixelSize: 13
+                                        pixelSize: 16
                                     }
                                     color: scrollPage.theme.textPrimary
                                     elide: Text.ElideMiddle
@@ -1063,7 +1063,7 @@ Item {
                                     text: s["scroll.screenshots_choose"]
                                     font {
                                         family: uiState.fontFamily
-                                        pixelSize: 12
+                                        pixelSize: 15
                                     }
                                     color: scrollPage.theme.textPrimary
                                 }
@@ -1095,7 +1095,7 @@ Item {
                                     text: s["scroll.screenshots_default"]
                                     font {
                                         family: uiState.fontFamily
-                                        pixelSize: 12
+                                        pixelSize: 15
                                     }
                                     color: scrollPage.theme.textPrimary
                                 }
@@ -1151,7 +1151,7 @@ Item {
                         text: s["scroll.scroll_direction_desc"]
                         font {
                             family: uiState.fontFamily
-                            pixelSize: 12
+                            pixelSize: 15
                         }
                         color: scrollPage.theme.textSecondary
                     }
@@ -1173,7 +1173,7 @@ Item {
                                 text: s["scroll.invert_vertical"]
                                 font {
                                     family: uiState.fontFamily
-                                    pixelSize: 13
+                                    pixelSize: 16
                                 }
                                 color: scrollPage.theme.textPrimary
                                 Layout.fillWidth: true
@@ -1207,7 +1207,7 @@ Item {
                                 text: s["scroll.invert_horizontal"]
                                 font {
                                     family: uiState.fontFamily
-                                    pixelSize: 13
+                                    pixelSize: 16
                                 }
                                 color: scrollPage.theme.textPrimary
                                 Layout.fillWidth: true
@@ -1247,7 +1247,7 @@ Item {
                                     text: s["scroll.ignore_trackpad"]
                                     font {
                                         family: uiState.fontFamily
-                                        pixelSize: 13
+                                        pixelSize: 16
                                     }
                                     color: scrollPage.theme.textPrimary
                                 }
@@ -1257,7 +1257,7 @@ Item {
                                     text: s["scroll.ignore_trackpad_desc"]
                                     font {
                                         family: uiState.fontFamily
-                                        pixelSize: 11
+                                        pixelSize: 14
                                     }
                                     color: scrollPage.theme.textSecondary
                                     wrapMode: Text.WordWrap
@@ -1309,7 +1309,7 @@ Item {
                         text: s["scroll.dpi_note"]
                         font {
                             family: uiState.fontFamily
-                            pixelSize: 12
+                            pixelSize: 15
                         }
                         color: scrollPage.theme.textDim
                         wrapMode: Text.WordWrap

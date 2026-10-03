@@ -27,11 +27,11 @@ Item {
         ItemDelegate {
             width: parent ? parent.width : implicitWidth
             highlighted: ListView.isCurrentItem
-            font { family: uiState.fontFamily; pixelSize: 11 }
+            font { family: uiState.fontFamily; pixelSize: 14 }
             contentItem: Text {
                 leftPadding: 10; rightPadding: 10
                 text: (lm.strings, lm.trAction(modelData ? modelData.label : ""))
-                font { family: uiState.fontFamily; pixelSize: 11 }
+                font { family: uiState.fontFamily; pixelSize: 14 }
                 color: highlighted ? mousePage.theme.accent : mousePage.theme.textPrimary
                 verticalAlignment: Text.AlignVCenter
             }
@@ -47,7 +47,7 @@ Item {
         ItemDelegate {
             width: parent ? parent.width : implicitWidth
             highlighted: ListView.isCurrentItem
-            font { family: uiState.fontFamily; pixelSize: 11 }
+            font { family: uiState.fontFamily; pixelSize: 14 }
             contentItem: Text {
                 leftPadding: 10; rightPadding: 10
                 text: {
@@ -57,7 +57,7 @@ Item {
                            ? (s["mouse.auto_detect"] || lbl)
                            : lbl
                 }
-                font { family: uiState.fontFamily; pixelSize: 11 }
+                font { family: uiState.fontFamily; pixelSize: 14 }
                 color: highlighted ? mousePage.theme.accent : mousePage.theme.textPrimary
                 verticalAlignment: Text.AlignVCenter
             }
@@ -644,7 +644,7 @@ Item {
 
                                 Text {
                                     text: s["mouse.delete_profile"]
-                                    font { family: uiState.fontFamily; pixelSize: 10; bold: true }
+                                    font { family: uiState.fontFamily; pixelSize: 13; bold: true }
                                     color: uiState.darkMode ? theme.textPrimary : theme.danger
                                 }
                             }
@@ -683,7 +683,7 @@ Item {
                             Rectangle {
                                 visible: backend.mouseConnected
                                 width: layoutPillRow.implicitWidth + 24
-                                height: 28; radius: Theme.radiusSmall
+                                height: 36; radius: Theme.radiusSmall
                                 border.width: 1
                                 border.color: theme.border
                                 color: layoutPillMa.containsMouse
@@ -703,14 +703,14 @@ Item {
                                                 return currentLayoutChoiceLabel()
                                             return displayDeviceName || (s["mouse.auto_detect"] || "Auto-detect")
                                         }
-                                        font { family: uiState.fontFamily; pixelSize: 10 }
+                                        font { family: uiState.fontFamily; pixelSize: 15 }
                                         color: backend.deviceLayoutOverrideKey !== ""
                                                ? "#d4a017" : theme.textPrimary
                                         anchors.verticalCenter: parent.verticalCenter
                                     }
                                     Text {
                                         text: "\u25BE"
-                                        font.pixelSize: 9
+                                        font.pixelSize: 12
                                         color: theme.textSecondary
                                         anchors.verticalCenter: parent.verticalCenter
                                     }
@@ -751,7 +751,7 @@ Item {
                                                        ? (s["mouse.auto_detect"] || lbl)
                                                        : lbl
                                             }
-                                            font { family: uiState.fontFamily; pixelSize: 11 }
+                                            font { family: uiState.fontFamily; pixelSize: 15 }
                                             highlighted: modelData.key === backend.deviceLayoutOverrideKey
                                                          || (modelData.key === "" && backend.deviceLayoutOverrideKey === "")
                                             onTriggered: backend.setDeviceLayoutOverride(modelData.key)
@@ -791,7 +791,7 @@ Item {
 
                                     Text {
                                         text: backend.batteryLevel + "%"
-                                        font { family: uiState.fontFamily; pixelSize: 11; bold: true }
+                                        font { family: uiState.fontFamily; pixelSize: 15; bold: true }
                                         color: {
                                             var lvl = backend.batteryLevel
                                             if (lvl <= 20) return "#e05555"
@@ -806,7 +806,7 @@ Item {
                             Rectangle {
                                 visible: backend.deviceStatusKind === "no_supported_mouse"
                                 width: statusRow.implicitWidth + 16
-                                height: 24; radius: 12
+                                height: 32; radius: 10
                                 color: backend.mouseConnected
                                        ? Qt.rgba(0.36, 0.56, 0.95, 0.12)
                                        : (backend.deviceStatusKind === "generic_ready"
@@ -832,7 +832,7 @@ Item {
                                               : (backend.deviceStatusKind === "generic_ready"
                                                  ? (s["mouse.generic_ready"] || "Generic Mouse Mode Ready")
                                                  : (s["mouse.no_supported_mouse_detected"] || "No supported mouse detected"))
-                                        font { family: uiState.fontFamily; pixelSize: 10; weight: Font.DemiBold }
+                                        font { family: uiState.fontFamily; pixelSize: 13; weight: Font.DemiBold }
                                         color: backend.deviceStatusKind === "no_supported_mouse"
                                                ? "#e05555" : theme.accent
                                     }
@@ -856,7 +856,7 @@ Item {
                         visible: backend.isWindows
                         width: parent.width - 64
                         anchors.horizontalCenter: parent.horizontalCenter
-                        height: 52
+                        height: 64
                         radius: Theme.radius
                         color: theme.bgCard
                         border.width: 1
@@ -874,13 +874,13 @@ Item {
 
                                 Text {
                                     text: s["mouse.generic_mouse_mode"] || "Generic Mouse Mode"
-                                    font { family: uiState.fontFamily; pixelSize: 13; bold: true }
+                                    font { family: uiState.fontFamily; pixelSize: 16; bold: true }
                                     color: theme.textPrimary
                                 }
 
                                 Text {
                                     text: s["mouse.generic_mouse_side_buttons"] || "Middle / Side Buttons"
-                                    font { family: uiState.fontFamily; pixelSize: 11 }
+                                    font { family: uiState.fontFamily; pixelSize: 14 }
                                     color: theme.textSecondary
                                 }
                             }
@@ -929,7 +929,7 @@ Item {
                             return top
                         }
                         height: canConfigureMouse
-                                ? Math.max(420, columnHeight("left") + 40,
+                                ? Math.max(430, columnHeight("left") + 40,
                                            columnHeight("right") + 40) : 340
 
                         Rectangle {
@@ -996,7 +996,7 @@ Item {
 
                                         Text {
                                             text: s["mouse.waiting_for_connection"]
-                                            font { family: uiState.fontFamily; pixelSize: 11; bold: true }
+                                            font { family: uiState.fontFamily; pixelSize: 14; bold: true }
                                             color: "#e05555"
                                         }
                                     }
@@ -1014,7 +1014,7 @@ Item {
                                     width: Math.min(parent.width, 680)
                                     text: s["mouse.connect_mouse_desc"]
                                     wrapMode: Text.WordWrap
-                                    font { family: uiState.fontFamily; pixelSize: 13 }
+                                    font { family: uiState.fontFamily; pixelSize: 16 }
                                     color: theme.textSecondary
                                 }
 
@@ -1034,7 +1034,7 @@ Item {
                                             id: firstHint
                                             anchors.centerIn: parent
                                             text: s["mouse.layout_appears_auto"]
-                                            font { family: uiState.fontFamily; pixelSize: 11 }
+                                            font { family: uiState.fontFamily; pixelSize: 14 }
                                             color: theme.textSecondary
                                         }
                                     }
@@ -1051,7 +1051,7 @@ Item {
                                             id: secondHint
                                             anchors.centerIn: parent
                                             text: s["mouse.per_device_settings"]
-                                            font { family: uiState.fontFamily; pixelSize: 11 }
+                                            font { family: uiState.fontFamily; pixelSize: 14 }
                                             color: theme.textSecondary
                                         }
                                     }
@@ -1117,7 +1117,7 @@ Item {
                                           : backend.deviceLayoutNote
                                     width: parent.width
                                     wrapMode: Text.WordWrap
-                                    font { family: uiState.fontFamily; pixelSize: 12 }
+                                    font { family: uiState.fontFamily; pixelSize: 15 }
                                     color: theme.textSecondary
                                     visible: text !== ""
                                 }
@@ -1148,7 +1148,7 @@ Item {
                                                 text: (lm.strings, lm.trButton(modelData.name))
                                                 width: parent.width * 0.45
                                                 anchors.verticalCenter: parent.verticalCenter
-                                                font { family: uiState.fontFamily; pixelSize: 13; bold: true }
+                                                font { family: uiState.fontFamily; pixelSize: 16; bold: true }
                                                 color: selectedButton === modelData.key
                                                        ? theme.accent : theme.textPrimary
                                                 elide: Text.ElideRight
@@ -1159,7 +1159,7 @@ Item {
                                                 width: parent.width * 0.55 - 8
                                                 anchors.verticalCenter: parent.verticalCenter
                                                 horizontalAlignment: Text.AlignRight
-                                                font { family: uiState.fontFamily; pixelSize: 12 }
+                                                font { family: uiState.fontFamily; pixelSize: 15 }
                                                 color: theme.textSecondary
                                                 elide: Text.ElideRight
                                             }
@@ -1237,7 +1237,7 @@ Item {
                                                 && backend.supportsGestureDirections
                                                 ? s["mouse.configure_gesture"]
                                               : s["mouse.select_button_action"]
-                                        font { family: uiState.fontFamily; pixelSize: 12 }
+                                        font { family: uiState.fontFamily; pixelSize: 15 }
                                         color: theme.textSecondary
                                         visible: selectedButton !== ""
                                     }
@@ -1282,7 +1282,7 @@ Item {
 
                                 Text {
                                     text: s["mouse.tap_action"]
-                                    font { family: uiState.fontFamily; pixelSize: 11;
+                                    font { family: uiState.fontFamily; pixelSize: 14;
                                            capitalization: Font.AllUppercase; letterSpacing: 1 }
                                     color: theme.textDim
                                 }
@@ -1293,7 +1293,7 @@ Item {
                                     textRole: "label"
                                     delegate: actionComboDelegate
                                     Material.accent: theme.accent
-                                    font { family: uiState.fontFamily; pixelSize: 11 }
+                                    font { family: uiState.fontFamily; pixelSize: 14 }
                                     currentIndex: actionIndexForId(gestureTapActionId)
                                     displayText: isCustomAction(gestureTapActionId)
                                                  ? customLabel(gestureTapActionId)
@@ -1321,7 +1321,7 @@ Item {
 
                                 Text {
                                     text: s["mouse.threshold"]
-                                    font { family: uiState.fontFamily; pixelSize: 12; bold: true }
+                                    font { family: uiState.fontFamily; pixelSize: 15; bold: true }
                                     color: theme.textPrimary
                                 }
 
@@ -1331,7 +1331,7 @@ Item {
                                             ? Math.round(gestureThresholdSlider.value / 5.0) * 5
                                             : backend.gestureThreshold
                                         ) + " px"
-                                        font { family: uiState.fontFamily; pixelSize: 12 }
+                                        font { family: uiState.fontFamily; pixelSize: 15 }
                                         color: theme.textSecondary
                                     }
                                 }
@@ -1366,7 +1366,7 @@ Item {
 
                                 Text {
                                     text: s["mouse.swipe_actions"]
-                                    font { family: uiState.fontFamily; pixelSize: 11;
+                                    font { family: uiState.fontFamily; pixelSize: 14;
                                            capitalization: Font.AllUppercase; letterSpacing: 1 }
                                     color: theme.textDim
                                 }
@@ -1378,7 +1378,7 @@ Item {
                                     Text {
                                         text: s["mouse.swipe_left"]
                                         Layout.preferredWidth: 100
-                                        font { family: uiState.fontFamily; pixelSize: 12 }
+                                        font { family: uiState.fontFamily; pixelSize: 15 }
                                         color: theme.textPrimary
                                     }
 
@@ -1388,7 +1388,7 @@ Item {
                                         textRole: "label"
                                         delegate: actionComboDelegate
                                         Material.accent: theme.accent
-                                        font { family: uiState.fontFamily; pixelSize: 11 }
+                                        font { family: uiState.fontFamily; pixelSize: 14 }
                                         currentIndex: actionIndexForId(gestureLeftActionId)
                                         displayText: isCustomAction(gestureLeftActionId)
                                                      ? customLabel(gestureLeftActionId)
@@ -1412,7 +1412,7 @@ Item {
                                     Text {
                                         text: s["mouse.swipe_right"]
                                         Layout.preferredWidth: 100
-                                        font { family: uiState.fontFamily; pixelSize: 12 }
+                                        font { family: uiState.fontFamily; pixelSize: 15 }
                                         color: theme.textPrimary
                                     }
 
@@ -1422,7 +1422,7 @@ Item {
                                         textRole: "label"
                                         delegate: actionComboDelegate
                                         Material.accent: theme.accent
-                                        font { family: uiState.fontFamily; pixelSize: 11 }
+                                        font { family: uiState.fontFamily; pixelSize: 14 }
                                         currentIndex: actionIndexForId(gestureRightActionId)
                                         displayText: isCustomAction(gestureRightActionId)
                                                      ? customLabel(gestureRightActionId)
@@ -1446,7 +1446,7 @@ Item {
                                     Text {
                                         text: s["mouse.swipe_up"]
                                         Layout.preferredWidth: 100
-                                        font { family: uiState.fontFamily; pixelSize: 12 }
+                                        font { family: uiState.fontFamily; pixelSize: 15 }
                                         color: theme.textPrimary
                                     }
 
@@ -1456,7 +1456,7 @@ Item {
                                         textRole: "label"
                                         delegate: actionComboDelegate
                                         Material.accent: theme.accent
-                                        font { family: uiState.fontFamily; pixelSize: 11 }
+                                        font { family: uiState.fontFamily; pixelSize: 14 }
                                         currentIndex: actionIndexForId(gestureUpActionId)
                                         displayText: isCustomAction(gestureUpActionId)
                                                      ? customLabel(gestureUpActionId)
@@ -1480,7 +1480,7 @@ Item {
                                     Text {
                                         text: s["mouse.swipe_down"]
                                         Layout.preferredWidth: 100
-                                        font { family: uiState.fontFamily; pixelSize: 12 }
+                                        font { family: uiState.fontFamily; pixelSize: 15 }
                                         color: theme.textPrimary
                                     }
 
@@ -1490,7 +1490,7 @@ Item {
                                         textRole: "label"
                                         delegate: actionComboDelegate
                                         Material.accent: theme.accent
-                                        font { family: uiState.fontFamily; pixelSize: 11 }
+                                        font { family: uiState.fontFamily; pixelSize: 14 }
                                         currentIndex: actionIndexForId(gestureDownActionId)
                                         displayText: isCustomAction(gestureDownActionId)
                                                      ? customLabel(gestureDownActionId)
@@ -1571,7 +1571,7 @@ Item {
 
                                     Text {
                                         text: s["mouse.dpi_presets"] || "DPI Presets"
-                                        font { family: uiState.fontFamily; pixelSize: 11;
+                                        font { family: uiState.fontFamily; pixelSize: 14;
                                                capitalization: Font.AllUppercase; letterSpacing: 1 }
                                         color: theme.textDim
                                     }
@@ -1597,7 +1597,7 @@ Item {
                                                         var presets = backend.dpiPresets
                                                         return presets[index] !== undefined ? presets[index] : "---"
                                                     }
-                                                    font { family: uiState.fontFamily; pixelSize: 13; bold: true }
+                                                    font { family: uiState.fontFamily; pixelSize: 16; bold: true }
                                                     color: dpiPresetsCard.slotColors[index]
                                                 }
 
@@ -1642,7 +1642,7 @@ Item {
                                                 text: (s["mouse.dpi_slot"] || "Slot %1: %2 DPI")
                                                       .replace("%1", dpiPresetsCard.activeSlot + 1)
                                                       .replace("%2", Math.round(dpiPresetSlider.value))
-                                                font { family: uiState.fontFamily; pixelSize: 12; bold: true }
+                                                font { family: uiState.fontFamily; pixelSize: 15; bold: true }
                                                 color: dpiPresetsCard.slotColors[dpiPresetsCard.activeSlot]
                                             }
                                         }
@@ -1670,14 +1670,14 @@ Item {
                                             width: parent.width
                                             Text {
                                                 text: backend.deviceDpiMin
-                                                font { family: uiState.fontFamily; pixelSize: 10 }
+                                                font { family: uiState.fontFamily; pixelSize: 13 }
                                                 color: theme.textDim
                                             }
                                             Item { width: parent.width - minDpiLabel.implicitWidth - maxDpiLabel.implicitWidth; height: 1 }
                                             Text {
                                                 id: maxDpiLabel
                                                 text: backend.deviceDpiMax
-                                                font { family: uiState.fontFamily; pixelSize: 10 }
+                                                font { family: uiState.fontFamily; pixelSize: 13 }
                                                 color: theme.textDim
                                             }
                                             Text {
@@ -1699,7 +1699,7 @@ Item {
                                                       parts.push(p[i])
                                                   return parts.join(" \u2192 ")
                                               })())
-                                        font { family: uiState.fontFamily; pixelSize: 11 }
+                                        font { family: uiState.fontFamily; pixelSize: 14 }
                                         color: theme.textSecondary
                                     }
                                 }
@@ -1741,7 +1741,7 @@ Item {
 
                                     Text {
                                         text: s["mouse.debug_events_desc"]
-                                        font { family: uiState.fontFamily; pixelSize: 11 }
+                                        font { family: uiState.fontFamily; pixelSize: 14 }
                                         color: theme.textSecondary
                                     }
                                 }
@@ -1772,7 +1772,7 @@ Item {
                                         id: clearText
                                         anchors.centerIn: parent
                                         text: s["mouse.clear"]
-                                        font { family: uiState.fontFamily; pixelSize: 11; bold: true }
+                                        font { family: uiState.fontFamily; pixelSize: 14; bold: true }
                                         color: theme.textPrimary
                                     }
 
@@ -1797,7 +1797,7 @@ Item {
                                         id: clearRecText
                                         anchors.centerIn: parent
                                         text: s["mouse.clear_rec"]
-                                        font { family: uiState.fontFamily; pixelSize: 11; bold: true }
+                                        font { family: uiState.fontFamily; pixelSize: 14; bold: true }
                                         color: theme.textPrimary
                                     }
 
@@ -1822,7 +1822,7 @@ Item {
                                         id: copyDevInfoText
                                         anchors.centerIn: parent
                                         text: s["mouse.copy_device_info"] || "Copy device info"
-                                        font { family: uiState.fontFamily; pixelSize: 11; bold: true }
+                                        font { family: uiState.fontFamily; pixelSize: 14; bold: true }
                                         color: theme.textPrimary
                                     }
 
@@ -1860,7 +1860,7 @@ Item {
 
                                     Text {
                                         text: s["mouse.live_gesture_monitor"]
-                                        font { family: uiState.fontFamily; pixelSize: 11; bold: true }
+                                        font { family: uiState.fontFamily; pixelSize: 14; bold: true }
                                         color: theme.textPrimary
                                     }
 
@@ -1879,7 +1879,7 @@ Item {
                                                 id: activeText
                                                 anchors.centerIn: parent
                                                 text: backend.gestureActive ? s["mouse.held"] : s["mouse.idle"]
-                                                font { family: uiState.fontFamily; pixelSize: 11; bold: true }
+                                                font { family: uiState.fontFamily; pixelSize: 14; bold: true }
                                                 color: backend.gestureActive ? "#f39c6b" : theme.textSecondary
                                             }
                                         }
@@ -1896,7 +1896,7 @@ Item {
                                                 id: moveText
                                                 anchors.centerIn: parent
                                                 text: backend.gestureMoveSeen ? s["mouse.move_seen"] : s["mouse.no_move"]
-                                                font { family: uiState.fontFamily; pixelSize: 11; bold: true }
+                                                font { family: uiState.fontFamily; pixelSize: 14; bold: true }
                                                 color: backend.gestureMoveSeen ? theme.accent : theme.textSecondary
                                             }
                                         }
@@ -1907,13 +1907,13 @@ Item {
                                               + (backend.gestureMoveSource ? backend.gestureMoveSource : (s["mouse.not_available"] || "n/a"))
                                               + " | dx: " + backend.gestureMoveDx
                                               + " | dy: " + backend.gestureMoveDy
-                                        font { family: uiState.monospaceFontFamily; pixelSize: 11 }
+                                        font { family: uiState.monospaceFontFamily; pixelSize: 14 }
                                         color: theme.textSecondary
                                     }
 
                                     Text {
                                         text: backend.gestureStatus
-                                        font { family: uiState.fontFamily; pixelSize: 11 }
+                                        font { family: uiState.fontFamily; pixelSize: 14 }
                                         color: theme.textPrimary
                                         wrapMode: Text.Wrap
                                     }
@@ -1944,7 +1944,7 @@ Item {
                                         color: backend.debugLog.length
                                                ? theme.textPrimary
                                                : theme.textSecondary
-                                        font.pixelSize: 11
+                                        font.pixelSize: 14
                                         font.family: uiState.monospaceFontFamily
                                         background: null
                                         padding: 10
@@ -1979,7 +1979,7 @@ Item {
                                         color: backend.gestureRecords.length
                                                ? theme.textPrimary
                                                : theme.textSecondary
-                                        font.pixelSize: 11
+                                        font.pixelSize: 14
                                         font.family: uiState.monospaceFontFamily
                                         background: null
                                         padding: 10
@@ -2107,7 +2107,7 @@ Item {
 
                     Text {
                         text: s["mouse.add_app_dialog.desc"]
-                        font { family: uiState.fontFamily; pixelSize: 12 }
+                        font { family: uiState.fontFamily; pixelSize: 15 }
                         color: theme.textSecondary
                     }
                 }
@@ -2161,7 +2161,7 @@ Item {
                     anchors.leftMargin: 16
                     anchors.rightMargin: 16
                     color: theme.textPrimary
-                    font { family: uiState.fontFamily; pixelSize: 12 }
+                    font { family: uiState.fontFamily; pixelSize: 15 }
                     verticalAlignment: TextInput.AlignVCenter
                     selectByMouse: true
                     clip: true
@@ -2194,7 +2194,7 @@ Item {
                         anchors.leftMargin: 16
                         anchors.verticalCenter: parent.verticalCenter
                         text: s["mouse.search_placeholder"]
-                        font { family: uiState.fontFamily; pixelSize: 12 }
+                        font { family: uiState.fontFamily; pixelSize: 15 }
                         color: theme.textDim
                         visible: !appSearchInput.text.length
                     }
@@ -2217,7 +2217,7 @@ Item {
                     Text {
                         anchors.centerIn: parent
                         text: s["mouse.browse"]
-                        font { family: uiState.fontFamily; pixelSize: 12; bold: true }
+                        font { family: uiState.fontFamily; pixelSize: 15; bold: true }
                         color: theme.textPrimary
                     }
 
@@ -2254,7 +2254,7 @@ Item {
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
                         text: addAppDialog.searching ? s["mouse.search_results"] : s["mouse.suggested_apps"]
-                        font { family: uiState.fontFamily; pixelSize: 11; bold: true }
+                        font { family: uiState.fontFamily; pixelSize: 14; bold: true }
                         color: theme.textPrimary
                     }
 
@@ -2268,7 +2268,7 @@ Item {
                             id: resultCountText
                             anchors.centerIn: parent
                             text: addAppDialog.visibleApps.length
-                            font { family: uiState.fontFamily; pixelSize: 10; bold: true }
+                            font { family: uiState.fontFamily; pixelSize: 13; bold: true }
                             color: theme.accent
                         }
                     }
@@ -2331,7 +2331,7 @@ Item {
 
                                     Text {
                                         text: modelData.label || ""
-                                        font { family: uiState.fontFamily; pixelSize: 13; bold: true }
+                                        font { family: uiState.fontFamily; pixelSize: 16; bold: true }
                                         color: theme.textPrimary
                                         elide: Text.ElideRight
                                         width: 470
@@ -2339,7 +2339,7 @@ Item {
 
                                     Text {
                                         text: appLocationLabel(modelData)
-                                        font { family: uiState.fontFamily; pixelSize: 10 }
+                                        font { family: uiState.fontFamily; pixelSize: 13 }
                                         color: theme.textSecondary
                                         elide: Text.ElideRight
                                         width: 470
@@ -2380,7 +2380,7 @@ Item {
                             text: addAppDialog.searching
                                   ? s["mouse.no_matched"]
                                   : s["mouse.no_suggested"]
-                            font { family: uiState.fontFamily; pixelSize: 13; bold: true }
+                            font { family: uiState.fontFamily; pixelSize: 16; bold: true }
                             color: theme.textPrimary
                             wrapMode: Text.WordWrap
                         }
@@ -2391,7 +2391,7 @@ Item {
                             text: addAppDialog.searching
                                   ? s["mouse.try_different"]
                                   : s["mouse.use_search"]
-                            font { family: uiState.fontFamily; pixelSize: 11 }
+                            font { family: uiState.fontFamily; pixelSize: 14 }
                             color: theme.textSecondary
                             wrapMode: Text.WordWrap
                         }
@@ -2422,7 +2422,7 @@ Item {
                     Text {
                         anchors.centerIn: parent
                         text: s["mouse.create_profile"]
-                        font { family: uiState.fontFamily; pixelSize: 12; bold: true }
+                        font { family: uiState.fontFamily; pixelSize: 15; bold: true }
                         color: selectedKnownApp ? theme.bgSidebar : theme.textSecondary
                     }
 
@@ -2456,7 +2456,7 @@ Item {
                     Text {
                         anchors.centerIn: parent
                         text: s["mouse.cancel"]
-                        font { family: uiState.fontFamily; pixelSize: 12; bold: true }
+                        font { family: uiState.fontFamily; pixelSize: 15; bold: true }
                         color: theme.textPrimary
                     }
 
@@ -2510,7 +2510,7 @@ Item {
                         + selectedProfileLabel
                         + (s["mouse.delete_dialog.confirm_suffix"] || "?")
                       : ""
-                font { family: uiState.fontFamily; pixelSize: 13; bold: true }
+                font { family: uiState.fontFamily; pixelSize: 16; bold: true }
                 color: theme.textPrimary
                 wrapMode: Text.WordWrap
             }
@@ -2518,7 +2518,7 @@ Item {
             Text {
                 width: parent.width
                 text: s["mouse.delete_dialog.desc"]
-                font { family: uiState.fontFamily; pixelSize: 12 }
+                font { family: uiState.fontFamily; pixelSize: 15 }
                 color: theme.textSecondary
                 wrapMode: Text.WordWrap
             }

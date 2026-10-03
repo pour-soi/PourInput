@@ -43,7 +43,7 @@ Rectangle {
         width: parent.width - 24
         wrapMode: Text.Wrap
         text: actionLabel
-        font { family: uiState.fontFamily; pixelSize: 12 }
+        font { family: uiState.fontFamily; pixelSize: 15 }
         color: isCurrent ? theme.bgSidebar : theme.textPrimary
     }
 

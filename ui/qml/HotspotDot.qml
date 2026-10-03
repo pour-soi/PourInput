@@ -181,13 +181,13 @@ Item {
                 text: { var _lang = lm.strings; return lm.trButton(hotspot.label) }
                 width: parent.width
                 wrapMode: Text.Wrap
-                font { family: uiState.fontFamily; pixelSize: 12; bold: true }
+                font { family: uiState.fontFamily; pixelSize: 15; bold: true }
                 color: isSelected ? theme.accent : theme.textPrimary
             }
 
             Text {
                 text: { var _lang = lm.strings; return lm.trAction(hotspot.sublabel) }
-                font { family: uiState.fontFamily; pixelSize: 10 }
+                font { family: uiState.fontFamily; pixelSize: 13 }
                 color: theme.textSecondary
                 visible: hotspot.sublabel !== ""
                 width: parent.width
