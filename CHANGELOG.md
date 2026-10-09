@@ -23,7 +23,7 @@ This project uses Semantic Versioning.
 ### Fixed
 - Improve Windows Chinese font fallback for QML text.
 
-Existing action IDs, mapping/configuration formats, and Reading data formats are retained. Source UI validation is complete; packaged release validation is pending.
+Existing action IDs, mapping/configuration formats, and Reading data formats are retained. Source UI validation and clean-sandbox startup of the Windows portable candidate have passed. Physical mouse validation was performed with the isolated source launcher.
 
 ## v1.4.3 - 2026-09-26
 

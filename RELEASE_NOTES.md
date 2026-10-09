@@ -1,7 +1,5 @@
 # PourInput v1.5.0 — UI refinement / 界面优化
 
-> Release preparation draft — not yet published. / 发布准备草稿，尚未发布。
-
 ## 中文
 
 本次 Windows 更新优化鼠标配置、阅读和设置界面的信息层级与可读性。
@@ -15,7 +13,9 @@
 
 现有动作 ID、配置/映射和阅读数据格式保持兼容，无需迁移。窗口尺寸单独保存，不改变原有配置格式。隔离 UI 测试启动器仅用于开发验证，不是正式程序的启动入口。
 
-源码版本已经过隔离实机 UI 验证；当前提交的便携包构建、启动检查、校验和及更新清单验证尚未完成。本文件不表示安装包已经发布。
+验证：源码 UI 已通过隔离实机验证；自动测试共 934 项，917 项通过，17 项因平台或权限限制跳过。Windows 便携候选包已在干净沙盒中成功启动，校验和、更新清单与内嵌构建信息一致。沙盒启动检查不包含真实鼠标功能验证。
+
+本次仅提供 Windows x64 便携版，程序未签名。使用时先从托盘退出旧实例，完整解压 ZIP，再运行 PourInput/PourInput.exe。正式程序使用正常用户配置；开发用隔离启动器的保护不会自动应用于正式 EXE。
 
 ## English
 
@@ -30,4 +30,6 @@ This Windows update improves the hierarchy and readability of Mouse, Reading, an
 
 Existing action IDs, configuration/mapping formats, and Reading data formats remain compatible without migration. Window dimensions use a separate file. The isolated UI launcher is developer validation infrastructure, not the production entry point.
 
-The source UI has passed isolated real-machine validation. Portable-package build and startup checks, checksums, and update-manifest validation for the release are still pending. These draft notes do not announce a published package.
+Validation: the source UI passed isolated real-machine testing. Of 934 automated tests, 917 passed and 17 were skipped for platform or permission limitations. The Windows portable candidate started successfully in a clean sandbox; its checksum, update manifest, and embedded build identity matched. The sandbox startup check does not validate physical mouse functionality.
+
+This release targets Windows x64 only and the executable is unsigned. Exit the previous instance from its tray menu, extract the complete ZIP, then run PourInput/PourInput.exe. The production application uses normal user configuration; the developer launcher's isolation protections do not automatically apply to the packaged executable.
