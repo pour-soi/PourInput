@@ -1047,8 +1047,12 @@ class HidSideButtonHoldStateTests(unittest.TestCase):
 
         hook = MouseHook()
         hook.divert_logi_xbutton2 = True
-        with patch.object(hid_gesture.HidGestureListener, "start", return_value=True):
+        # Import-selection tests reload hid_gesture; patch the class retained by
+        # the consumer, not the newly reloaded module's class.
+        with patch("core.mouse_hook_windows.HidGestureListener.start", return_value=True) as start:
             listener = hook._start_hid_listener()
+        start.assert_called_once_with()
+        self.assertIsNone(listener._thread)
         listener._feat_idx = 9
         engine = Engine.__new__(Engine)
         engine.hook = hook
@@ -1075,8 +1079,12 @@ class HidSideButtonHoldStateTests(unittest.TestCase):
         hook = MouseHook()
         hook.divert_logi_xbutton2 = True
         hook._dispatch = Mock()
-        with patch.object(hid_gesture.HidGestureListener, "start", return_value=True):
+        # Import-selection tests reload hid_gesture; patch the class retained by
+        # the consumer, not the newly reloaded module's class.
+        with patch("core.mouse_hook_windows.HidGestureListener.start", return_value=True) as start:
             listener = hook._start_hid_listener()
+        start.assert_called_once_with()
+        self.assertIsNone(listener._thread)
         listener._feat_idx = 9
         with patch.object(hid_gesture.time, "monotonic", return_value=100):
             listener._on_report(self._report(0x0056))

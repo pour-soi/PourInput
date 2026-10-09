@@ -6,6 +6,25 @@ This project uses Semantic Versioning.
 
 ## Unreleased
 
+## v1.5.0 - Unreleased
+
+### Changed
+- Refine Mouse, Reading, and Settings navigation, information hierarchy, and control layout.
+- Move application-profile selection above the Mouse Map; retain existing profiles and automatic switching.
+- Improve device and battery presentation, Generic Mouse Mode visibility, hotspot labels, and English/Chinese readability.
+- Use a single-category Action Browser with independent Click / Long Press and Scroll Left / Scroll Right targets.
+- Adapt the Mouse page to side-by-side device and action areas on wide windows, retaining a stacked layout on smaller windows.
+- Group Reading controls into Book, Reading, Panel Appearance, and Controls without changing reader behavior.
+
+### Added
+- Restore the normal main-window size between launches using a separate window-size file.
+- Add a disposable, isolated developer launcher for manual UI validation; production startup remains separate.
+
+### Fixed
+- Improve Windows Chinese font fallback for QML text.
+
+Existing action IDs, mapping/configuration formats, and Reading data formats are retained. Source UI validation is complete; packaged release validation is pending.
+
 ## v1.4.3 - 2026-09-26
 
 ### Added

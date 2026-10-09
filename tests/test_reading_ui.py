@@ -44,10 +44,12 @@ class ReadingUiTests(unittest.TestCase):
         from unittest.mock import patch
         from PySide6.QtCore import QEvent
         from core.mouse_hook_windows import MouseHook
-        from core.hid_gesture import HidGestureListener
         hook = MouseHook()
-        with patch.object(HidGestureListener, "start", return_value=True):
+        # Patch the consumer's class even after HID import-selection tests reload it.
+        with patch("core.mouse_hook_windows.HidGestureListener.start", return_value=True) as start:
             listener = hook._start_hid_listener()
+        start.assert_called_once_with()
+        self.assertIsNone(listener._thread)
         reader = ReadingController(hook, self.temporary.name, key_down=lambda key: False)
         self.addCleanup(reader.close)
         reader._finish_import(("Book", ["One.", "Two."]), "")

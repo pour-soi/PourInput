@@ -12,6 +12,21 @@
 
 [**下载 Windows 正式版 · v1.4.3**](https://github.com/pour-soi/PourInput/releases/download/v1.4.3/PourInput-v1.4.3-Windows.zip) · [更新说明](https://github.com/pour-soi/PourInput/releases/tag/v1.4.3) · [完整功能图集](docs/FEATURES_CN.md)
 
+
+## v1.5.0 待发布预览
+
+以下为隔离测试数据生成的新版实际界面。上方下载链接仍指向已发布的 v1.4.3；新版便携包尚待构建与验证。
+
+![鼠标页：大窗口双栏](images/screenshots-v1.5.0/mouse-zh-CN.png)
+
+![独立动作分类](images/screenshots-v1.5.0/actions-zh-CN.png)
+
+![阅读分区](images/screenshots-v1.5.0/reading-zh-CN.png)
+
+![设置](images/screenshots-v1.5.0/settings-zh-CN.png)
+
+## 已发布 v1.4.3 功能介绍
+
 ![PourInput v1.4.3 鼠标按钮与应用配置](images/screenshots-v1.4.3/mouse-zh-CN.png)
 
 *截图使用 v1.4.3 实际界面渲染，搭配示例配置与设备能力数据。截图用于说明界面；具体硬件功能取决于鼠标型号和固件。*

@@ -12,9 +12,24 @@
 
 [**Download for Windows · v1.4.3**](https://github.com/pour-soi/PourInput/releases/download/v1.4.3/PourInput-v1.4.3-Windows.zip) · [Release notes](https://github.com/pour-soi/PourInput/releases/tag/v1.4.3) · [Full feature gallery](docs/FEATURES.md)
 
+
+## v1.5.0 preview — not yet released
+
+These previews render the new UI with isolated sample data. The download above still points to published v1.4.3; the new portable package has not yet been built or validated.
+
+![Mouse: wide-window layout](images/screenshots-v1.5.0/mouse-en.png)
+
+![Single-category action browser](images/screenshots-v1.5.0/actions-en.png)
+
+![Reading sections](images/screenshots-v1.5.0/reading-en.png)
+
+![Settings](images/screenshots-v1.5.0/settings-en.png)
+
+## Published v1.4.3 feature tour
+
 ![Mouse controls and application profiles in PourInput v1.4.3](images/screenshots-v1.4.3/mouse-en.png)
 
-*Current v1.4.3 interface, rendered with sample profiles and device capabilities. Screenshots illustrate controls; available hardware features depend on your mouse and firmware.*
+*Published v1.4.3 interface, rendered with sample profiles and device capabilities. Screenshots illustrate controls; available hardware features depend on your mouse and firmware.*
 
 ## Put everyday actions on your mouse
 

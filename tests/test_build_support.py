@@ -1,7 +1,7 @@
 import os
 import re
 import stat
-import struct
+import subprocess
 import unittest
 
 from build_support import normalized_qt_library_stem, should_keep_linux_qt_asset
@@ -55,28 +55,11 @@ class LinuxQtAssetFilterTests(unittest.TestCase):
 class LinuxPermissionPackagingTests(unittest.TestCase):
     def _git_index_mode(self, relpath):
         root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        index = os.path.join(root, ".git", "index")
-        if not os.path.isfile(index):
-            return None
-        with open(index, "rb") as index_file:
-            data = index_file.read()
-        if data[:4] != b"DIRC":
-            return None
-        count = struct.unpack("!L", data[8:12])[0]
-        offset = 12
-        relpath = relpath.replace(os.sep, "/")
-        for _ in range(count):
-            start = offset
-            fields = struct.unpack("!LLLLLLLLLL20sH", data[offset:offset + 62])
-            offset += 62
-            end = data.index(b"\0", offset)
-            entry_path = data[offset:end].decode("utf-8")
-            offset = end + 1
-            while (offset - start) % 8:
-                offset += 1
-            if entry_path == relpath:
-                return fields[6]
-        return None
+        output = subprocess.check_output(
+            ["git", "ls-files", "--stage", "--", relpath.replace(os.sep, "/")],
+            cwd=root, text=True,
+        ).strip()
+        return int(output.split()[0], 8) if output else None
 
     def test_linux_permission_helper_files_exist(self):
         root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

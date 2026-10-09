@@ -683,7 +683,12 @@ class AppCatalogTests(unittest.TestCase):
             linked_exec = Path(temp_dir) / "code"
             real_exec.write_text("#!/bin/sh\n", encoding="utf-8")
             real_exec.chmod(0o755)
-            linked_exec.symlink_to(real_exec)
+            try:
+                linked_exec.symlink_to(real_exec)
+            except OSError as exc:
+                if os.name == "nt" and getattr(exc, "winerror", None) == 1314:
+                    self.skipTest("Windows symlink privilege is unavailable")
+                raise
 
             with patch.object(app_catalog.sys, "platform", "linux"):
                 resolved = app_catalog.resolve_app_spec(str(linked_exec))
