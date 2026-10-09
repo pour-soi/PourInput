@@ -8,6 +8,7 @@ Column {
     property var categories: backend.actionCategories
     property string currentAction: "none"
     property string editorKey: ""
+    property bool showCurrentAction: true
     property string activeCategory: "Other"
     signal picked(string aid)
     spacing: 12
@@ -29,6 +30,7 @@ Column {
     Component.onCompleted: selectCurrentCategory()
 
     Flow {
+        visible: selector.showCurrentAction
         width: parent.width
         spacing: 10
         bottomPadding: 6
@@ -41,7 +43,7 @@ Column {
             width: Math.min(implicitWidth, selector.width)
             text: { var language = lm.strings; return lm.trAction(backend.actionLabelFor(selector.currentAction)) }
             wrapMode: Text.Wrap
-            font { family: uiState.fontFamily; pixelSize: 15 }
+            font { family: uiState.fontFamily; pixelSize: 17 }
             color: theme.textSecondary
         }
     }
@@ -53,7 +55,7 @@ Column {
             delegate: Button {
                 required property var modelData
                 objectName: "category_" + modelData.category
-                implicitHeight: 38
+                implicitHeight: 44
                 topInset: 0; bottomInset: 0
                 horizontalPadding: 14
                 checkable: true
@@ -63,14 +65,21 @@ Column {
                 contentItem: Text {
                     text: (lm.strings, lm.trCategory(parent.modelData.category))
                     color: parent.checked ? theme.accent : theme.textSecondary
-                    font { family: uiState.fontFamily; pixelSize: 15; bold: parent.checked }
+                    font { family: uiState.fontFamily; pixelSize: 17; bold: parent.checked }
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                 }
                 background: Rectangle {
                     radius: 8
-                    color: parent.checked ? theme.accentDim : parent.hovered ? theme.bgCardHover : "transparent"
+                    color: parent.hovered ? theme.bgCardHover : "transparent"
                     border.color: parent.activeFocus ? theme.accent : "transparent"
+                    Rectangle {
+                        anchors.bottom: parent.bottom
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        width: parent.width - 20; height: 2
+                        visible: parent.parent.checked
+                        color: theme.accent
+                    }
                 }
                 Accessible.name: (lm.strings, lm.trCategory(modelData.category))
             }
@@ -87,7 +96,7 @@ Column {
             topPadding: 12
             Text {
                 text: (lm.strings, lm.trCategory(section.modelData.category))
-                font { family: uiState.fontFamily; pixelSize: 14; bold: true }
+                font { family: uiState.fontFamily; pixelSize: 18; bold: true }
                 color: theme.textSecondary
             }
             Flow {

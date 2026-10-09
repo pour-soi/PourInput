@@ -16,7 +16,7 @@ Rectangle {
     signal picked(string aid)
 
     width: Math.min(maximumWidth, chipText.implicitWidth + 24)
-    height: Math.max(34, chipText.implicitHeight + 16)
+    height: Math.max(42, chipText.implicitHeight + 20)
     radius: 9
     activeFocusOnTab: true
 
@@ -43,7 +43,7 @@ Rectangle {
         width: parent.width - 24
         wrapMode: Text.Wrap
         text: actionLabel
-        font { family: uiState.fontFamily; pixelSize: 15 }
+        font { family: uiState.fontFamily; pixelSize: 17 }
         color: isCurrent ? theme.bgSidebar : theme.textPrimary
     }
 

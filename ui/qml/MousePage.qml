@@ -12,6 +12,8 @@ import "Theme.js" as Theme
 Item {
     id: mousePage
     objectName: "mousePage"
+    readonly property bool compactLayout: width < 1000
+    readonly property bool wideLayout: width >= 1520
     readonly property var theme: Theme.palette(uiState.darkMode)
     readonly property bool hasBlockingDialog: addAppDialog.visible
                                              || deleteDialog.visible
@@ -571,99 +573,131 @@ Item {
                     spacing: 0
 
                     Item { width: 1; height: Theme.space16 }
-                    RowLayout {
+                    GridLayout {
+                        columns: mousePage.compactLayout ? 1 : 2
+                        rowSpacing: 8
+                        columnSpacing: 8
                         width: parent.width - 64
                         anchors.horizontalCenter: parent.horizontalCenter
-                        spacing: Theme.space8
-                        Label {
-                            text: s["mouse.profile_selector"]
+                        Text {
+                            objectName: "mousePageHeading"
+                            Layout.fillWidth: true
+                            text: (lm.strings, lm.trCategory("Mouse"))
+                            font { family: uiState.fontFamily; pixelSize: 28; bold: true }
                             color: theme.textPrimary
-                            font.family: uiState.fontFamily
                         }
-                        ComboBox {
-                            objectName: "profileSelector"
-                            Layout.preferredWidth: Math.min(280, parent.width - 250)
-                            model: backend.profiles
-                            textRole: "label"
-                            currentIndex: {
-                                for (var i = 0; i < model.length; ++i)
-                                    if (model[i].name === selectedProfile) return i
-                                return -1
+                        RowLayout {
+                            objectName: "profileControls"
+                            spacing: Theme.space8
+                            Label {
+                                text: s["mouse.profile_selector"]
+                                color: theme.textPrimary
+                                font { family: uiState.fontFamily; pixelSize: 17 }
                             }
-                            displayText: selectedProfileLabel
-                            font.family: uiState.fontFamily
-                            delegate: ItemDelegate {
-                                width: ListView.view.width
-                                text: profileDisplayLabel(modelData)
-                                highlighted: modelData.name === selectedProfile
-                                font.family: uiState.fontFamily
+                            ComboBox {
+                                objectName: "profileSelector"
+                                Layout.preferredWidth: 280
+                                model: backend.profiles
+                                textRole: "label"
+                                currentIndex: {
+                                    for (var i = 0; i < model.length; ++i)
+                                        if (model[i].name === selectedProfile) return i
+                                    return -1
+                                }
+                                displayText: selectedProfileLabel
+                                font { family: uiState.fontFamily; pixelSize: 17 }
+                                delegate: ItemDelegate {
+                                    width: ListView.view.width
+                                    text: profileDisplayLabel(modelData)
+                                    highlighted: modelData.name === selectedProfile
+                                    font { family: uiState.fontFamily; pixelSize: 17 }
+                                }
+                                onActivated: selectProfile(model[index].name)
+                                Accessible.name: s["mouse.profile_selector"]
                             }
-                            onActivated: selectProfile(model[index].name)
-                            Accessible.name: s["mouse.profile_selector"]
-                        }
-                        Button {
-                            objectName: "addProfileButton"
-                            text: "+"
-                            implicitWidth: 40
-                            leftPadding: 8
-                            rightPadding: 8
-                            font.family: uiState.fontFamily
-                            background: Rectangle {
-                                radius: Theme.radiusControl
-                                color: parent.hovered ? theme.accentDim : theme.bgCard
-                                border.color: theme.border
+                            Button {
+                                objectName: "addProfileButton"
+                                text: "+"
+                                implicitWidth: 40
+                                leftPadding: 8
+                                rightPadding: 8
+                                font { family: uiState.fontFamily; pixelSize: 17 }
+                                background: Rectangle {
+                                    radius: Theme.radiusControl
+                                    color: parent.hovered ? theme.accentDim : theme.bgCard
+                                    border.color: theme.border
+                                }
+                                Accessible.name: s["mouse.add_app_profile"]
+                                ToolTip.visible: hovered
+                                ToolTip.text: s["mouse.add_app_profile"]
+                                onClicked: openAddProfileDialog()
                             }
-                            Accessible.name: s["mouse.add_app_profile"]
-                            ToolTip.visible: hovered
-                            ToolTip.text: s["mouse.add_app_profile"]
-                            onClicked: openAddProfileDialog()
-                        }
-                        // Delete profile button (not for default)
-                        Rectangle {
-                            objectName: "deleteProfileButton"
-                            visible: selectedProfile !== ""
-                                     && selectedProfile !== "default"
-                            implicitWidth: delRow.implicitWidth + 18
-                            implicitHeight: 28
-                            radius: 10
-                            color: delMa.containsMouse ? theme.danger : theme.dangerBg
-                            Behavior on color { ColorAnimation { duration: 120 } }
+                            // Delete profile button (not for default)
+                            Rectangle {
+                                objectName: "deleteProfileButton"
+                                visible: selectedProfile !== ""
+                                         && selectedProfile !== "default"
+                                implicitWidth: delRow.implicitWidth + 18
+                                implicitHeight: 28
+                                radius: 10
+                                color: delMa.containsMouse ? theme.danger : theme.dangerBg
+                                Behavior on color { ColorAnimation { duration: 120 } }
 
-                            Row {
-                                id: delRow
-                                anchors.centerIn: parent
-                                spacing: 6
+                                Row {
+                                    id: delRow
+                                    anchors.centerIn: parent
+                                    spacing: 6
 
-                                AppIcon {
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    width: 14
-                                    height: 14
-                                    name: "trash"
-                                    iconColor: uiState.darkMode ? theme.textPrimary : theme.danger
+                                    AppIcon {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        width: 14
+                                        height: 14
+                                        name: "trash"
+                                        iconColor: uiState.darkMode ? theme.textPrimary : theme.danger
+                                    }
+
+                                    Text {
+                                        text: s["mouse.delete_profile"]
+                                        font { family: uiState.fontFamily; pixelSize: 15; bold: true }
+                                        color: uiState.darkMode ? theme.textPrimary : theme.danger
+                                    }
                                 }
 
-                                Text {
-                                    text: s["mouse.delete_profile"]
-                                    font { family: uiState.fontFamily; pixelSize: 13; bold: true }
-                                    color: uiState.darkMode ? theme.textPrimary : theme.danger
+                                MouseArea {
+                                    id: delMa
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        pendingDeleteProfile = selectedProfile
+                                        deleteDialog.open()
+                                    }
                                 }
                             }
 
-                            MouseArea {
-                                id: delMa
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: {
-                                    pendingDeleteProfile = selectedProfile
-                                    deleteDialog.open()
-                                }
-                            }
                         }
-
-                        Item { Layout.fillWidth: true }
                     }
                     Item { width: 1; height: Theme.space12 }
+
+                    Item {
+                        width: parent.width
+                        height: mousePage.wideLayout
+                                ? Math.max(deviceColumn.implicitHeight, editorColumn.implicitHeight)
+                                : deviceColumn.implicitHeight + editorColumn.implicitHeight
+
+                        Rectangle {
+                            visible: mousePage.wideLayout
+                            x: deviceColumn.width
+                            y: 16
+                            width: 1
+                            height: parent.height - 32
+                            color: theme.border
+                        }
+
+                        Column {
+                            id: deviceColumn
+                            objectName: "mouseDeviceColumn"
+                            width: mousePage.wideLayout ? parent.width * 0.54 : parent.width
 
                     // ── Header ────────────────────────────────
                     Item {
@@ -683,7 +717,7 @@ Item {
                             Rectangle {
                                 visible: backend.mouseConnected
                                 width: layoutPillRow.implicitWidth + 24
-                                height: 36; radius: Theme.radiusSmall
+                                height: 42; radius: Theme.radiusSmall
                                 border.width: 1
                                 border.color: theme.border
                                 color: layoutPillMa.containsMouse
@@ -703,7 +737,7 @@ Item {
                                                 return currentLayoutChoiceLabel()
                                             return displayDeviceName || (s["mouse.auto_detect"] || "Auto-detect")
                                         }
-                                        font { family: uiState.fontFamily; pixelSize: 15 }
+                                        font { family: uiState.fontFamily; pixelSize: 17 }
                                         color: backend.deviceLayoutOverrideKey !== ""
                                                ? "#d4a017" : theme.textPrimary
                                         anchors.verticalCenter: parent.verticalCenter
@@ -751,7 +785,7 @@ Item {
                                                        ? (s["mouse.auto_detect"] || lbl)
                                                        : lbl
                                             }
-                                            font { family: uiState.fontFamily; pixelSize: 15 }
+                                            font { family: uiState.fontFamily; pixelSize: 17 }
                                             highlighted: modelData.key === backend.deviceLayoutOverrideKey
                                                          || (modelData.key === "" && backend.deviceLayoutOverrideKey === "")
                                             onTriggered: backend.setDeviceLayoutOverride(modelData.key)
@@ -759,45 +793,41 @@ Item {
                                     }
                                 }
                             }
-                            // Battery badge
-                            Rectangle {
+                            // Device information stays on one baseline, without a status badge.
+                            Item {
+                                objectName: "deviceBattery"
                                 visible: backend.batteryLevel >= 0
-                                width: battRow.implicitWidth + 16
-                                height: 22; radius: 11
-                                color: {
-                                    var lvl = backend.batteryLevel
-                                    if (lvl <= 20) return Qt.rgba(0.88, 0.2, 0.2, 0.18)
-                                    if (lvl <= 40) return Qt.rgba(0.9, 0.56, 0.1, 0.18)
-                                    return Qt.rgba(0.36, 0.56, 0.95, uiState.darkMode ? 0.12 : 0.16)
+                                width: battRow.implicitWidth + 28
+                                height: 42
+                                Rectangle {
+                                    x: 4; anchors.verticalCenter: parent.verticalCenter
+                                    width: 1; height: 20; color: theme.border
                                 }
-
                                 Row {
                                     id: battRow
-                                    anchors.centerIn: parent
-                                    spacing: 6
-
-                                    AppIcon {
+                                    x: 20; anchors.verticalCenter: parent.verticalCenter
+                                    spacing: 10
+                                    Item {
+                                        width: 24; height: 16
                                         anchors.verticalCenter: parent.verticalCenter
-                                        width: 14
-                                        height: 14
-                                        name: "battery-high"
-                                        iconColor: {
-                                            var lvl = backend.batteryLevel
-                                            if (lvl <= 20) return "#e05555"
-                                            if (lvl <= 40) return "#e09045"
-                                            return theme.accent
+                                        readonly property color chargeColor: backend.batteryLevel <= 20
+                                            ? theme.danger : backend.batteryLevel <= 40
+                                            ? theme.warning : theme.textSecondary
+                                        Rectangle {
+                                            width: 21; height: 13; y: 1; radius: 2
+                                            color: "transparent"; border.color: parent.chargeColor
+                                            Rectangle {
+                                                x: 3; y: 3; height: 7
+                                                width: 15 * Math.max(0, Math.min(100, backend.batteryLevel)) / 100
+                                                color: parent.parent.chargeColor
+                                            }
                                         }
+                                        Rectangle { x: 22; y: 5; width: 2; height: 5; radius: 1; color: parent.chargeColor }
                                     }
-
                                     Text {
                                         text: backend.batteryLevel + "%"
-                                        font { family: uiState.fontFamily; pixelSize: 15; bold: true }
-                                        color: {
-                                            var lvl = backend.batteryLevel
-                                            if (lvl <= 20) return "#e05555"
-                                            if (lvl <= 40) return "#e09045"
-                                            return theme.accent
-                                        }
+                                        font { family: uiState.fontFamily; pixelSize: 17 }
+                                        color: backend.batteryLevel <= 20 ? theme.danger : theme.textPrimary
                                     }
                                 }
                             }
@@ -832,7 +862,7 @@ Item {
                                               : (backend.deviceStatusKind === "generic_ready"
                                                  ? (s["mouse.generic_ready"] || "Generic Mouse Mode Ready")
                                                  : (s["mouse.no_supported_mouse_detected"] || "No supported mouse detected"))
-                                        font { family: uiState.fontFamily; pixelSize: 13; weight: Font.DemiBold }
+                                        font { family: uiState.fontFamily; pixelSize: 15; weight: Font.DemiBold }
                                         color: backend.deviceStatusKind === "no_supported_mouse"
                                                ? "#e05555" : theme.accent
                                     }
@@ -853,41 +883,67 @@ Item {
                     Item { width: 1; height: Theme.space16 }
 
                     Rectangle {
+                        objectName: "genericModeCard"
                         visible: backend.isWindows
                         width: parent.width - 64
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        height: 64
-                        radius: Theme.radius
-                        color: theme.bgCard
-                        border.width: 1
-                        border.color: theme.border
+                        anchors.left: parent.left
+                        anchors.leftMargin: Theme.space32
+                        height: Math.max(96, genericModeContent.implicitHeight + 32)
+                        radius: Theme.radiusControl
+                        color: theme.accentDim
+                        border.color: uiState.darkMode ? theme.border : "#c9d9f1"
+                        Rectangle {
+                            width: 3; height: parent.height - 20
+                            anchors.left: parent.left
+                            anchors.verticalCenter: parent.verticalCenter
+                            radius: 1; color: theme.accent
+                        }
 
                         RowLayout {
+                            id: genericModeContent
                             anchors.fill: parent
-                            anchors.leftMargin: Theme.space16
-                            anchors.rightMargin: Theme.space16
-                            spacing: Theme.space12
+                            anchors.leftMargin: 20
+                            anchors.rightMargin: 20
+                            spacing: Theme.space16
 
+                            Rectangle {
+                                Layout.preferredWidth: 40
+                                Layout.preferredHeight: 40
+                                radius: 10
+                                color: uiState.darkMode ? theme.bgCardHover : "#d7e6ff"
+                                AppIcon {
+                                    anchors.centerIn: parent
+                                    width: 26; height: 26
+                                    name: "mouse-simple"
+                                    iconColor: theme.textPrimary
+                                }
+                            }
                             Column {
                                 Layout.fillWidth: true
                                 spacing: 3
 
                                 Text {
+                                    width: parent.width
+                                    wrapMode: Text.Wrap
                                     text: s["mouse.generic_mouse_mode"] || "Generic Mouse Mode"
-                                    font { family: uiState.fontFamily; pixelSize: 16; bold: true }
+                                    font { family: uiState.fontFamily; pixelSize: 20; bold: true }
                                     color: theme.textPrimary
                                 }
 
                                 Text {
+                                    width: parent.width
+                                    wrapMode: Text.Wrap
                                     text: s["mouse.generic_mouse_side_buttons"] || "Middle / Side Buttons"
-                                    font { family: uiState.fontFamily; pixelSize: 14 }
+                                    font { family: uiState.fontFamily; pixelSize: 15 }
                                     color: theme.textSecondary
                                 }
                             }
 
                             Switch {
+                                objectName: "genericModeSwitch"
+                                font { family: uiState.fontFamily; pixelSize: 17 }
                                 checked: backend.genericMouseEnabled
-                                text: checked ? s["mouse.on"] : s["mouse.off"]
+                                text: checked ? s["mouse.generic_mode_on"] : s["mouse.generic_mode_off"]
                                 Material.accent: theme.accent
                                 Accessible.name: s["mouse.generic_mouse_mode"] || "Generic Mouse Mode"
                                 onClicked: backend.setGenericMouseEnabled(checked)
@@ -901,7 +957,7 @@ Item {
                         id: mouseImageArea
                         width: parent.width
                         property int layoutRevision: 0
-                        property real labelColumnWidth: Math.min(240, (width - 460) / 2)
+                        property real labelColumnWidth: Math.min(260, (width - (width < 1000 ? 360 : 460)) / 2)
                         function sideItems(side) {
                             var revision = layoutRevision
                             var items = []
@@ -929,7 +985,7 @@ Item {
                             return top
                         }
                         height: canConfigureMouse
-                                ? Math.max(430, columnHeight("left") + 40,
+                                ? Math.max(mousePage.compactLayout ? 350 : 430, columnHeight("left") + 40,
                                            columnHeight("right") + 40) : 340
 
                         Rectangle {
@@ -996,7 +1052,7 @@ Item {
 
                                         Text {
                                             text: s["mouse.waiting_for_connection"]
-                                            font { family: uiState.fontFamily; pixelSize: 14; bold: true }
+                                            font { family: uiState.fontFamily; pixelSize: 15; bold: true }
                                             color: "#e05555"
                                         }
                                     }
@@ -1034,7 +1090,7 @@ Item {
                                             id: firstHint
                                             anchors.centerIn: parent
                                             text: s["mouse.layout_appears_auto"]
-                                            font { family: uiState.fontFamily; pixelSize: 14 }
+                                            font { family: uiState.fontFamily; pixelSize: 15 }
                                             color: theme.textSecondary
                                         }
                                     }
@@ -1051,7 +1107,7 @@ Item {
                                             id: secondHint
                                             anchors.centerIn: parent
                                             text: s["mouse.per_device_settings"]
-                                            font { family: uiState.fontFamily; pixelSize: 14 }
+                                            font { family: uiState.fontFamily; pixelSize: 15 }
                                             color: theme.textSecondary
                                         }
                                     }
@@ -1107,7 +1163,7 @@ Item {
                                 Text {
                                     text: s["mouse.interactive_layout_coming"]
                                     width: parent.width
-                                    font { family: uiState.fontFamily; pixelSize: 15; bold: true }
+                                    font { family: uiState.fontFamily; pixelSize: 17; bold: true }
                                     color: theme.textPrimary
                                 }
 
@@ -1117,7 +1173,7 @@ Item {
                                           : backend.deviceLayoutNote
                                     width: parent.width
                                     wrapMode: Text.WordWrap
-                                    font { family: uiState.fontFamily; pixelSize: 15 }
+                                    font { family: uiState.fontFamily; pixelSize: 17 }
                                     color: theme.textSecondary
                                     visible: text !== ""
                                 }
@@ -1148,7 +1204,7 @@ Item {
                                                 text: (lm.strings, lm.trButton(modelData.name))
                                                 width: parent.width * 0.45
                                                 anchors.verticalCenter: parent.verticalCenter
-                                                font { family: uiState.fontFamily; pixelSize: 16; bold: true }
+                                                font { family: uiState.fontFamily; pixelSize: 18; bold: true }
                                                 color: selectedButton === modelData.key
                                                        ? theme.accent : theme.textPrimary
                                                 elide: Text.ElideRight
@@ -1159,7 +1215,7 @@ Item {
                                                 width: parent.width * 0.55 - 8
                                                 anchors.verticalCenter: parent.verticalCenter
                                                 horizontalAlignment: Text.AlignRight
-                                                font { family: uiState.fontFamily; pixelSize: 15 }
+                                                font { family: uiState.fontFamily; pixelSize: 17 }
                                                 color: theme.textSecondary
                                                 elide: Text.ElideRight
                                             }
@@ -1178,12 +1234,20 @@ Item {
                         }
                     }
 
+                        }
+                        Column {
+                            id: editorColumn
+                            objectName: "mouseEditorColumn"
+                            x: mousePage.wideLayout ? deviceColumn.width : 0
+                            y: mousePage.wideLayout ? 0 : deviceColumn.implicitHeight
+                            width: mousePage.wideLayout ? parent.width - deviceColumn.width : parent.width
+
                     // ── Separator ─────────────────────────────
                     Rectangle {
                         width: parent.width - 64; height: 1
                         color: theme.border
                         anchors.horizontalCenter: parent.horizontalCenter
-                        visible: selectedButton !== ""
+                        visible: selectedButton !== "" && !mousePage.wideLayout
                     }
 
                     // ── Action picker ─────────────────────────
@@ -1211,6 +1275,7 @@ Item {
                             spacing: 16
 
                             Row {
+                                visible: selectedButton === "gesture" && backend.supportsGestureDirections
                                 spacing: 12
 
                                 Rectangle {
@@ -1227,7 +1292,7 @@ Item {
                                         text: selectedButtonName
                                               ? selectedButtonName + (s["mouse.choose_action_suffix"] || " — Choose Action")
                                               : ""
-                                        font { family: uiState.fontFamily; pixelSize: 15; bold: true }
+                                        font { family: uiState.fontFamily; pixelSize: 17; bold: true }
                                         color: theme.textPrimary
                                     }
                                     Text {
@@ -1237,7 +1302,7 @@ Item {
                                                 && backend.supportsGestureDirections
                                                 ? s["mouse.configure_gesture"]
                                               : s["mouse.select_button_action"]
-                                        font { family: uiState.fontFamily; pixelSize: 15 }
+                                        font { family: uiState.fontFamily; pixelSize: 17 }
                                         color: theme.textSecondary
                                         visible: selectedButton !== ""
                                     }
@@ -1252,12 +1317,24 @@ Item {
                                 visible: selectedButton === "hscroll_left"
                                 property string targetButton: scrollTabs.currentIndex === 0 ? "hscroll_left" : "hscroll_right"
                                 onVisibleChanged: if (visible) scrollTabs.currentIndex = 0
-                                TabBar {
-                                    id: scrollTabs
-                                    objectName: "scrollTabs"
-                                    width: Math.min(parent.width, 360)
-                                    TabButton { text: s["mouse.scroll_left"] }
-                                    TabButton { text: s["mouse.scroll_right"] }
+                                RowLayout {
+                                    width: parent.width
+                                    spacing: 20
+                                    Text {
+                                        text: selectedButtonName
+                                        Layout.maximumWidth: 210
+                                        wrapMode: Text.Wrap
+                                        font { family: uiState.fontFamily; pixelSize: 20; bold: true }
+                                        color: theme.textPrimary
+                                    }
+                                    TabBar {
+                                        id: scrollTabs
+                                        objectName: "scrollTabs"
+                                        Layout.preferredWidth: 240
+                                        TabButton { text: s["mouse.scroll_left"]; font { family: uiState.fontFamily; pixelSize: 17 } }
+                                        TabButton { text: s["mouse.scroll_right"]; font { family: uiState.fontFamily; pixelSize: 17 } }
+                                    }
+                                    Item { Layout.fillWidth: true }
                                 }
                                 ActionSelector {
                                     objectName: "horizontalActionSelector"
@@ -1282,7 +1359,7 @@ Item {
 
                                 Text {
                                     text: s["mouse.tap_action"]
-                                    font { family: uiState.fontFamily; pixelSize: 14;
+                                    font { family: uiState.fontFamily; pixelSize: 15;
                                            capitalization: Font.AllUppercase; letterSpacing: 1 }
                                     color: theme.textDim
                                 }
@@ -1293,7 +1370,7 @@ Item {
                                     textRole: "label"
                                     delegate: actionComboDelegate
                                     Material.accent: theme.accent
-                                    font { family: uiState.fontFamily; pixelSize: 14 }
+                                    font { family: uiState.fontFamily; pixelSize: 15 }
                                     currentIndex: actionIndexForId(gestureTapActionId)
                                     displayText: isCustomAction(gestureTapActionId)
                                                  ? customLabel(gestureTapActionId)
@@ -1321,7 +1398,7 @@ Item {
 
                                 Text {
                                     text: s["mouse.threshold"]
-                                    font { family: uiState.fontFamily; pixelSize: 15; bold: true }
+                                    font { family: uiState.fontFamily; pixelSize: 17; bold: true }
                                     color: theme.textPrimary
                                 }
 
@@ -1331,7 +1408,7 @@ Item {
                                             ? Math.round(gestureThresholdSlider.value / 5.0) * 5
                                             : backend.gestureThreshold
                                         ) + " px"
-                                        font { family: uiState.fontFamily; pixelSize: 15 }
+                                        font { family: uiState.fontFamily; pixelSize: 17 }
                                         color: theme.textSecondary
                                     }
                                 }
@@ -1366,7 +1443,7 @@ Item {
 
                                 Text {
                                     text: s["mouse.swipe_actions"]
-                                    font { family: uiState.fontFamily; pixelSize: 14;
+                                    font { family: uiState.fontFamily; pixelSize: 15;
                                            capitalization: Font.AllUppercase; letterSpacing: 1 }
                                     color: theme.textDim
                                 }
@@ -1378,7 +1455,7 @@ Item {
                                     Text {
                                         text: s["mouse.swipe_left"]
                                         Layout.preferredWidth: 100
-                                        font { family: uiState.fontFamily; pixelSize: 15 }
+                                        font { family: uiState.fontFamily; pixelSize: 17 }
                                         color: theme.textPrimary
                                     }
 
@@ -1388,7 +1465,7 @@ Item {
                                         textRole: "label"
                                         delegate: actionComboDelegate
                                         Material.accent: theme.accent
-                                        font { family: uiState.fontFamily; pixelSize: 14 }
+                                        font { family: uiState.fontFamily; pixelSize: 15 }
                                         currentIndex: actionIndexForId(gestureLeftActionId)
                                         displayText: isCustomAction(gestureLeftActionId)
                                                      ? customLabel(gestureLeftActionId)
@@ -1412,7 +1489,7 @@ Item {
                                     Text {
                                         text: s["mouse.swipe_right"]
                                         Layout.preferredWidth: 100
-                                        font { family: uiState.fontFamily; pixelSize: 15 }
+                                        font { family: uiState.fontFamily; pixelSize: 17 }
                                         color: theme.textPrimary
                                     }
 
@@ -1422,7 +1499,7 @@ Item {
                                         textRole: "label"
                                         delegate: actionComboDelegate
                                         Material.accent: theme.accent
-                                        font { family: uiState.fontFamily; pixelSize: 14 }
+                                        font { family: uiState.fontFamily; pixelSize: 15 }
                                         currentIndex: actionIndexForId(gestureRightActionId)
                                         displayText: isCustomAction(gestureRightActionId)
                                                      ? customLabel(gestureRightActionId)
@@ -1446,7 +1523,7 @@ Item {
                                     Text {
                                         text: s["mouse.swipe_up"]
                                         Layout.preferredWidth: 100
-                                        font { family: uiState.fontFamily; pixelSize: 15 }
+                                        font { family: uiState.fontFamily; pixelSize: 17 }
                                         color: theme.textPrimary
                                     }
 
@@ -1456,7 +1533,7 @@ Item {
                                         textRole: "label"
                                         delegate: actionComboDelegate
                                         Material.accent: theme.accent
-                                        font { family: uiState.fontFamily; pixelSize: 14 }
+                                        font { family: uiState.fontFamily; pixelSize: 15 }
                                         currentIndex: actionIndexForId(gestureUpActionId)
                                         displayText: isCustomAction(gestureUpActionId)
                                                      ? customLabel(gestureUpActionId)
@@ -1480,7 +1557,7 @@ Item {
                                     Text {
                                         text: s["mouse.swipe_down"]
                                         Layout.preferredWidth: 100
-                                        font { family: uiState.fontFamily; pixelSize: 15 }
+                                        font { family: uiState.fontFamily; pixelSize: 17 }
                                         color: theme.textPrimary
                                     }
 
@@ -1490,7 +1567,7 @@ Item {
                                         textRole: "label"
                                         delegate: actionComboDelegate
                                         Material.accent: theme.accent
-                                        font { family: uiState.fontFamily; pixelSize: 14 }
+                                        font { family: uiState.fontFamily; pixelSize: 15 }
                                         currentIndex: actionIndexForId(gestureDownActionId)
                                         displayText: isCustomAction(gestureDownActionId)
                                                      ? customLabel(gestureDownActionId)
@@ -1523,16 +1600,57 @@ Item {
                                 onPhysicalButtonChanged: buttonTabs.currentIndex = 0
                                 onVisibleChanged: if (visible) buttonTabs.currentIndex = 0
 
-                                TabBar {
-                                    id: buttonTabs
-                                    objectName: "buttonTabs"
-                                    width: Math.min(parent.width, 360)
-                                    visible: supportsMultiActionButton(selectedButton)
-                                    TabButton { text: s["mouse.click_tab"] }
-                                    TabButton { text: s["mouse.long_press_tab"] }
+                                GridLayout {
+                                    objectName: "buttonEditorHeader"
+                                    width: Math.min(parent.width, implicitWidth)
+                                    columns: actionPicker.width < 900 ? 2 : 3
+                                    columnSpacing: 28
+                                    rowSpacing: 8
+                                    Text {
+                                        text: selectedButtonName
+                                        Layout.maximumWidth: 210
+                                        wrapMode: Text.Wrap
+                                        font { family: uiState.fontFamily; pixelSize: 20; bold: true }
+                                        color: theme.textPrimary
+                                    }
+                                    TabBar {
+                                        id: buttonTabs
+                                        objectName: "buttonTabs"
+                                        Layout.preferredWidth: 240
+                                        Layout.minimumWidth: 240
+                                        Layout.maximumWidth: 240
+                                        visible: supportsMultiActionButton(selectedButton)
+                                        TabButton { text: s["mouse.click_tab"]; font { family: uiState.fontFamily; pixelSize: 17 } }
+                                        TabButton { text: s["mouse.long_press_tab"]; font { family: uiState.fontFamily; pixelSize: 17 } }
+                                    }
+                                    RowLayout {
+                                        objectName: "buttonSummaryRow"
+                                        Layout.columnSpan: actionPicker.width < 900 ? 2 : 1
+                                        Layout.fillWidth: true
+                                        Layout.maximumWidth: implicitWidth
+                                        spacing: 10
+                                        Text {
+                                            text: s["mouse.current_action"]
+                                            font { family: uiState.fontFamily; pixelSize: 15 }
+                                            color: theme.textDim
+                                        }
+                                        Text {
+                                            objectName: "buttonCurrentActionSummary"
+                                            Layout.fillWidth: true
+                                            text: {
+                                                var language = lm.strings
+                                                var action = buttonEditor.editingLong ? selectedLongActionId : selectedActionId
+                                                return lm.trAction(backend.actionLabelFor(action))
+                                            }
+                                            wrapMode: Text.Wrap
+                                            font { family: uiState.fontFamily; pixelSize: 15 }
+                                            color: theme.textSecondary
+                                        }
+                                    }
                                 }
                                 ActionSelector {
                                     objectName: "buttonActionSelector"
+                                    showCurrentAction: false
                                     width: parent.width
                                     editorKey: selectedProfile + ":" + buttonEditor.targetButton
                                     currentAction: buttonEditor.editingLong ? selectedLongActionId : selectedActionId
@@ -1989,6 +2107,8 @@ Item {
                         }
                     }
 
+                        }
+                    }
                     Item { width: 1; height: 24 }
                 }
             }

@@ -248,5 +248,57 @@ class MousePageUiTests(unittest.TestCase):
         self.assertEqual(self.backend.deviceHotspots, [])
         self.assertFalse(self.backend.hasInteractiveDeviceLayout)
 
+    def test_responsive_header_reflows_without_changing_assignments(self):
+        self.device("mx_master_4")
+        self.backend._battery_level = 45
+        self.backend.batteryLevelChanged.emit()
+        self.evaluate('selectButton("middle")')
+        from PySide6.QtCore import QPointF
+        heading = self.window.findChild(QObject, "mousePageHeading")
+        profiles = self.window.findChild(QObject, "profileControls")
+        tabs = self.window.findChild(QObject, "buttonTabs")
+        summary = self.window.findChild(QObject, "buttonSummaryRow")
+        mappings = copy.deepcopy(self.backend._cfg["profiles"])
+        top = lambda item: item.mapToScene(QPointF(0, 0)).y()
+        for language in ("en", "zh_CN"):
+            self.lm.setLanguage(language)
+            for width, height, compact in ((920, 620, True), (1280, 900, False), (1024, 768, True), (1920, 1080, False), (1280, 900, False)):
+                self.window.resize(width, height)
+                QTest.qWait(350)
+                self.assertEqual(self.page.property("compactLayout"), compact)
+                device = self.window.findChild(QObject, "mouseDeviceColumn")
+                editor = self.window.findChild(QObject, "mouseEditorColumn")
+                self.assertEqual(self.page.property("wideLayout"), width == 1920)
+                if width == 1920:
+                    self.assertAlmostEqual(top(device), top(editor))
+                    self.assertGreaterEqual(editor.x(), device.width())
+                    self.assertLessEqual(editor.x() + editor.width(), self.page.width())
+                    self.assertGreaterEqual(top(summary), top(tabs) + tabs.height())
+                else:
+                    self.assertGreaterEqual(top(editor), top(device) + device.height())
+                if compact:
+                    self.assertGreaterEqual(top(profiles), top(heading) + heading.height())
+                    self.assertGreaterEqual(top(summary), top(tabs) + tabs.height())
+                else:
+                    self.assertLess(abs(top(profiles) - top(heading)), 30)
+                    if width != 1920:
+                        self.assertLess(abs(top(summary) - top(tabs)), tabs.height())
+                self.assertAlmostEqual(tabs.width(), 240)
+                self.assertEqual(self.backend._cfg["profiles"], mappings)
+                output = os.environ.get("POURINPUT_UI_SCREENSHOTS")
+                if output and width != 1024:
+                    picker = self.window.findChild(QObject, "actionPicker")
+                    scroll = picker.parentItem()
+                    while scroll is not None and scroll.property("contentY") is None:
+                        scroll = scroll.parentItem()
+                    scroll.setProperty("contentY", 0)
+                    QTest.qWait(80)
+                    self.window.grabWindow().save(str(Path(output) / f"responsive-top-{language}-{width}.png"))
+                    y = picker.mapToItem(scroll.property("contentItem"), QPointF(0, 0)).y()
+                    scroll.setProperty("contentY", min(y - 12, max(0, scroll.property("contentHeight") - scroll.height())))
+                    QTest.qWait(80)
+                    self.window.grabWindow().save(str(Path(output) / f"responsive-actions-{language}-{width}.png"))
+        self.assertEqual([w for w in self.warnings if "Only binding to one of multiple key bindings" not in w], [])
+
 if __name__ == "__main__":
     unittest.main()

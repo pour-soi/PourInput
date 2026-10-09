@@ -180,6 +180,9 @@ class ActionSelectorUiTests(unittest.TestCase):
         QTest.qWait(320)
         tabs = self.window.findChild(QObject, "buttonTabs")
         selector = self.window.findChild(QObject, "buttonActionSelector")
+        summary = self.window.findChild(QObject, "buttonCurrentActionSummary")
+        self.assertIsNotNone(summary)
+        self.assertFalse(selector.property("showCurrentAction"))
         mappings = self.backend._cfg["profiles"]["default"]["mappings"]
         for device in ("mx_master_3", "generic_mouse"):
             self.device(device)
@@ -190,6 +193,8 @@ class ActionSelectorUiTests(unittest.TestCase):
             tabs.setProperty("currentIndex", side)
             QTest.qWait(50)
             self.assertEqual(mappings, before)
+            self.assertEqual(summary.property("text"), self.lm.trAction(
+                self.backend.actionLabelFor(mappings.get(target, "none"))))
             self.call(self.find(selector, "category_Navigation"), "clicked")
             self.assert_category(selector, "Navigation")
             self.assertEqual(mappings, before)
@@ -203,5 +208,7 @@ class ActionSelectorUiTests(unittest.TestCase):
             self.call(dialog, "captured", "ctrl+shift+k")
             self.call(dialog, "close")
             self.assertEqual(mappings[target], "custom:ctrl+shift+k")
+            self.assertEqual(summary.property("text"), self.lm.trAction(
+                self.backend.actionLabelFor(mappings[target])))
             self.assertEqual(mappings.get(other), before.get(other))
             self.assert_category(selector, "Custom")

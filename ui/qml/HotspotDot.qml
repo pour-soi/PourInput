@@ -33,7 +33,7 @@ Item {
     property bool configured: true
     property bool isHovered: dotMa.containsMouse
     property real labelWidth: 220
-    property real labelHeight: labelCol.implicitHeight + 14
+    property real labelHeight: labelCol.implicitHeight + 20
     property real labelX: 16
     property real labelY: 20
     property real labelCenterX: labelX + labelWidth / 2
@@ -157,13 +157,16 @@ Item {
         width: labelWidth
         height: labelHeight
         radius: 8
-        color: isSelected
-               ? (uiState.darkMode
-                  ? Qt.rgba(0.36, 0.56, 0.95, 0.12)
-                  : Qt.rgba(0.82, 0.97, 0.93, 0.9))
-                          : uiState.darkMode ? Qt.rgba(0, 0, 0, 0.35) : Qt.rgba(1, 1, 1, 0.92)
-        border.width: isSelected || hotspot.activeFocus ? 1 : 0
-        border.color: Qt.rgba(0.36, 0.56, 0.95, 0.3)
+        color: isSelected ? theme.accentDim : "transparent"
+        border.width: hotspot.activeFocus ? 1 : 0
+        border.color: theme.accent
+        Rectangle {
+            visible: isSelected
+            width: 3; height: parent.height - 12
+            anchors.left: parent.left
+            anchors.verticalCenter: parent.verticalCenter
+            radius: 1; color: theme.accent
+        }
 
         Behavior on color { ColorAnimation { duration: 200 } }
 
@@ -181,13 +184,13 @@ Item {
                 text: { var _lang = lm.strings; return lm.trButton(hotspot.label) }
                 width: parent.width
                 wrapMode: Text.Wrap
-                font { family: uiState.fontFamily; pixelSize: 15; bold: true }
+                font { family: uiState.fontFamily; pixelSize: 18; bold: true }
                 color: isSelected ? theme.accent : theme.textPrimary
             }
 
             Text {
                 text: { var _lang = lm.strings; return lm.trAction(hotspot.sublabel) }
-                font { family: uiState.fontFamily; pixelSize: 13 }
+                font { family: uiState.fontFamily; pixelSize: 15 }
                 color: theme.textSecondary
                 visible: hotspot.sublabel !== ""
                 width: parent.width
