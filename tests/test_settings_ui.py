@@ -1,5 +1,6 @@
 """Settings renders with isolated configuration; no startup or update actions run."""
 import os
+import sys
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -14,7 +15,7 @@ class SettingsUiTests(unittest.TestCase):
     dispose = MousePageUiTests.dispose
     device = MousePageUiTests.device
 
-    def test_languages_sizes_and_font_fallback(self):
+    def test_languages_and_sizes(self):
         with patch('ui.backend.supports_login_startup', return_value=True):
             self.fake.smart_shift_supported = True
             self.backend._hid_features_ready = True
@@ -38,6 +39,9 @@ class SettingsUiTests(unittest.TestCase):
                             Path(output).mkdir(parents=True,exist_ok=True)
                             self.assertTrue(self.window.grabWindow().save(str(Path(output)/f'{key}-{language}-{width}.png')))
             self.assertEqual([w for w in self.warnings if 'Only binding to one of multiple key bindings' not in w],[])
+
+    @unittest.skipUnless(sys.platform == 'win32', 'Windows font rendering contract')
+    def test_windows_font_fallback(self):
         apply_application_font(APP, 'en', QFont('Segoe UI',10))
         for bold in (False,True):
             font=QFont('Segoe UI',10); font.setBold(bold)

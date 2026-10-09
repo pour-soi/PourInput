@@ -11,6 +11,7 @@ from tools.isolated_ui_test import TITLE, WINDOW_STATE_FILE, run, test_backend, 
 
 
 class IsolatedLaunchTests(unittest.TestCase):
+    @unittest.skipUnless(sys.platform == "win32", "Windows-only isolated launcher data paths")
     def test_fresh_process_uses_only_disposable_state_and_neutral_defaults(self):
         script = '''
 import json
@@ -32,6 +33,13 @@ print('ISOLATION_OK')
         result = subprocess.run([sys.executable, '-B', '-c', script], cwd=Path(__file__).resolve().parents[1], capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('ISOLATION_OK', result.stdout)
+
+    def test_unsupported_platform_rejects_launch_before_preparing_data(self):
+        for platform in ('linux', 'darwin'):
+            with self.subTest(platform=platform), patch.object(sys, 'platform', platform), patch('tools.isolated_ui_test.prepare') as prepare:
+                with self.assertRaisesRegex(SystemExit, 'Use this entry point on Windows'):
+                    run()
+                prepare.assert_not_called()
 
     def test_entry_identity_mutex_and_production_restoration(self):
         import core.startup as startup
