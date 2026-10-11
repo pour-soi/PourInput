@@ -110,6 +110,61 @@ class MousePageUiTests(unittest.TestCase):
         self.assertFalse(expr.hasError(), expr.error().toString())
         return value
 
+    def test_header_alignment_and_stable_controls(self):
+        output = os.environ.get("POURINPUT_UI_SCREENSHOTS")
+        self.backend._battery_level = 65
+        self.backend.batteryLevelChanged.emit()
+        for language in ("en", "zh_CN"):
+            self.lm.setLanguage(language)
+            for profile in ("default", "editor"):
+                self.evaluate('selectProfile("' + profile + '")')
+                self.evaluate('selectButton("middle")')
+                dimensions = None
+                for width, height in ((920, 620), (1280, 900), (1920, 1080)):
+                    self.window.resize(width, height)
+                    QTest.qWait(350)
+                    toolbar = self.window.findChild(QObject, "mouseHeaderToolbar")
+                    controls = [self.window.findChild(QObject, name) for name in
+                                ("profileSelector", "addProfileButton", "deviceSelector")]
+                    sizes = [(c.width(), c.height()) for c in controls]
+                    self.assertEqual(sizes, dimensions or sizes)
+                    dimensions = sizes
+                    for name in ("profileControls", "deviceStatusControls"):
+                        group = self.window.findChild(QObject, name)
+                        self.assertGreaterEqual(group.x(), 0)
+                        self.assertLessEqual(group.x() + group.width(), toolbar.width())
+                    device = controls[-1]
+                    self.assertAlmostEqual(controls[0].mapToScene(controls[0].boundingRect().center()).y(),
+                                           device.mapToScene(device.boundingRect().center()).y())
+                    if output:
+                        Path(output).mkdir(parents=True, exist_ok=True)
+                        self.assertTrue(self.window.grabWindow().save(str(Path(output) / f"header-{profile}-{language}-{width}.png")))
+
+    def test_generic_mode_surface_reflects_state_without_moving_controls(self):
+        output = os.environ.get("POURINPUT_UI_SCREENSHOTS")
+        self.backend._battery_level = 65
+        self.backend.batteryLevelChanged.emit()
+        self.evaluate('selectProfile("editor")')
+        card = self.window.findChild(QObject, "genericModeCard")
+        for language in ("en", "zh_CN"):
+            self.lm.setLanguage(language)
+            for width, height in ((920, 620), (1280, 900)):
+                self.window.resize(width, height)
+                colors = []
+                geometry = []
+                for enabled in (False, True):
+                    self.backend._cfg["settings"]["generic_mouse_enabled"] = enabled
+                    self.backend.settingsChanged.emit()
+                    QTest.qWait(350)
+                    colors.append(card.property("color").name())
+                    geometry.append((card.x(), card.y(), card.width(), card.height()))
+                    self.assertEqual(self.window.findChild(QObject, "genericModeSwitch").property("checked"), enabled)
+                    if output:
+                        Path(output).mkdir(parents=True, exist_ok=True)
+                        self.assertTrue(self.window.grabWindow().save(str(Path(output) / f"polish-{'on' if enabled else 'off'}-{language}-{width}.png")))
+                self.assertEqual(colors, ["#ffffff", "#e7f0ff"])
+                self.assertEqual(geometry[0], geometry[1])
+
     def test_layouts_languages_and_sizes(self):
         for key, layout in DEVICE_LAYOUTS.items():
             if not layout["hotspots"] and key != "generic_mouse":
@@ -193,6 +248,7 @@ class MousePageUiTests(unittest.TestCase):
         profiles = self.backend.profiles
         index = next(i for i, p in enumerate(profiles) if p["name"] == "editor")
         QMetaObject.invokeMethod(selector, "activated", Q_ARG(int, index))
+        QTest.qWait(50)
         self.assertEqual(self.page.property("selectedProfile"), "editor")
         add = self.window.findChild(QObject, "addProfileButton")
         self.assertTrue(add.property("visible"))
@@ -280,7 +336,7 @@ class MousePageUiTests(unittest.TestCase):
                     self.assertGreaterEqual(top(profiles), top(heading) + heading.height())
                     self.assertGreaterEqual(top(summary), top(tabs) + tabs.height())
                 else:
-                    self.assertLess(abs(top(profiles) - top(heading)), 30)
+                    self.assertGreaterEqual(top(profiles), top(heading) + heading.height())
                     if width != 1920:
                         self.assertLess(abs(top(summary) - top(tabs)), tabs.height())
                 self.assertAlmostEqual(tabs.width(), 240)
