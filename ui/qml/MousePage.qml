@@ -29,11 +29,11 @@ Item {
         ItemDelegate {
             width: parent ? parent.width : implicitWidth
             highlighted: ListView.isCurrentItem
-            font { family: uiState.fontFamily; pixelSize: 14 }
+            font { family: uiState.fontFamily; pixelSize: 16 }
             contentItem: Text {
                 leftPadding: 10; rightPadding: 10
                 text: (lm.strings, lm.trAction(modelData ? modelData.label : ""))
-                font { family: uiState.fontFamily; pixelSize: 14 }
+                font { family: uiState.fontFamily; pixelSize: 16 }
                 color: highlighted ? mousePage.theme.accent : mousePage.theme.textPrimary
                 verticalAlignment: Text.AlignVCenter
             }
@@ -1276,8 +1276,8 @@ Item {
                                         id: scrollTabs
                                         objectName: "scrollTabs"
                                         Layout.preferredWidth: 240
-                                        TabButton { text: s["mouse.scroll_left"]; font { family: uiState.fontFamily; pixelSize: 17 } }
-                                        TabButton { text: s["mouse.scroll_right"]; font { family: uiState.fontFamily; pixelSize: 17 } }
+                                        TriggerTab { text: s["mouse.scroll_left"] }
+                                        TriggerTab { text: s["mouse.scroll_right"] }
                                     }
                                     Item { Layout.fillWidth: true }
                                 }
@@ -1297,25 +1297,26 @@ Item {
                             }
 
                             Column {
-                                width: parent.width
-                                spacing: 14
+                                width: Math.min(parent.width, 760)
+                                spacing: 20
+                                objectName: "gestureEditor"
                                 visible: selectedButton === "gesture"
                                          && backend.supportsGestureDirections
 
                                 Text {
-                                    text: s["mouse.tap_action"]
-                                    font { family: uiState.fontFamily; pixelSize: 15;
-                                           capitalization: Font.AllUppercase; letterSpacing: 1 }
-                                    color: theme.textDim
+                                    text: s["mouse.tap_action"].toLocaleLowerCase()
+                                    font { family: uiState.fontFamily; pixelSize: 17; bold: true; capitalization: Font.Capitalize }
+                                    color: theme.textPrimary
                                 }
 
-                                ComboBox {
-                                    width: parent.width
+                                SurfaceComboBox {
+                                    objectName: "gestureTapSelector"
+                                    width: Math.min(parent.width, 420)
                                     model: backend.allActions
                                     textRole: "label"
                                     delegate: actionComboDelegate
                                     Material.accent: theme.accent
-                                    font { family: uiState.fontFamily; pixelSize: 15 }
+                                    font { family: uiState.fontFamily; pixelSize: 16 }
                                     currentIndex: actionIndexForId(gestureTapActionId)
                                     displayText: isCustomAction(gestureTapActionId)
                                                  ? customLabel(gestureTapActionId)
@@ -1337,12 +1338,13 @@ Item {
                                     color: theme.border
                                 }
 
-                                Row {
-                                    width: parent.width
+                                RowLayout {
+                                    width: Math.min(parent.width, 420)
                                     spacing: 12
 
                                 Text {
                                     text: s["mouse.threshold"]
+                                    Layout.fillWidth: true
                                     font { family: uiState.fontFamily; pixelSize: 17; bold: true }
                                     color: theme.textPrimary
                                 }
@@ -1360,7 +1362,8 @@ Item {
 
                                 WheelSafeSlider {
                                     id: gestureThresholdSlider
-                                    width: parent.width
+                                    objectName: "gestureThresholdSlider"
+                                    width: Math.min(parent.width, 420)
                                     from: 20
                                     to: 400
                                     stepSize: 5
@@ -1387,30 +1390,38 @@ Item {
                                 }
 
                                 Text {
-                                    text: s["mouse.swipe_actions"]
-                                    font { family: uiState.fontFamily; pixelSize: 15;
-                                           capitalization: Font.AllUppercase; letterSpacing: 1 }
-                                    color: theme.textDim
+                                    text: s["mouse.swipe_actions"].toLocaleLowerCase()
+                                    font { family: uiState.fontFamily; pixelSize: 17; bold: true; capitalization: Font.Capitalize }
+                                    color: theme.textPrimary
                                 }
 
-                                RowLayout {
+                                GridLayout {
+                                    id: gestureSwipeGrid
+                                    objectName: "gestureSwipeGrid"
+                                    readonly property int minimumControlWidth: 280
                                     width: parent.width
-                                    spacing: 12
+                                    columns: width >= minimumControlWidth * 2 + columnSpacing ? 2 : 1
+                                    columnSpacing: 20
+                                    rowSpacing: 20
+                                ColumnLayout {
+                                    Layout.fillWidth: true
+                                    Layout.minimumWidth: gestureSwipeGrid.minimumControlWidth
+                                    spacing: 8
 
                                     Text {
                                         text: s["mouse.swipe_left"]
-                                        Layout.preferredWidth: 100
                                         font { family: uiState.fontFamily; pixelSize: 17 }
                                         color: theme.textPrimary
                                     }
 
-                                    ComboBox {
+                                    SurfaceComboBox {
+                                        objectName: "gestureLeftSelector"
                                         Layout.fillWidth: true
                                         model: backend.allActions
                                         textRole: "label"
                                         delegate: actionComboDelegate
                                         Material.accent: theme.accent
-                                        font { family: uiState.fontFamily; pixelSize: 15 }
+                                        font { family: uiState.fontFamily; pixelSize: 16 }
                                         currentIndex: actionIndexForId(gestureLeftActionId)
                                         displayText: isCustomAction(gestureLeftActionId)
                                                      ? customLabel(gestureLeftActionId)
@@ -1427,24 +1438,25 @@ Item {
                                     }
                                 }
 
-                                RowLayout {
-                                    width: parent.width
-                                    spacing: 12
+                                ColumnLayout {
+                                    Layout.fillWidth: true
+                                    Layout.minimumWidth: gestureSwipeGrid.minimumControlWidth
+                                    spacing: 8
 
                                     Text {
                                         text: s["mouse.swipe_right"]
-                                        Layout.preferredWidth: 100
                                         font { family: uiState.fontFamily; pixelSize: 17 }
                                         color: theme.textPrimary
                                     }
 
-                                    ComboBox {
+                                    SurfaceComboBox {
+                                        objectName: "gestureRightSelector"
                                         Layout.fillWidth: true
                                         model: backend.allActions
                                         textRole: "label"
                                         delegate: actionComboDelegate
                                         Material.accent: theme.accent
-                                        font { family: uiState.fontFamily; pixelSize: 15 }
+                                        font { family: uiState.fontFamily; pixelSize: 16 }
                                         currentIndex: actionIndexForId(gestureRightActionId)
                                         displayText: isCustomAction(gestureRightActionId)
                                                      ? customLabel(gestureRightActionId)
@@ -1461,24 +1473,25 @@ Item {
                                     }
                                 }
 
-                                RowLayout {
-                                    width: parent.width
-                                    spacing: 12
+                                ColumnLayout {
+                                    Layout.fillWidth: true
+                                    Layout.minimumWidth: gestureSwipeGrid.minimumControlWidth
+                                    spacing: 8
 
                                     Text {
                                         text: s["mouse.swipe_up"]
-                                        Layout.preferredWidth: 100
                                         font { family: uiState.fontFamily; pixelSize: 17 }
                                         color: theme.textPrimary
                                     }
 
-                                    ComboBox {
+                                    SurfaceComboBox {
+                                        objectName: "gestureUpSelector"
                                         Layout.fillWidth: true
                                         model: backend.allActions
                                         textRole: "label"
                                         delegate: actionComboDelegate
                                         Material.accent: theme.accent
-                                        font { family: uiState.fontFamily; pixelSize: 15 }
+                                        font { family: uiState.fontFamily; pixelSize: 16 }
                                         currentIndex: actionIndexForId(gestureUpActionId)
                                         displayText: isCustomAction(gestureUpActionId)
                                                      ? customLabel(gestureUpActionId)
@@ -1495,24 +1508,25 @@ Item {
                                     }
                                 }
 
-                                RowLayout {
-                                    width: parent.width
-                                    spacing: 12
+                                ColumnLayout {
+                                    Layout.fillWidth: true
+                                    Layout.minimumWidth: gestureSwipeGrid.minimumControlWidth
+                                    spacing: 8
 
                                     Text {
                                         text: s["mouse.swipe_down"]
-                                        Layout.preferredWidth: 100
                                         font { family: uiState.fontFamily; pixelSize: 17 }
                                         color: theme.textPrimary
                                     }
 
-                                    ComboBox {
+                                    SurfaceComboBox {
+                                        objectName: "gestureDownSelector"
                                         Layout.fillWidth: true
                                         model: backend.allActions
                                         textRole: "label"
                                         delegate: actionComboDelegate
                                         Material.accent: theme.accent
-                                        font { family: uiState.fontFamily; pixelSize: 15 }
+                                        font { family: uiState.fontFamily; pixelSize: 16 }
                                         currentIndex: actionIndexForId(gestureDownActionId)
                                         displayText: isCustomAction(gestureDownActionId)
                                                      ? customLabel(gestureDownActionId)
@@ -1527,6 +1541,7 @@ Item {
                                                 selectedProfile, "gesture_down", aid)
                                         }
                                     }
+                                }
                                 }
                             }
 
@@ -1565,8 +1580,8 @@ Item {
                                         Layout.minimumWidth: 240
                                         Layout.maximumWidth: 240
                                         visible: supportsMultiActionButton(selectedButton)
-                                        TabButton { text: s["mouse.click_tab"]; font { family: uiState.fontFamily; pixelSize: 17 } }
-                                        TabButton { text: s["mouse.long_press_tab"]; font { family: uiState.fontFamily; pixelSize: 17 } }
+                                        TriggerTab { text: s["mouse.click_tab"] }
+                                        TriggerTab { text: s["mouse.long_press_tab"] }
                                     }
                                     RowLayout {
                                         objectName: "buttonSummaryRow"

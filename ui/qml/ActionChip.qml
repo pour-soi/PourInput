@@ -15,9 +15,9 @@ Rectangle {
 
     signal picked(string aid)
 
-    width: Math.min(maximumWidth, chipText.implicitWidth + 24)
-    height: Math.max(42, chipText.implicitHeight + 20)
-    radius: 9
+    width: Math.min(maximumWidth, chipText.implicitWidth + 28)
+    height: Math.max(44, chipText.implicitHeight + 22)
+    radius: Theme.radiusSmall
     activeFocusOnTab: true
 
     Accessible.role: Accessible.Button
@@ -40,11 +40,11 @@ Rectangle {
     Text {
         id: chipText
         anchors.centerIn: parent
-        width: parent.width - 24
+        width: parent.width - 28
         wrapMode: Text.Wrap
         text: actionLabel
-        font { family: uiState.fontFamily; pixelSize: 17 }
-        color: isCurrent ? theme.bgSidebar : theme.textPrimary
+        font { family: uiState.fontFamily; pixelSize: 16 }
+        color: isCurrent ? (uiState.darkMode ? theme.bgSidebar : theme.tooltipText) : theme.textPrimary
     }
 
     MouseArea {

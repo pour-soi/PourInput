@@ -125,6 +125,96 @@ class ActionSelectorUiTests(unittest.TestCase):
             self.assertNotEqual(self.lm.trAction(action["label"]), action["label"])
         self.assertEqual([w for w in self.warnings if "Only binding to one of multiple key bindings" not in w], [])
 
+    def test_gesture_grid_preserves_independent_actions_and_threshold(self):
+        self.backend._effective_supported_buttons.update(
+            {"gesture_left", "gesture_right", "gesture_up", "gesture_down"})
+        self.backend.mappingsChanged.emit()
+        self.evaluate('selectButton("gesture")')
+        QTest.qWait(350)
+        mappings = self.backend._cfg["profiles"]["default"]["mappings"]
+        threshold = self.backend.gestureThreshold
+        actions = list(self.backend.allActions)
+        for direction, aid in (("Tap", "copy"), ("Left", "paste"), ("Right", "cut"), ("Up", "undo"), ("Down", "select_all")):
+            combo = self.window.findChild(QObject, "gesture" + direction + "Selector")
+            before = copy.deepcopy(mappings)
+            index = next(i for i, action in enumerate(actions) if action["id"] == aid)
+            self.assertTrue(QMetaObject.invokeMethod(combo, "activated", Q_ARG(int, index)))
+            key = "gesture" if direction == "Tap" else "gesture_" + direction.lower()
+            self.assertEqual(mappings[key], aid)
+            self.assertEqual({k: v for k, v in mappings.items() if k != key},
+                             {k: v for k, v in before.items() if k != key})
+        original = copy.deepcopy(mappings)
+        QTest.qWait(2200)  # Capture after the existing saved toast has expired.
+        for language in ("en", "zh_CN"):
+            self.lm.setLanguage(language)
+            for width, height in ((920, 620), (1280, 900), (1600, 900)):
+                self.window.resize(width, height)
+                QTest.qWait(350)
+                grid = self.window.findChild(QObject, "gestureSwipeGrid")
+                self.assertEqual(grid.property("columns"), 2)
+                self.assertEqual(self.backend.gestureThreshold, threshold)
+                self.assertEqual(mappings, original)
+                for direction in ("Tap", "Left", "Right", "Up", "Down"):
+                    combo = self.window.findChild(QObject, "gesture" + direction + "Selector")
+                    self.assertEqual(combo.height(), 42)
+                    self.assertGreaterEqual(combo.width(), 280)
+                    self.assertLessEqual(combo.width(), self.window.findChild(QObject, "gestureEditor").width())
+                    key = "gesture" if direction == "Tap" else "gesture_" + direction.lower()
+                    self.assertEqual(actions[combo.property("currentIndex")]["id"], mappings[key])
+                self.screenshot(f"gesture-{language}-{width}")
+        combo = self.window.findChild(QObject, "gestureLeftSelector")
+        index = next(i for i, action in enumerate(actions) if action["id"] == "__custom__")
+        self.assertTrue(QMetaObject.invokeMethod(combo, "activated", Q_ARG(int, index)))
+        dialog = self.window.findChild(QObject, "keyCaptureDialog")
+        self.assertEqual(dialog.property("targetButton"), "gesture_left")
+        self.call(dialog, "captured", "ctrl+shift+k")
+        self.call(dialog, "close")
+        self.assertEqual(mappings["gesture_left"], "custom:ctrl+shift+k")
+        self.assertEqual(mappings["gesture_right"], original["gesture_right"])
+
+    def test_gesture_grid_reflows_only_when_two_controls_cannot_fit(self):
+        self.window.resize(1600, 900)
+        self.evaluate('selectButton("gesture")')
+        editor = self.window.findChild(QObject, "gestureEditor")
+        grid = self.window.findChild(QObject, "gestureSwipeGrid")
+        mappings = copy.deepcopy(self.backend._cfg["profiles"])
+        threshold = self.backend.gestureThreshold
+        for language in ("en", "zh_CN"):
+            self.lm.setLanguage(language)
+            for available, columns in ((560, 1), (579, 1), (580, 2), (637, 2)):
+                editor.setProperty("width", available)
+                QTest.qWait(350)
+                self.assertEqual(grid.width(), available)
+                self.assertEqual(grid.property("columns"), columns)
+                left = self.window.findChild(QObject, "gestureLeftSelector")
+                right = self.window.findChild(QObject, "gestureRightSelector")
+                left_pos = left.mapToScene(left.boundingRect().topLeft())
+                right_pos = right.mapToScene(right.boundingRect().topLeft())
+                if columns == 2:
+                    self.assertAlmostEqual(left_pos.y(), right_pos.y())
+                    self.assertGreaterEqual(right_pos.x() - left_pos.x(), left.width() + 20)
+                else:
+                    self.assertGreater(right_pos.y(), left_pos.y())
+                for direction in ("Left", "Right", "Up", "Down"):
+                    control = self.window.findChild(QObject, "gesture" + direction + "Selector")
+                    self.assertGreaterEqual(control.width(), 280)
+                    self.assertEqual(control.height(), 42)
+                self.assertEqual(self.backend._cfg["profiles"], mappings)
+                self.assertEqual(self.backend.gestureThreshold, threshold)
+
+    def test_horizontal_polish_languages_and_sizes(self):
+        self.evaluate('selectHScroll()')
+        tabs = self.window.findChild(QObject, "scrollTabs")
+        mappings = copy.deepcopy(self.backend._cfg["profiles"])
+        for language in ("en", "zh_CN"):
+            self.lm.setLanguage(language)
+            for width, height in ((920, 620), (1280, 900)):
+                self.window.resize(width, height)
+                for side in (0, 1):
+                    tabs.setProperty("currentIndex", side)
+                    self.screenshot(f"horizontal-{'left' if side == 0 else 'right'}-{language}-{width}")
+                    self.assertEqual(self.backend._cfg["profiles"], mappings)
+
     def test_horizontal_tabs_independent_and_custom_targets(self):
         self.evaluate("selectHScroll()")
         QTest.qWait(320)

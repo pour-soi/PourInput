@@ -11,7 +11,7 @@ Column {
     property bool showCurrentAction: true
     property string activeCategory: "Other"
     signal picked(string aid)
-    spacing: 12
+    spacing: 16
 
     function selectedCategory() {
         if (currentAction.indexOf("custom:") === 0) return "Custom"
@@ -55,9 +55,9 @@ Column {
             delegate: Button {
                 required property var modelData
                 objectName: "category_" + modelData.category
-                implicitHeight: 44
+                implicitHeight: 40
                 topInset: 0; bottomInset: 0
-                horizontalPadding: 14
+                leftPadding: 12; rightPadding: 12
                 checkable: true
                 autoExclusive: true
                 checked: selector.activeCategory === modelData.category
@@ -65,7 +65,7 @@ Column {
                 contentItem: Text {
                     text: (lm.strings, lm.trCategory(parent.modelData.category))
                     color: parent.checked ? theme.accent : theme.textSecondary
-                    font { family: uiState.fontFamily; pixelSize: 17; bold: parent.checked }
+                    font { family: uiState.fontFamily; pixelSize: 16 }
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                 }
@@ -93,15 +93,10 @@ Column {
             width: selector.width
             spacing: 10
             visible: selector.activeCategory === modelData.category
-            topPadding: 12
-            Text {
-                text: (lm.strings, lm.trCategory(section.modelData.category))
-                font { family: uiState.fontFamily; pixelSize: 18; bold: true }
-                color: theme.textSecondary
-            }
+            topPadding: 4
             Flow {
                 width: parent.width
-                spacing: 10
+                spacing: 12
                 visible: selector.activeCategory === section.modelData.category
                 Repeater {
                     model: section.modelData.actions
