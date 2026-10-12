@@ -350,7 +350,7 @@ class ReadingController(QObject):
         *[{"label": "F" + str(i + 1), "key": 112 + i} for i in range(24)],
         *[{"label": chr(i), "key": i} for i in range(65, 91)],
         *[{"label": chr(i), "key": i} for i in range(48, 58)],
-    ], constant=True)
+    ], notify=changed)
 
     @Slot(int)
     def setHideKey(self, key):
