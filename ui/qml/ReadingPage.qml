@@ -234,151 +234,169 @@ ScrollView {
                 color: page.theme.textSecondary
                 text: s["reading.style_hint"]
             }
-        GridLayout {
-            id: appearanceModeGroup
-            objectName: "appearanceModeGroup"
-            uniformCellWidths: true
-            Layout.maximumWidth: 1080
-            columns: width >= 580 ? 2 : 1
-            columnSpacing: 24; rowSpacing: 16
+        ColumnLayout {
+            id: appearanceContainer
+            objectName: "appearanceContainer"
             Layout.leftMargin: 28; Layout.rightMargin: 28
             Layout.fillWidth: true
-            ColumnLayout {
+            Layout.maximumWidth: 704
+            Layout.minimumWidth: 0
+            Layout.preferredWidth: Math.min(704, page.availableWidth - 56)
+            spacing: 16
+            GridLayout {
+                id: appearanceModeGroup
+                objectName: "appearanceModeGroup"
+                uniformCellWidths: true
+                columns: appearanceContainer.width >= 580 ? 2 : 1
+                columnSpacing: 24; rowSpacing: 16
                 Layout.fillWidth: true
-                spacing: 8
-                Label { text: s["reading.mode"]; color: page.theme.textSecondary }
-                SurfaceComboBox {
+                ColumnLayout {
+                    objectName: "appearance_mode"
                     Layout.fillWidth: true
-                    Layout.maximumWidth: 320
-                    model: [s["reading.normal"], s["reading.minimal"], s["reading.ghost"]]
-                    currentIndex: ["Normal", "Minimal", "Ghost"].indexOf(controller.displayMode)
-                    onActivated: controller.setDisplayMode(["Normal", "Minimal", "Ghost"][currentIndex])
-                    Accessible.name: s["reading.mode"]
-                }
-            }
-            ColumnLayout {
-                Layout.fillWidth: true
-                spacing: 8
-                Label { text: s["reading.opacity"]; color: page.theme.textSecondary }
-                ReadingSlider {
-                    Layout.fillWidth: true
-                    from: 0.2; to: 1; value: controller.panelOpacity
-                    onPressedChanged: if (!pressed) controller.setOpacity(value)
-                    Accessible.name: s["reading.opacity"]
-                }
-            }
-        }
-        GridLayout {
-            id: appearanceSizeGroup
-            objectName: "appearanceSizeGroup"
-            uniformCellWidths: true
-            Layout.maximumWidth: 1080
-            columns: width >= 720 ? 3 : 1
-            columnSpacing: 24; rowSpacing: 16
-            Layout.leftMargin: 28; Layout.rightMargin: 28
-            Layout.fillWidth: true
-            ColumnLayout {
-                Layout.fillWidth: true
-                spacing: 8
-                Label { text: s["reading.width"]; color: page.theme.textSecondary }
-                SurfaceSpinBox {
-                    Layout.maximumWidth: 240
-                    Layout.fillWidth: true
-                    objectName: "readingPanelWidth"
-                    from: 240; to: 1920; stepSize: 20
-                    editable: true
-                    value: controller.panelWidth
-                    onValueModified: controller.setPanelWidth(value)
-                    Accessible.name: s["reading.width"]
-                }
-            }
-            ColumnLayout {
-                Layout.fillWidth: true
-                spacing: 8
-                Label { text: s["reading.height"]; color: page.theme.textSecondary }
-                SurfaceSpinBox {
-                    Layout.maximumWidth: 240
-                    Layout.fillWidth: true
-                    objectName: "readingPanelHeight"
-                    from: 80; to: 1080; stepSize: 20
-                    editable: true
-                    enabled: controller.panelHeight !== 0
-                    value: controller.panelHeight || 160
-                    onValueModified: controller.setPanelHeight(value)
-                    Accessible.name: s["reading.height"]
-                }
-            }
-            ColumnLayout {
-                Layout.fillWidth: true
-                spacing: 8
-                Item { Layout.preferredHeight: parent.parent.columns > 1 ? 22 : 0 }
-                CheckBox {
-                    Layout.fillWidth: true
-                    text: s["reading.auto_height"]
-                    checked: controller.panelHeight === 0
-                    onClicked: controller.setPanelHeight(checked ? 0 : 160)
-                }
-            }
-        }
-        GridLayout {
-            id: appearanceTextGroup
-            objectName: "appearanceTextGroup"
-            uniformCellWidths: true
-            Layout.maximumWidth: 1080
-            columns: width >= 780 ? 3 : 1
-            columnSpacing: 24; rowSpacing: 16
-            Layout.leftMargin: 28; Layout.rightMargin: 28
-            Layout.fillWidth: true
-            ColumnLayout {
-                Layout.fillWidth: true
-                spacing: 8
-                Item { Layout.preferredHeight: parent.parent.columns > 1 ? 22 : 0 }
-                CheckBox {
-                    Layout.fillWidth: true
-                    text: s["reading.transparent"]
-                    checked: controller.transparentBackground
-                    onClicked: controller.setTransparentBackground(checked)
-                }
-            }
-            ColumnLayout {
-                Layout.fillWidth: true
-                spacing: 8
-                Label { text: s["reading.font_size"]; color: page.theme.textSecondary }
-                SurfaceSpinBox {
-                    Layout.maximumWidth: 240
-                    Layout.fillWidth: true
-                    objectName: "readingFontSize"
-                    from: 12; to: 72
-                    editable: true
-                    value: controller.fontSize || (controller.displayMode === "Normal" ? 22 : 19)
-                    onValueModified: controller.setFontSize(value)
-                    Accessible.name: s["reading.font_size"]
-                }
-            }
-            ColumnLayout {
-                Layout.fillWidth: true
-                spacing: 8
-                Label { text: s["reading.font_color"]; color: page.theme.textSecondary }
-                RowLayout {
-                    Layout.fillWidth: true
+                    Layout.alignment: Qt.AlignTop
+                    Layout.maximumWidth: Infinity
                     spacing: 8
-                    SurfaceButton { text: s["reading.font_color"]; onClicked: controller.chooseFontColor() }
-                    TextField {
+                    Label { text: s["reading.mode"]; color: page.theme.textSecondary }
+                    SurfaceComboBox {
+                        objectName: "readingDisplayMode"
                         Layout.fillWidth: true
-                        implicitHeight: 42
-                        leftPadding: 12; rightPadding: 12
-                        font { family: uiState.fontFamily; pixelSize: 16 }
-                        color: page.theme.textPrimary
-                        background: Rectangle { radius: 8; color: page.theme.bgCard; border.color: parent.activeFocus ? page.theme.accent : page.theme.border }
-                        text: controller.fontColor
-                        validator: RegularExpressionValidator { regularExpression: /#[0-9a-fA-F]{6}/ }
-                        onEditingFinished: {
-                            if (acceptableInput) controller.setFontColor(text)
-                            text = Qt.binding(function() { return controller.fontColor })
-                        }
-                        Accessible.name: s["reading.hex"]
+                        Layout.maximumWidth: 320
+                        model: [s["reading.normal"], s["reading.minimal"], s["reading.ghost"]]
+                        currentIndex: ["Normal", "Minimal", "Ghost"].indexOf(controller.displayMode)
+                        onActivated: controller.setDisplayMode(["Normal", "Minimal", "Ghost"][currentIndex])
+                        Accessible.name: s["reading.mode"]
                     }
                 }
+                ColumnLayout {
+                    objectName: "appearance_opacity"
+                    Layout.fillWidth: true
+                    Layout.alignment: Qt.AlignTop
+                    Layout.maximumWidth: Infinity
+                    spacing: 8
+                    Label { text: s["reading.opacity"]; color: page.theme.textSecondary }
+                    ReadingSlider {
+                        objectName: "readingOpacity"
+                        Layout.maximumWidth: 320
+                        Layout.fillWidth: true
+                        from: 0.2; to: 1; value: controller.panelOpacity
+                        onPressedChanged: if (!pressed) controller.setOpacity(value)
+                        Accessible.name: s["reading.opacity"]
+                    }
+                }
+            }
+            GridLayout {
+                id: appearanceSizeGroup
+                objectName: "appearanceSizeGroup"
+                uniformCellWidths: true
+                columns: appearanceContainer.width >= 580 ? 2 : 1
+                columnSpacing: 24; rowSpacing: 16
+                Layout.fillWidth: true
+                ColumnLayout {
+                    objectName: "appearance_width"
+                    Layout.fillWidth: true
+                    Layout.alignment: Qt.AlignTop
+                    Layout.maximumWidth: Infinity
+                    spacing: 8
+                    Label { text: s["reading.width"]; color: page.theme.textSecondary }
+                    SurfaceSpinBox {
+                        Layout.maximumWidth: 240
+                        Layout.fillWidth: true
+                        objectName: "readingPanelWidth"
+                        from: 240; to: 1920; stepSize: 20
+                        editable: true
+                        value: controller.panelWidth
+                        onValueModified: controller.setPanelWidth(value)
+                        Accessible.name: s["reading.width"]
+                    }
+                }
+                ColumnLayout {
+                    objectName: "appearance_height"
+                    Layout.fillWidth: true
+                    Layout.alignment: Qt.AlignTop
+                    Layout.maximumWidth: Infinity
+                    spacing: 8
+                    Label { text: s["reading.height"]; color: page.theme.textSecondary }
+                    SurfaceSpinBox {
+                        Layout.maximumWidth: 240
+                        Layout.fillWidth: true
+                        objectName: "readingPanelHeight"
+                        from: 80; to: 1080; stepSize: 20
+                        editable: true
+                        enabled: controller.panelHeight !== 0
+                        value: controller.panelHeight || 160
+                        onValueModified: controller.setPanelHeight(value)
+                        Accessible.name: s["reading.height"]
+                    }
+                    CheckBox {
+                        objectName: "readingDefaultHeight"
+                        Layout.fillWidth: true
+                        text: s["reading.auto_height"]
+                        checked: controller.panelHeight === 0
+                        onClicked: controller.setPanelHeight(checked ? 0 : 160)
+                    }
+                }
+            }
+            GridLayout {
+                id: appearanceTextGroup
+                objectName: "appearanceTextGroup"
+                uniformCellWidths: true
+                columns: appearanceContainer.width >= 580 ? 2 : 1
+                columnSpacing: 24; rowSpacing: 16
+                Layout.fillWidth: true
+                ColumnLayout {
+                    objectName: "appearance_font_size"
+                    Layout.fillWidth: true
+                    Layout.alignment: Qt.AlignTop
+                    Layout.maximumWidth: Infinity
+                    spacing: 8
+                    Label { text: s["reading.font_size"]; color: page.theme.textSecondary }
+                    SurfaceSpinBox {
+                        Layout.maximumWidth: 240
+                        Layout.fillWidth: true
+                        objectName: "readingFontSize"
+                        from: 12; to: 72
+                        editable: true
+                        value: controller.fontSize || (controller.displayMode === "Normal" ? 22 : 19)
+                        onValueModified: controller.setFontSize(value)
+                        Accessible.name: s["reading.font_size"]
+                    }
+                }
+                ColumnLayout {
+                    objectName: "appearance_font_color"
+                    Layout.fillWidth: true
+                    Layout.alignment: Qt.AlignTop
+                    Layout.maximumWidth: Infinity
+                    spacing: 8
+                    Label { text: s["reading.font_color"]; color: page.theme.textSecondary }
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 8
+                        SurfaceButton { text: s["reading.font_color"]; onClicked: controller.chooseFontColor() }
+                        TextField {
+                            objectName: "readingTextColor"
+                            Layout.fillWidth: true
+                            implicitHeight: 42
+                            leftPadding: 12; rightPadding: 12
+                            font { family: uiState.fontFamily; pixelSize: 16 }
+                            color: page.theme.textPrimary
+                            background: Rectangle { radius: 8; color: page.theme.bgCard; border.color: parent.activeFocus ? page.theme.accent : page.theme.border }
+                            text: controller.fontColor
+                            validator: RegularExpressionValidator { regularExpression: /#[0-9a-fA-F]{6}/ }
+                            onEditingFinished: {
+                                if (acceptableInput) controller.setFontColor(text)
+                                text = Qt.binding(function() { return controller.fontColor })
+                            }
+                            Accessible.name: s["reading.hex"]
+                        }
+                    }
+                }
+            }
+            CheckBox {
+                objectName: "readingTransparentBackground"
+                Layout.fillWidth: true
+                text: s["reading.transparent"]
+                checked: controller.transparentBackground
+                onClicked: controller.setTransparentBackground(checked)
             }
         }
         RowLayout {

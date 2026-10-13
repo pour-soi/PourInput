@@ -4,6 +4,7 @@ import unittest
 from pathlib import Path
 from PySide6.QtCore import QObject, QMetaObject, QPointF, Qt
 from PySide6.QtTest import QTest
+from PySide6.QtQml import QQmlEngine, QQmlProperty
 from tests.test_mouse_page_ui import MousePageUiTests
 
 class ReadingPageLayoutTests(unittest.TestCase):
@@ -62,6 +63,55 @@ class ReadingPageLayoutTests(unittest.TestCase):
             for key in ("reading", "appearance", "controls"):
                 page.findChild(QObject, key + "Help").setProperty("checked", False)
         self.assertEqual([w for w in self.warnings if "Only binding to one of multiple key bindings" not in w], [])
+
+    def test_appearance_pairs_share_columns_without_changing_saved_state(self):
+        self.window.setProperty("currentPage", 2)
+        page = self.window.findChild(QObject, "readingPage")
+        container = page.findChild(QObject, "appearanceContainer")
+        groups = [page.findChild(QObject, "appearance" + name + "Group") for name in ("Mode", "Size", "Text")]
+        cells = [page.findChild(QObject, "appearance_" + name) for name in ("mode", "opacity", "width", "height", "font_size", "font_color")]
+        self.reader.setPanelWidth(660)
+        state_file = Path(self.directory.name) / "state.json"
+        saved = state_file.read_bytes()
+        initial = self.reader.model.state
+        def point(item):
+            return item.mapToItem(container, QPointF())
+        for language in ("en", "zh_CN"):
+            self.lm.setLanguage(language)
+            for width, height in ((920, 620), (1280, 900), (1600, 900)):
+                self.window.resize(width, height)
+                QTest.qWait(100)
+                self.assertLessEqual(container.width(), 704)
+                self.assertEqual([g.property("columns") for g in groups], [2, 2, 2])
+                for left, right in zip(cells[::2], cells[1::2]):
+                    self.assertAlmostEqual(point(left).y(), point(right).y())
+                    self.assertAlmostEqual(left.width(), right.width(), delta=1)
+                    self.assertAlmostEqual(point(left).x(), point(cells[0]).x())
+                    self.assertAlmostEqual(point(right).x(), point(cells[1]).x())
+                default = page.findChild(QObject, "readingDefaultHeight")
+                panel_height = page.findChild(QObject, "readingPanelHeight")
+                self.assertAlmostEqual(point(default).x(), point(panel_height).x())
+                self.assertGreaterEqual(point(default).y(), point(panel_height).y() + panel_height.height())
+                transparent = page.findChild(QObject, "readingTransparentBackground")
+                self.assertAlmostEqual(transparent.width(), container.width())
+                self.assertGreaterEqual(point(transparent).y(), groups[2].y() + groups[2].height())
+                self.assertLessEqual(page.findChild(QObject, "readingOpacity").width(), 320)
+                self.assertEqual(self.reader.model.state, initial)
+                self.assertEqual(state_file.read_bytes(), saved)
+        # Simulate less usable content width without changing the supported window minimum.
+        for usable_width, columns in ((579, 1), (580, 2), (420, 1)):
+            self.assertTrue(QQmlProperty(container, "Layout.maximumWidth", QQmlEngine.contextForObject(container)).write(usable_width))
+            QTest.qWait(100)
+            self.assertAlmostEqual(container.width(), usable_width)
+            self.assertEqual([g.property("columns") for g in groups], [columns] * 3)
+            if columns == 1:
+                for left, right in zip(cells[::2], cells[1::2]):
+                    self.assertGreater(point(right).y(), point(left).y())
+            for key in ("readingDisplayMode", "readingPanelWidth", "readingPanelHeight", "readingFontSize", "readingTextColor"):
+                control = page.findChild(QObject, key)
+                self.assertEqual(control.height(), 42)
+                self.assertEqual(control.property("font").pixelSize(), 16)
+            self.assertEqual(state_file.read_bytes(), saved)
 
     def test_numeric_adjustments_preserve_existing_values_and_disabled_height(self):
         self.window.setProperty("currentPage", 2)
