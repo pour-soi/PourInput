@@ -902,6 +902,7 @@ Item {
                         id: mouseImageArea
                         width: parent.width
                         property int layoutRevision: 0
+                        readonly property bool genericMouseArt: backend.deviceImageAsset === "generic-mouse-clean.png"
                         property real labelColumnWidth: Math.min(260, (width - (width < 1000 ? 360 : 460)) / 2)
                         function sideItems(side) {
                             var revision = layoutRevision
@@ -930,7 +931,9 @@ Item {
                             return top
                         }
                         height: canConfigureMouse
-                                ? Math.max(mousePage.compactLayout ? 350 : 430, columnHeight("left") + 40,
+                                ? Math.max(mousePage.compactLayout ? 350
+                                           : (genericMouseArt ? 462 : 430),
+                                           columnHeight("left") + 40,
                                            columnHeight("right") + 40) : 340
 
                         Rectangle {
@@ -943,9 +946,10 @@ Item {
                             objectName: "mouseMapImage"
                             source: backend.deviceImageSource
                             fillMode: Image.PreserveAspectFit
-                            width: Math.min(backend.deviceImageWidth,
-                                            parent.width - 2 * parent.labelColumnWidth - 64,
-                                            (parent.height - 40) * backend.deviceImageWidth / backend.deviceImageHeight)
+                            width: Math.min(backend.deviceImageWidth * (parent.genericMouseArt ? 1.08 : 1),
+                                            parent.width - 2 * parent.labelColumnWidth - (parent.genericMouseArt ? 48 : 64),
+                                            (parent.height - (parent.genericMouseArt ? 8 : 40))
+                                            * backend.deviceImageWidth / backend.deviceImageHeight)
                             height: width * backend.deviceImageHeight / backend.deviceImageWidth
                             anchors.centerIn: parent
                             visible: canConfigureMouse

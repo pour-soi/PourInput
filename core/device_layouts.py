@@ -103,17 +103,17 @@ GENERIC_MOUSE_LAYOUT = {
 
 # Presentation only: standard Windows buttons already handled by Generic Mouse Mode.
 GENERIC_INPUT_LAYOUT = {
-    "image_asset": "generic_mouse.svg",
+    "image_asset": "generic-mouse-clean.png",
     "image_width": 400,
     "image_height": 440,
     "interactive": True,
     "hotspots": [
-        {"buttonKey": "middle", "label": "Middle Button", "normX": 0.568,
-         "normY": 0.270, "labelSide": "right", "summaryType": "mapping"},
-        {"buttonKey": "generic_xbutton2", "label": "Forward button", "normX": 0.218,
-         "normY": 0.501, "labelSide": "left", "summaryType": "mapping"},
-        {"buttonKey": "generic_xbutton1", "label": "Back button", "normX": 0.263,
-         "normY": 0.607, "labelSide": "left", "summaryType": "mapping"},
+        {"buttonKey": "middle", "label": "Middle Button", "normX": 0.51505,
+         "normY": 0.21825, "labelSide": "right", "summaryType": "mapping"},
+        {"buttonKey": "generic_xbutton2", "label": "Forward button", "normX": 0.28344,
+         "normY": 0.35057, "labelSide": "left", "summaryType": "mapping"},
+        {"buttonKey": "generic_xbutton1", "label": "Back button", "normX": 0.29264,
+         "normY": 0.48517, "labelSide": "left", "summaryType": "mapping"},
     ],
 }
 

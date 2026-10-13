@@ -8,7 +8,7 @@ import sys
 import unittest
 from pathlib import Path
 from unittest.mock import Mock, patch
-from PySide6.QtGui import QFont, QFontDatabase
+from PySide6.QtGui import QFont, QFontDatabase, QImage
 from PySide6.QtCore import QObject, QUrl, QMetaObject, Q_ARG, Qt
 from PySide6.QtQml import QQmlApplicationEngine, QQmlExpression
 from PySide6.QtTest import QTest
@@ -109,6 +109,44 @@ class MousePageUiTests(unittest.TestCase):
         value = expr.evaluate()
         self.assertFalse(expr.hasError(), expr.error().toString())
         return value
+
+    def test_generic_png_preserves_aspect_and_control_alignment(self):
+        self.device("generic_mouse")
+        source = QImage(str(ROOT / "images/generic-mouse-clean.png"))
+        self.assertFalse(source.isNull())
+        self.assertTrue(source.hasAlphaChannel())
+        self.assertEqual(source.pixelColor(0, 0).alpha(), 0)
+        # Independently measured control regions in the approved artwork.
+        regions = {"middle": (590, 205, 650, 365),
+                   "generic_xbutton2": (323, 400, 355, 520),
+                   "generic_xbutton1": (333, 568, 365, 700)}
+        for language in ("en", "zh_CN"):
+            self.lm.setLanguage(language)
+            for width, height in ((920, 620), (1280, 900)):
+                self.window.resize(width, height)
+                QTest.qWait(350)
+                image = self.window.findChild(QObject, "mouseMapImage")
+                self.assertAlmostEqual(image.property("paintedWidth") / image.property("paintedHeight"),
+                                       source.width() / source.height(), places=6)
+                # Generic art uses more existing map space without growing the UI.
+                self.assertAlmostEqual(image.height(), 342 if width == 920 else 454)
+                self.assertLessEqual(image.mapToScene(image.boundingRect().bottomRight()).y(), height)
+                self.assertEqual({dot.property("buttonKey") for dot in self.dots()}, set(regions))
+                for dot in self.dots():
+                    x = dot.property("normX") * source.width()
+                    y = dot.property("normY") * source.height()
+                    left, top, right, bottom = regions[dot.property("buttonKey")]
+                    self.assertTrue(left <= x <= right and top <= y <= bottom)
+                    self.assertGreater(source.pixelColor(round(x), round(y)).alpha(), 240)
+                    self.assertAlmostEqual(dot.property("cx"), image.x() + image.property("offX")
+                                           + dot.property("normX") * image.property("paintedWidth"), places=4)
+                    self.assertAlmostEqual(dot.property("cy"), image.y() + image.property("offY")
+                                           + dot.property("normY") * image.property("paintedHeight"), places=4)
+                output = os.environ.get("POURINPUT_GENERIC_PNG_SCREENSHOTS")
+                if output:
+                    Path(output).mkdir(parents=True, exist_ok=True)
+                    self.assertTrue(self.window.grabWindow().save(str(Path(output) /
+                                    f"generic-{language}-{width}x{height}.png")))
 
     def test_header_alignment_and_stable_controls(self):
         output = os.environ.get("POURINPUT_UI_SCREENSHOTS")
