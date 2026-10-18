@@ -1,35 +1,35 @@
-# PourInput v1.5.0 — UI refinement / 界面优化
-
-## 中文
-
-本次 Windows 更新优化鼠标配置、阅读和设置界面的信息层级与可读性。
-
-- 主导航按鼠标、阅读、设置排列。应用配置选择移至鼠标页顶部，保留已有配置及自动切换行为。
-- 调整设备、电量、通用鼠标模式和鼠标热点标签的展示，增大主要文字与动作控件，改善中英文阅读体验。
-- 大窗口并排展示鼠标图与动作编辑器，较窄窗口恢复上下布局；普通窗口尺寸在下次启动时恢复。
-- 动作浏览器一次仅显示一个分类，并自动定位当前动作所属分类。单击与长按、水平滚动左与右分别编辑，互不覆盖。
-- 阅读页按书籍、阅读、浮窗外观和控制分区，简化帮助入口；保留 TXT/EPUB、章节、阅读位置、自动滚动和隐藏/显示行为。
-- 优化设置页布局及 Windows 中文字体回退。
-
-现有动作 ID、配置/映射和阅读数据格式保持兼容，无需迁移。窗口尺寸单独保存，不改变原有配置格式。隔离 UI 测试启动器仅用于开发验证，不是正式程序的启动入口。
-
-验证：源码 UI 已通过隔离实机验证；自动测试共 934 项，917 项通过，17 项因平台或权限限制跳过。Windows 便携候选包已在干净沙盒中成功启动，校验和、更新清单与内嵌构建信息一致。沙盒启动检查不包含真实鼠标功能验证。
-
-本次仅提供 Windows x64 便携版，程序未签名。使用时先从托盘退出旧实例，完整解压 ZIP，再运行 PourInput/PourInput.exe。正式程序使用正常用户配置；开发用隔离启动器的保护不会自动应用于正式 EXE。
+# PourInput v1.5.1 — Visual polish / 视觉优化
 
 ## English
 
-This Windows update improves the hierarchy and readability of Mouse, Reading, and Settings.
+This Windows update brings a more consistent, refined interface to the completed PourInput controls.
 
-- Order navigation as Mouse, Reading, Settings. Move application-profile selection to the top of the Mouse page while preserving stored profiles and automatic switching.
-- Refine device and battery information, Generic Mouse Mode, and hotspot labels. Enlarge primary text and action controls for English and Chinese.
-- Place the Mouse Map beside the action editor on wide windows and stack them on narrower windows. Restore the normal window size on the next launch.
-- Show one action category at a time and automatically select the category of the assigned action. Edit Click / Long Press and Scroll Left / Scroll Right independently.
-- Organize Reading into Book, Reading, Panel Appearance, and Controls with compact inline help. Preserve TXT/EPUB, chapters, reading position, auto-scroll, and hide/show behavior.
-- Refine Settings layout and Windows Chinese font fallback.
+- Align Profile, device, and battery information in the Mouse header. Unify shared buttons, dropdowns, and numeric adjustments.
+- Refine the single-category Action Browser and independent Click / Long Press and Scroll Left / Scroll Right editors. Arrange gesture directions in two columns when the editor has room.
+- Improve Reading and Settings spacing and alignment. Group Panel Appearance controls in compact responsive columns.
+- Add the approved transparent ivory-white Generic Mouse illustration, with accurately aligned Middle, Forward, and Back hotspots.
+- Polish English and Simplified Chinese presentation and refresh translated Hide / Show Key labels after switching languages. Keep ordinary control and font sizes stable as the window resizes.
+- Fix the empty Desktop directory setup in the isolated developer launcher used for validation.
 
-Existing action IDs, configuration/mapping formats, and Reading data formats remain compatible without migration. Window dimensions use a separate file. The isolated UI launcher is developer validation infrastructure, not the production entry point.
+Existing action IDs, mouse mappings, capability restrictions, profiles, configuration formats, and Reading data remain compatible. No migration is required.
 
-Validation: the source UI passed isolated real-machine testing. Of 934 automated tests, 917 passed and 17 were skipped for platform or permission limitations. The Windows portable candidate started successfully in a clean sandbox; its checksum, update manifest, and embedded build identity matched. The sandbox startup check does not validate physical mouse functionality.
+The approved source UI passed isolated real-machine validation. Automated checks and the Windows workflow validate the release build; packaged startup checks do not replace physical mouse testing.
 
-This release targets Windows x64 only and the executable is unsigned. Exit the previous instance from its tray menu, extract the complete ZIP, then run PourInput/PourInput.exe. The production application uses normal user configuration; the developer launcher's isolation protections do not automatically apply to the packaged executable.
+**Windows x64 portable edition; unsigned executable.** Exit the previous instance from its tray menu, extract the entire ZIP into a new folder, then run `PourInput/PourInput.exe`. The official app uses your normal configuration; it is separate from the isolated developer test launcher. The download includes a SHA-256 checksum and an update manifest. This release does not replace the separate macOS release.
+
+## 简体中文
+
+本次 Windows 更新统一并精修 PourInput 已有界面，让日常配置更清晰、协调。
+
+- 对齐鼠标页顶部的配置、设备和电量信息，统一按钮、下拉框与数值调整控件。
+- 优化单分类动作浏览器，保留单击／长按、水平滚动左／右的独立设置；手势编辑区域宽度足够时，以两列排列四个方向。
+- 改善阅读和设置页的间距与对齐，将浮窗外观整理为紧凑、可响应窗口宽度的分组。
+- 使用已确认的象牙白透明通用鼠标插画，准确对齐中键、前进、后退三个热点。
+- 精修中英文显示，切换语言后及时刷新隐藏／显示按键的译名；调整窗口大小时保持普通控件与字体尺寸稳定。
+- 修复隔离开发测试启动器的空 Desktop 目录创建，避免测试文件选择框提示路径不存在。
+
+现有动作 ID、鼠标映射、设备能力限制、应用配置、配置格式和阅读数据保持兼容，无需迁移。
+
+已确认的源码界面通过了隔离实机验证。自动检查与 Windows 工作流用于验证发布构建；安装包启动检查不等同于真实鼠标功能测试。
+
+**Windows x64 便携版，程序尚未签名。** 请先从托盘退出旧实例，将完整 ZIP 解压到新文件夹，再运行 `PourInput/PourInput.exe`。正式程序使用正常用户配置，与隔离开发测试启动器分开。下载包含 SHA-256 校验文件和更新清单。本次不会替换独立的 macOS 版本。

@@ -10,12 +10,12 @@
 
 **PourInput is a mouse customization app.** Make supported mouse buttons perform the actions you need: copying, pasting, switching tabs, taking screenshots, running keyboard shortcuts, and more. Give a click and a long press different actions, then create application profiles that switch automatically as you work.
 
-[**Download for Windows · v1.4.3**](https://github.com/pour-soi/PourInput/releases/download/v1.4.3/PourInput-v1.4.3-Windows.zip) · [Release notes](https://github.com/pour-soi/PourInput/releases/tag/v1.4.3) · [Full feature gallery](docs/FEATURES.md)
+[**Download the latest Windows release**](https://github.com/pour-soi/PourInput/releases/latest) · [Release notes](https://github.com/pour-soi/PourInput/releases/latest) · [Full feature gallery](docs/FEATURES.md)
 
 
-## v1.5.0 preview — not yet released
+## Interface overview
 
-These previews render the new UI with isolated sample data. The download above still points to published v1.4.3; the new portable package has not yet been built or validated.
+These v1.5.0 interface examples use isolated sample data. v1.5.1 further polishes shared controls, Action Browser and Gesture layouts, Reading and Settings, and the Generic Mouse illustration. The download link always opens the latest published release.
 
 ![Mouse: wide-window layout](images/screenshots-v1.5.0/mouse-en.png)
 
@@ -91,7 +91,7 @@ Reading OFF restores ordinary wheel scrolling. Reading ON temporarily claims the
 
 ## Get started on Windows
 
-[**Download PourInput v1.4.3 for Windows**](https://github.com/pour-soi/PourInput/releases/download/v1.4.3/PourInput-v1.4.3-Windows.zip)
+[**Download the latest PourInput for Windows**](https://github.com/pour-soi/PourInput/releases/latest)
 
 1. Extract the **entire ZIP** to a short path, such as `F:\Apps`. Do not run the app inside the ZIP or skip files if extraction fails.
 2. Quit any older PourInput instance from its **system tray menu**. Closing the settings window only hides it.
@@ -99,7 +99,7 @@ Reading OFF restores ordinary wheel scrolling. Reading ON temporarily claims the
 4. To customize buttons, open the mouse page and select a button.
 5. Add application profiles and enable Generic Mouse Mode if you want to customize standard middle and side buttons.
 
-The Windows executable is unsigned. Downloads include a SHA-256 checksum and an update manifest on the [release page](https://github.com/pour-soi/PourInput/releases/tag/v1.4.3).
+The Windows executable is unsigned. Downloads include a SHA-256 checksum and an update manifest on the [release page](https://github.com/pour-soi/PourInput/releases/latest).
 
 ## Device and platform notes
 

@@ -6,7 +6,22 @@ This project uses Semantic Versioning.
 
 ## Unreleased
 
-## v1.5.0 - Unreleased
+## v1.5.1
+
+### Changed
+- Standardize shared buttons, selectors, numeric controls, and Mouse header alignment.
+- Refine Action Browser selection states and Gesture editor spacing, including a responsive two-column swipe layout.
+- Align Reading and Settings controls; group Panel Appearance in compact responsive columns.
+- Replace the Generic Mouse illustration with the approved transparent ivory-white PNG and align its three existing hotspots.
+- Improve English and Simplified Chinese presentation while preserving ordinary control sizes during window resizing.
+
+### Fixed
+- Refresh the translated Reading Hide / Show Key choices when the language changes, without changing stored values.
+- Create an empty Desktop directory in the isolated developer test profile for native file dialogs.
+
+Existing input behavior, action IDs, mappings, configuration formats, and Reading data remain compatible.
+
+## v1.5.0 - 2026-10-09
 
 ### Changed
 - Refine Mouse, Reading, and Settings navigation, information hierarchy, and control layout.

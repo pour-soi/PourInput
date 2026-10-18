@@ -10,12 +10,12 @@
 
 **PourInput 是一款鼠标自定义软件。** 把复制、粘贴、切换标签页、截图、自定义快捷键等常用操作放到鼠标上。为支持的按键分别设置单击和长按动作，再按应用创建配置，让鼠标随着你正在使用的软件切换操作。
 
-[**下载 Windows 正式版 · v1.4.3**](https://github.com/pour-soi/PourInput/releases/download/v1.4.3/PourInput-v1.4.3-Windows.zip) · [更新说明](https://github.com/pour-soi/PourInput/releases/tag/v1.4.3) · [完整功能图集](docs/FEATURES_CN.md)
+[**下载 Windows 最新正式版**](https://github.com/pour-soi/PourInput/releases/latest) · [更新说明](https://github.com/pour-soi/PourInput/releases/latest) · [完整功能图集](docs/FEATURES_CN.md)
 
 
-## v1.5.0 待发布预览
+## 界面概览
 
-以下为隔离测试数据生成的新版实际界面。上方下载链接仍指向已发布的 v1.4.3；新版便携包尚待构建与验证。
+以下为 v1.5.0 界面示例，使用隔离测试数据生成。v1.5.1 进一步统一共享控件、动作与手势编辑器、阅读和设置布局，并更新通用鼠标插画。上方链接始终指向最新正式发布页。
 
 ![鼠标页：大窗口双栏](images/screenshots-v1.5.0/mouse-zh-CN.png)
 
@@ -91,7 +91,7 @@
 
 ## 在 Windows 上开始使用
 
-[**下载 PourInput v1.4.3 Windows 正式版**](https://github.com/pour-soi/PourInput/releases/download/v1.4.3/PourInput-v1.4.3-Windows.zip)
+[**下载 PourInput Windows 最新正式版**](https://github.com/pour-soi/PourInput/releases/latest)
 
 1. 将 ZIP **完整解压**到较短的路径，例如 `F:\Apps`。不要直接在压缩包内运行，也不要在解压报错时跳过文件。
 2. 从**系统托盘菜单**退出旧版 PourInput。只关闭设置窗口，并不代表软件已经退出。
@@ -99,7 +99,7 @@
 4. 要设置按键，进入鼠标页面，点击对应按钮。
 5. 按需添加应用配置；要自定义标准中键和侧键时，开启通用鼠标模式。
 
-Windows 程序尚未签名。[发布页](https://github.com/pour-soi/PourInput/releases/tag/v1.4.3)同时提供 SHA-256 校验文件和更新清单。
+Windows 程序尚未签名。[发布页](https://github.com/pour-soi/PourInput/releases/latest)同时提供 SHA-256 校验文件和更新清单。
 
 ## 设备与平台说明
 
