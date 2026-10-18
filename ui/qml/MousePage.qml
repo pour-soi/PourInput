@@ -29,11 +29,11 @@ Item {
         ItemDelegate {
             width: parent ? parent.width : implicitWidth
             highlighted: ListView.isCurrentItem
-            font { family: uiState.fontFamily; pixelSize: 14 }
+            font { family: uiState.fontFamily; pixelSize: 16 }
             contentItem: Text {
                 leftPadding: 10; rightPadding: 10
                 text: (lm.strings, lm.trAction(modelData ? modelData.label : ""))
-                font { family: uiState.fontFamily; pixelSize: 14 }
+                font { family: uiState.fontFamily; pixelSize: 16 }
                 color: highlighted ? mousePage.theme.accent : mousePage.theme.textPrimary
                 verticalAlignment: Text.AlignVCenter
             }
@@ -573,30 +573,34 @@ Item {
                     spacing: 0
 
                     Item { width: 1; height: Theme.space16 }
-                    GridLayout {
-                        columns: mousePage.compactLayout ? 1 : 2
-                        rowSpacing: 8
-                        columnSpacing: 8
+                    Text {
+                        objectName: "mousePageHeading"
                         width: parent.width - 64
                         anchors.horizontalCenter: parent.horizontalCenter
-                        Text {
-                            objectName: "mousePageHeading"
-                            Layout.fillWidth: true
-                            text: (lm.strings, lm.trCategory("Mouse"))
-                            font { family: uiState.fontFamily; pixelSize: 28; bold: true }
-                            color: theme.textPrimary
-                        }
-                        RowLayout {
+                        text: (lm.strings, lm.trCategory("Mouse"))
+                        font { family: uiState.fontFamily; pixelSize: 28; bold: true }
+                        color: theme.textPrimary
+                    }
+                    Item { width: 1; height: Theme.space20 }
+                    Flow {
+                        objectName: "mouseHeaderToolbar"
+                        width: parent.width - 64
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        spacing: Theme.space16
+                        Row {
                             objectName: "profileControls"
+                            id: profileControls
+                            height: 42
                             spacing: Theme.space8
                             Label {
                                 text: s["mouse.profile_selector"]
                                 color: theme.textPrimary
-                                font { family: uiState.fontFamily; pixelSize: 17 }
+                                anchors.verticalCenter: parent.verticalCenter
+                                font { family: uiState.fontFamily; pixelSize: 16 }
                             }
-                            ComboBox {
+                            SurfaceComboBox {
                                 objectName: "profileSelector"
-                                Layout.preferredWidth: 280
+                                width: 260
                                 model: backend.profiles
                                 textRole: "label"
                                 currentIndex: {
@@ -605,126 +609,51 @@ Item {
                                     return -1
                                 }
                                 displayText: selectedProfileLabel
-                                font { family: uiState.fontFamily; pixelSize: 17 }
+                                font { family: uiState.fontFamily; pixelSize: 16 }
                                 delegate: ItemDelegate {
                                     width: ListView.view.width
                                     text: profileDisplayLabel(modelData)
                                     highlighted: modelData.name === selectedProfile
-                                    font { family: uiState.fontFamily; pixelSize: 17 }
+                                    font { family: uiState.fontFamily; pixelSize: 16 }
                                 }
                                 onActivated: selectProfile(model[index].name)
                                 Accessible.name: s["mouse.profile_selector"]
                             }
-                            Button {
+                            SurfaceButton {
                                 objectName: "addProfileButton"
                                 text: "+"
-                                implicitWidth: 40
-                                leftPadding: 8
-                                rightPadding: 8
-                                font { family: uiState.fontFamily; pixelSize: 17 }
-                                background: Rectangle {
-                                    radius: Theme.radiusControl
-                                    color: parent.hovered ? theme.accentDim : theme.bgCard
-                                    border.color: theme.border
-                                }
+                                width: 42
                                 Accessible.name: s["mouse.add_app_profile"]
                                 ToolTip.visible: hovered
                                 ToolTip.text: s["mouse.add_app_profile"]
                                 onClicked: openAddProfileDialog()
                             }
-                            // Delete profile button (not for default)
-                            Rectangle {
+                            SurfaceButton {
                                 objectName: "deleteProfileButton"
-                                visible: selectedProfile !== ""
-                                         && selectedProfile !== "default"
-                                implicitWidth: delRow.implicitWidth + 18
-                                implicitHeight: 28
-                                radius: 10
-                                color: delMa.containsMouse ? theme.danger : theme.dangerBg
-                                Behavior on color { ColorAnimation { duration: 120 } }
-
-                                Row {
-                                    id: delRow
-                                    anchors.centerIn: parent
-                                    spacing: 6
-
-                                    AppIcon {
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        width: 14
-                                        height: 14
-                                        name: "trash"
-                                        iconColor: uiState.darkMode ? theme.textPrimary : theme.danger
-                                    }
-
-                                    Text {
-                                        text: s["mouse.delete_profile"]
-                                        font { family: uiState.fontFamily; pixelSize: 15; bold: true }
-                                        color: uiState.darkMode ? theme.textPrimary : theme.danger
-                                    }
-                                }
-
-                                MouseArea {
-                                    id: delMa
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: {
-                                        pendingDeleteProfile = selectedProfile
-                                        deleteDialog.open()
-                                    }
+                                visible: selectedProfile !== "" && selectedProfile !== "default"
+                                destructive: true
+                                font.pixelSize: 15
+                                text: s["mouse.delete_profile"]
+                                onClicked: {
+                                    pendingDeleteProfile = selectedProfile
+                                    deleteDialog.open()
                                 }
                             }
 
                         }
-                    }
-                    Item { width: 1; height: Theme.space12 }
-
-                    Item {
-                        width: parent.width
-                        height: mousePage.wideLayout
-                                ? Math.max(deviceColumn.implicitHeight, editorColumn.implicitHeight)
-                                : deviceColumn.implicitHeight + editorColumn.implicitHeight
-
-                        Rectangle {
-                            visible: mousePage.wideLayout
-                            x: deviceColumn.width
-                            y: 16
-                            width: 1
-                            height: parent.height - 32
-                            color: theme.border
-                        }
-
-                        Column {
-                            id: deviceColumn
-                            objectName: "mouseDeviceColumn"
-                            width: mousePage.wideLayout ? parent.width * 0.54 : parent.width
-
-                    // ── Header ────────────────────────────────
-                    Item {
-                        width: parent.width; height: deviceStatusRow.implicitHeight + 24
-
-                        // Device status and layout menu
-                        Flow {
+                        Row {
                             id: deviceStatusRow
-                            width: parent.width - 64
-                            anchors {
-                                left: parent.left; leftMargin: Theme.space32
-                                verticalCenter: parent.verticalCenter
-                            }
+                            objectName: "deviceStatusControls"
+                            height: 42
                             spacing: Theme.space8
 
                             // Layout picker pill
-                            Rectangle {
+                            SurfaceButton {
+                                objectName: "deviceSelector"
                                 visible: backend.mouseConnected
                                 width: layoutPillRow.implicitWidth + 24
-                                height: 42; radius: Theme.radiusSmall
-                                border.width: 1
-                                border.color: theme.border
-                                color: layoutPillMa.containsMouse
-                                       ? theme.bgCardHover
-                                       : (backend.deviceLayoutOverrideKey !== ""
-                                          ? Qt.rgba(0.95, 0.7, 0.2, 0.18)
-                                          : theme.bgCard)
+                                height: 42
+                                onClicked: layoutMenu.open()
 
                                 Row {
                                     id: layoutPillRow
@@ -737,7 +666,7 @@ Item {
                                                 return currentLayoutChoiceLabel()
                                             return displayDeviceName || (s["mouse.auto_detect"] || "Auto-detect")
                                         }
-                                        font { family: uiState.fontFamily; pixelSize: 17 }
+                                        font { family: uiState.fontFamily; pixelSize: 16 }
                                         color: backend.deviceLayoutOverrideKey !== ""
                                                ? "#d4a017" : theme.textPrimary
                                         anchors.verticalCenter: parent.verticalCenter
@@ -748,14 +677,6 @@ Item {
                                         color: theme.textSecondary
                                         anchors.verticalCenter: parent.verticalCenter
                                     }
-                                }
-
-                                MouseArea {
-                                    id: layoutPillMa
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: layoutMenu.open()
                                 }
 
                                 Menu {
@@ -785,7 +706,7 @@ Item {
                                                        ? (s["mouse.auto_detect"] || lbl)
                                                        : lbl
                                             }
-                                            font { family: uiState.fontFamily; pixelSize: 17 }
+                                            font { family: uiState.fontFamily; pixelSize: 16 }
                                             highlighted: modelData.key === backend.deviceLayoutOverrideKey
                                                          || (modelData.key === "" && backend.deviceLayoutOverrideKey === "")
                                             onTriggered: backend.setDeviceLayoutOverride(modelData.key)
@@ -826,7 +747,7 @@ Item {
                                     }
                                     Text {
                                         text: backend.batteryLevel + "%"
-                                        font { family: uiState.fontFamily; pixelSize: 17 }
+                                        font { family: uiState.fontFamily; pixelSize: 16 }
                                         color: backend.batteryLevel <= 20 ? theme.danger : theme.textPrimary
                                     }
                                 }
@@ -872,6 +793,27 @@ Item {
 
                         }
                     }
+                    Item { width: 1; height: Theme.space12 }
+
+                    Item {
+                        width: parent.width
+                        height: mousePage.wideLayout
+                                ? Math.max(deviceColumn.implicitHeight, editorColumn.implicitHeight)
+                                : deviceColumn.implicitHeight + editorColumn.implicitHeight
+
+                        Rectangle {
+                            visible: mousePage.wideLayout
+                            x: deviceColumn.width
+                            y: 16
+                            width: 1
+                            height: parent.height - 32
+                            color: theme.border
+                        }
+
+                        Column {
+                            id: deviceColumn
+                            objectName: "mouseDeviceColumn"
+                            width: mousePage.wideLayout ? parent.width * 0.54 : parent.width
 
                     Rectangle {
                         width: parent.width - 64; height: 1
@@ -890,8 +832,9 @@ Item {
                         anchors.leftMargin: Theme.space32
                         height: Math.max(96, genericModeContent.implicitHeight + 32)
                         radius: Theme.radiusControl
-                        color: theme.accentDim
-                        border.color: uiState.darkMode ? theme.border : "#c9d9f1"
+                        color: backend.genericMouseEnabled ? theme.accentDim : theme.bgCard
+                        border.color: backend.genericMouseEnabled && !uiState.darkMode
+                                      ? "#c9d9f1" : theme.border
                         Rectangle {
                             width: 3; height: parent.height - 20
                             anchors.left: parent.left
@@ -910,7 +853,9 @@ Item {
                                 Layout.preferredWidth: 40
                                 Layout.preferredHeight: 40
                                 radius: 10
-                                color: uiState.darkMode ? theme.bgCardHover : "#d7e6ff"
+                                color: backend.genericMouseEnabled
+                                       ? (uiState.darkMode ? theme.bgCardHover : "#d7e6ff")
+                                       : theme.bgSubtle
                                 AppIcon {
                                     anchors.centerIn: parent
                                     width: 26; height: 26
@@ -957,6 +902,7 @@ Item {
                         id: mouseImageArea
                         width: parent.width
                         property int layoutRevision: 0
+                        readonly property bool genericMouseArt: backend.deviceImageAsset === "generic-mouse-clean.png"
                         property real labelColumnWidth: Math.min(260, (width - (width < 1000 ? 360 : 460)) / 2)
                         function sideItems(side) {
                             var revision = layoutRevision
@@ -985,7 +931,9 @@ Item {
                             return top
                         }
                         height: canConfigureMouse
-                                ? Math.max(mousePage.compactLayout ? 350 : 430, columnHeight("left") + 40,
+                                ? Math.max(mousePage.compactLayout ? 350
+                                           : (genericMouseArt ? 462 : 430),
+                                           columnHeight("left") + 40,
                                            columnHeight("right") + 40) : 340
 
                         Rectangle {
@@ -998,9 +946,10 @@ Item {
                             objectName: "mouseMapImage"
                             source: backend.deviceImageSource
                             fillMode: Image.PreserveAspectFit
-                            width: Math.min(backend.deviceImageWidth,
-                                            parent.width - 2 * parent.labelColumnWidth - 64,
-                                            (parent.height - 40) * backend.deviceImageWidth / backend.deviceImageHeight)
+                            width: Math.min(backend.deviceImageWidth * (parent.genericMouseArt ? 1.08 : 1),
+                                            parent.width - 2 * parent.labelColumnWidth - (parent.genericMouseArt ? 48 : 64),
+                                            (parent.height - (parent.genericMouseArt ? 8 : 40))
+                                            * backend.deviceImageWidth / backend.deviceImageHeight)
                             height: width * backend.deviceImageHeight / backend.deviceImageWidth
                             anchors.centerIn: parent
                             visible: canConfigureMouse
@@ -1331,8 +1280,8 @@ Item {
                                         id: scrollTabs
                                         objectName: "scrollTabs"
                                         Layout.preferredWidth: 240
-                                        TabButton { text: s["mouse.scroll_left"]; font { family: uiState.fontFamily; pixelSize: 17 } }
-                                        TabButton { text: s["mouse.scroll_right"]; font { family: uiState.fontFamily; pixelSize: 17 } }
+                                        TriggerTab { text: s["mouse.scroll_left"] }
+                                        TriggerTab { text: s["mouse.scroll_right"] }
                                     }
                                     Item { Layout.fillWidth: true }
                                 }
@@ -1352,25 +1301,26 @@ Item {
                             }
 
                             Column {
-                                width: parent.width
-                                spacing: 14
+                                width: Math.min(parent.width, 760)
+                                spacing: 20
+                                objectName: "gestureEditor"
                                 visible: selectedButton === "gesture"
                                          && backend.supportsGestureDirections
 
                                 Text {
-                                    text: s["mouse.tap_action"]
-                                    font { family: uiState.fontFamily; pixelSize: 15;
-                                           capitalization: Font.AllUppercase; letterSpacing: 1 }
-                                    color: theme.textDim
+                                    text: s["mouse.tap_action"].toLocaleLowerCase()
+                                    font { family: uiState.fontFamily; pixelSize: 17; bold: true; capitalization: Font.Capitalize }
+                                    color: theme.textPrimary
                                 }
 
-                                ComboBox {
-                                    width: parent.width
+                                SurfaceComboBox {
+                                    objectName: "gestureTapSelector"
+                                    width: Math.min(parent.width, 420)
                                     model: backend.allActions
                                     textRole: "label"
                                     delegate: actionComboDelegate
                                     Material.accent: theme.accent
-                                    font { family: uiState.fontFamily; pixelSize: 15 }
+                                    font { family: uiState.fontFamily; pixelSize: 16 }
                                     currentIndex: actionIndexForId(gestureTapActionId)
                                     displayText: isCustomAction(gestureTapActionId)
                                                  ? customLabel(gestureTapActionId)
@@ -1392,12 +1342,13 @@ Item {
                                     color: theme.border
                                 }
 
-                                Row {
-                                    width: parent.width
+                                RowLayout {
+                                    width: Math.min(parent.width, 420)
                                     spacing: 12
 
                                 Text {
                                     text: s["mouse.threshold"]
+                                    Layout.fillWidth: true
                                     font { family: uiState.fontFamily; pixelSize: 17; bold: true }
                                     color: theme.textPrimary
                                 }
@@ -1415,7 +1366,8 @@ Item {
 
                                 WheelSafeSlider {
                                     id: gestureThresholdSlider
-                                    width: parent.width
+                                    objectName: "gestureThresholdSlider"
+                                    width: Math.min(parent.width, 420)
                                     from: 20
                                     to: 400
                                     stepSize: 5
@@ -1442,30 +1394,38 @@ Item {
                                 }
 
                                 Text {
-                                    text: s["mouse.swipe_actions"]
-                                    font { family: uiState.fontFamily; pixelSize: 15;
-                                           capitalization: Font.AllUppercase; letterSpacing: 1 }
-                                    color: theme.textDim
+                                    text: s["mouse.swipe_actions"].toLocaleLowerCase()
+                                    font { family: uiState.fontFamily; pixelSize: 17; bold: true; capitalization: Font.Capitalize }
+                                    color: theme.textPrimary
                                 }
 
-                                RowLayout {
+                                GridLayout {
+                                    id: gestureSwipeGrid
+                                    objectName: "gestureSwipeGrid"
+                                    readonly property int minimumControlWidth: 280
                                     width: parent.width
-                                    spacing: 12
+                                    columns: width >= minimumControlWidth * 2 + columnSpacing ? 2 : 1
+                                    columnSpacing: 20
+                                    rowSpacing: 20
+                                ColumnLayout {
+                                    Layout.fillWidth: true
+                                    Layout.minimumWidth: gestureSwipeGrid.minimumControlWidth
+                                    spacing: 8
 
                                     Text {
                                         text: s["mouse.swipe_left"]
-                                        Layout.preferredWidth: 100
                                         font { family: uiState.fontFamily; pixelSize: 17 }
                                         color: theme.textPrimary
                                     }
 
-                                    ComboBox {
+                                    SurfaceComboBox {
+                                        objectName: "gestureLeftSelector"
                                         Layout.fillWidth: true
                                         model: backend.allActions
                                         textRole: "label"
                                         delegate: actionComboDelegate
                                         Material.accent: theme.accent
-                                        font { family: uiState.fontFamily; pixelSize: 15 }
+                                        font { family: uiState.fontFamily; pixelSize: 16 }
                                         currentIndex: actionIndexForId(gestureLeftActionId)
                                         displayText: isCustomAction(gestureLeftActionId)
                                                      ? customLabel(gestureLeftActionId)
@@ -1482,24 +1442,25 @@ Item {
                                     }
                                 }
 
-                                RowLayout {
-                                    width: parent.width
-                                    spacing: 12
+                                ColumnLayout {
+                                    Layout.fillWidth: true
+                                    Layout.minimumWidth: gestureSwipeGrid.minimumControlWidth
+                                    spacing: 8
 
                                     Text {
                                         text: s["mouse.swipe_right"]
-                                        Layout.preferredWidth: 100
                                         font { family: uiState.fontFamily; pixelSize: 17 }
                                         color: theme.textPrimary
                                     }
 
-                                    ComboBox {
+                                    SurfaceComboBox {
+                                        objectName: "gestureRightSelector"
                                         Layout.fillWidth: true
                                         model: backend.allActions
                                         textRole: "label"
                                         delegate: actionComboDelegate
                                         Material.accent: theme.accent
-                                        font { family: uiState.fontFamily; pixelSize: 15 }
+                                        font { family: uiState.fontFamily; pixelSize: 16 }
                                         currentIndex: actionIndexForId(gestureRightActionId)
                                         displayText: isCustomAction(gestureRightActionId)
                                                      ? customLabel(gestureRightActionId)
@@ -1516,24 +1477,25 @@ Item {
                                     }
                                 }
 
-                                RowLayout {
-                                    width: parent.width
-                                    spacing: 12
+                                ColumnLayout {
+                                    Layout.fillWidth: true
+                                    Layout.minimumWidth: gestureSwipeGrid.minimumControlWidth
+                                    spacing: 8
 
                                     Text {
                                         text: s["mouse.swipe_up"]
-                                        Layout.preferredWidth: 100
                                         font { family: uiState.fontFamily; pixelSize: 17 }
                                         color: theme.textPrimary
                                     }
 
-                                    ComboBox {
+                                    SurfaceComboBox {
+                                        objectName: "gestureUpSelector"
                                         Layout.fillWidth: true
                                         model: backend.allActions
                                         textRole: "label"
                                         delegate: actionComboDelegate
                                         Material.accent: theme.accent
-                                        font { family: uiState.fontFamily; pixelSize: 15 }
+                                        font { family: uiState.fontFamily; pixelSize: 16 }
                                         currentIndex: actionIndexForId(gestureUpActionId)
                                         displayText: isCustomAction(gestureUpActionId)
                                                      ? customLabel(gestureUpActionId)
@@ -1550,24 +1512,25 @@ Item {
                                     }
                                 }
 
-                                RowLayout {
-                                    width: parent.width
-                                    spacing: 12
+                                ColumnLayout {
+                                    Layout.fillWidth: true
+                                    Layout.minimumWidth: gestureSwipeGrid.minimumControlWidth
+                                    spacing: 8
 
                                     Text {
                                         text: s["mouse.swipe_down"]
-                                        Layout.preferredWidth: 100
                                         font { family: uiState.fontFamily; pixelSize: 17 }
                                         color: theme.textPrimary
                                     }
 
-                                    ComboBox {
+                                    SurfaceComboBox {
+                                        objectName: "gestureDownSelector"
                                         Layout.fillWidth: true
                                         model: backend.allActions
                                         textRole: "label"
                                         delegate: actionComboDelegate
                                         Material.accent: theme.accent
-                                        font { family: uiState.fontFamily; pixelSize: 15 }
+                                        font { family: uiState.fontFamily; pixelSize: 16 }
                                         currentIndex: actionIndexForId(gestureDownActionId)
                                         displayText: isCustomAction(gestureDownActionId)
                                                      ? customLabel(gestureDownActionId)
@@ -1582,6 +1545,7 @@ Item {
                                                 selectedProfile, "gesture_down", aid)
                                         }
                                     }
+                                }
                                 }
                             }
 
@@ -1620,8 +1584,8 @@ Item {
                                         Layout.minimumWidth: 240
                                         Layout.maximumWidth: 240
                                         visible: supportsMultiActionButton(selectedButton)
-                                        TabButton { text: s["mouse.click_tab"]; font { family: uiState.fontFamily; pixelSize: 17 } }
-                                        TabButton { text: s["mouse.long_press_tab"]; font { family: uiState.fontFamily; pixelSize: 17 } }
+                                        TriggerTab { text: s["mouse.click_tab"] }
+                                        TriggerTab { text: s["mouse.long_press_tab"] }
                                     }
                                     RowLayout {
                                         objectName: "buttonSummaryRow"

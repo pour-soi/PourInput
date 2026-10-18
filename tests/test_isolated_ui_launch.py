@@ -14,9 +14,13 @@ class IsolatedLaunchTests(unittest.TestCase):
     @unittest.skipUnless(sys.platform == "win32", "Windows-only isolated launcher data paths")
     def test_fresh_process_uses_only_disposable_state_and_neutral_defaults(self):
         script = '''
-import json
+import json, os
 from tools.isolated_ui_test import prepare, WINDOW_STATE_FILE
 root = prepare()
+desktop = root / 'profile' / 'Desktop'
+assert desktop.is_dir(), 'isolated Desktop must exist for native Windows file dialogs'
+assert not any(desktop.iterdir()), 'real Desktop contents must not be copied'
+assert str(desktop.parent) == os.environ['USERPROFILE']
 from core import config
 cfg = config.load_config(strict=True)
 assert all(v == 'none' for p in cfg['profiles'].values() for v in p['mappings'].values())

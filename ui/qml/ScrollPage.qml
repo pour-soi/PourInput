@@ -66,27 +66,6 @@ Item {
     }
 
 
-    component SettingsButton: Button {
-        id: control
-        implicitHeight: 34
-        topInset: 0; bottomInset: 0
-        horizontalPadding: 14
-        font { family: uiState.fontFamily; pixelSize: 15 }
-        contentItem: Text {
-            text: control.text; font: control.font
-            color: scrollPage.theme.textPrimary
-            opacity: control.enabled ? 1 : 0.5
-            horizontalAlignment: Text.AlignHCenter
-            verticalAlignment: Text.AlignVCenter
-        }
-        background: Rectangle {
-            radius: 9
-            color: control.hovered ? scrollPage.theme.bgCardHover : scrollPage.theme.bgCard
-            border.color: scrollPage.theme.border
-            opacity: control.enabled ? 1 : 0.5
-        }
-    }
-
     ScrollView {
         id: pageScroll
         objectName: "settingsScroll"
@@ -115,7 +94,7 @@ Item {
                         text: s["scroll.title"]
                         font {
                             family: uiState.fontFamily
-                            pixelSize: 24
+                            pixelSize: 28
                             bold: true
                         }
                         color: scrollPage.theme.textPrimary
@@ -161,13 +140,13 @@ Item {
                         top: parent.top
                         margins: Theme.space16
                     }
-                    spacing: 10
+                    spacing: 12
 
                     Text {
                         text: s["scroll.pointer_speed"]
                         font {
                             family: uiState.fontFamily
-                            pixelSize: 16
+                            pixelSize: 18
                             bold: true
                         }
                         color: scrollPage.theme.textPrimary
@@ -183,14 +162,14 @@ Item {
                                 + s["scroll.pointer_speed_desc_range_suffix"]
                         font {
                             family: uiState.fontFamily
-                            pixelSize: 15
+                            pixelSize: 16
                         }
                         color: scrollPage.theme.textSecondary
                     }
 
                     RowLayout {
                         width: parent.width
-                        spacing: 10
+                        spacing: 12
 
                         Text {
                             text: backend.deviceDpiMin
@@ -230,7 +209,7 @@ Item {
                         Rectangle {
                             Layout.preferredWidth: 104
                             Layout.preferredHeight: 36
-                            radius: 10
+                            radius: Theme.radiusSmall
                             color: scrollPage.theme.accentDim
 
                             Text {
@@ -292,7 +271,7 @@ Item {
                                     text: modelData
                                     font {
                                         family: uiState.fontFamily
-                                        pixelSize: 15
+                                        pixelSize: 16
                                     }
                                     color: dpiSlider.value === modelData
                                            ? scrollPage.theme.bgSidebar
@@ -361,7 +340,7 @@ Item {
                                 text: s["scroll.smart_shift_desc"]
                                 font {
                                     family: uiState.fontFamily
-                                    pixelSize: 15
+                                    pixelSize: 16
                                 }
                                 color: scrollPage.theme.textSecondary
                                 wrapMode: Text.WordWrap
@@ -432,7 +411,7 @@ Item {
                             Rectangle {
                                 Layout.preferredWidth: 72
                                 Layout.preferredHeight: 36
-                                radius: 10
+                                radius: Theme.radiusSmall
                                 color: scrollPage.theme.accentDim
 
                                 Text {
@@ -475,7 +454,7 @@ Item {
 
                         Row {
                             width: parent.width
-                            spacing: 10
+                            spacing: 12
 
                             Repeater {
                                 model: [
@@ -486,8 +465,8 @@ Item {
                                 delegate: Rectangle {
                                     required property var modelData
                                     width: Math.max(96, ssText.implicitWidth + 28)
-                                    height: 38
-                                    radius: 10
+                                    height: 42
+                                    radius: Theme.radiusSmall
                                     color: backend.smartShiftMode === modelData.value
                                            ? scrollPage.theme.accentDim
                                            : scrollPage.theme.bgSubtle
@@ -508,7 +487,7 @@ Item {
                                         text: s[modelData.labelKey] || modelData.labelKey
                                         font {
                                             family: uiState.fontFamily
-                                            pixelSize: 15
+                                            pixelSize: 16
                                             bold: backend.smartShiftMode === modelData.value
                                         }
                                         color: backend.smartShiftMode === modelData.value
@@ -528,7 +507,7 @@ Item {
                 }
             }
 
-            Item { width: 1; height: 14 }
+            Item { width: 1; height: 20 }
 
             // ── Appearance ────────────────────────────────────────
             Rectangle {
@@ -548,13 +527,13 @@ Item {
                         top: parent.top
                         margins: Theme.space16
                     }
-                    spacing: 10
+                    spacing: 12
 
                     Text {
                         text: s["scroll.appearance"]
                         font {
                             family: uiState.fontFamily
-                            pixelSize: 16
+                            pixelSize: 18
                             bold: true
                         }
                         color: scrollPage.theme.textPrimary
@@ -564,14 +543,14 @@ Item {
                         text: s["scroll.appearance_desc"]
                         font {
                             family: uiState.fontFamily
-                            pixelSize: 15
+                            pixelSize: 16
                         }
                         color: scrollPage.theme.textSecondary
                     }
 
                     Row {
                         width: parent.width
-                        spacing: 10
+                        spacing: 12
 
                         Repeater {
                             model: scrollPage.appearanceOptions
@@ -579,8 +558,8 @@ Item {
                             delegate: Rectangle {
                                 required property var modelData
                                 width: Math.max(96, optionText.implicitWidth + 28)
-                                height: 38
-                                radius: 10
+                                height: 42
+                                radius: Theme.radiusSmall
                                 color: backend.appearanceMode === modelData.value
                                        ? scrollPage.theme.accent
                                        : optionMouse.containsMouse
@@ -602,7 +581,7 @@ Item {
                                     text: modelData.label
                                     font {
                                         family: uiState.fontFamily
-                                        pixelSize: 15
+                                        pixelSize: 16
                                         bold: backend.appearanceMode === modelData.value
                                     }
                                     color: backend.appearanceMode === modelData.value
@@ -623,7 +602,7 @@ Item {
                 }
             }
 
-            Item { width: 1; height: 14 }
+            Item { width: 1; height: 20 }
 
             // ── Language ──────────────────────────────────────────
             Rectangle {
@@ -644,13 +623,13 @@ Item {
                         top: parent.top
                         margins: Theme.space16
                     }
-                    spacing: 10
+                    spacing: 12
 
                     Text {
                         text: s["scroll.language"]
                         font {
                             family: uiState.fontFamily
-                            pixelSize: 16
+                            pixelSize: 18
                             bold: true
                         }
                         color: scrollPage.theme.textPrimary
@@ -660,14 +639,14 @@ Item {
                         text: s["scroll.language_desc"]
                         font {
                             family: uiState.fontFamily
-                            pixelSize: 15
+                            pixelSize: 16
                         }
                         color: scrollPage.theme.textSecondary
                     }
 
                     Row {
                         width: parent.width
-                        spacing: 10
+                        spacing: 12
 
                         Repeater {
                             model: lm.availableLanguages
@@ -675,8 +654,8 @@ Item {
                             delegate: Rectangle {
                                 required property var modelData
                                 width: Math.max(108, langText.implicitWidth + 28)
-                                height: 38
-                                radius: 10
+                                height: 42
+                                radius: Theme.radiusSmall
                                 color: lm.language === modelData.code
                                        ? scrollPage.theme.accent
                                        : langMa.containsMouse
@@ -702,7 +681,7 @@ Item {
                                     text: modelData.name
                                     font {
                                         family: uiState.fontFamily
-                                        pixelSize: 15
+                                        pixelSize: 16
                                         bold: lm.language === modelData.code
                                     }
                                     color: lm.language === modelData.code
@@ -723,7 +702,7 @@ Item {
                 }
             }
 
-            Item { width: 1; height: 14 }
+            Item { width: 1; height: 20 }
 
             // ── Startup ───────────────────────────────────────────
             Rectangle {
@@ -745,13 +724,13 @@ Item {
                         top: parent.top
                         margins: Theme.space16
                     }
-                    spacing: 10
+                    spacing: 12
 
                     Text {
                         text: s["scroll.startup"]
                         font {
                             family: uiState.fontFamily
-                            pixelSize: 16
+                            pixelSize: 18
                             bold: true
                         }
                         color: scrollPage.theme.textPrimary
@@ -761,7 +740,7 @@ Item {
                         text: s["scroll.startup_desc"]
                         font {
                             family: uiState.fontFamily
-                            pixelSize: 15
+                            pixelSize: 16
                         }
                         color: scrollPage.theme.textSecondary
                         wrapMode: Text.WordWrap
@@ -771,7 +750,7 @@ Item {
                     Rectangle {
                         width: parent.width
                         height: 52
-                        radius: 10
+                        radius: Theme.radiusSmall
                         color: scrollPage.theme.bgSubtle
                         visible: backend.supportsStartAtLogin
 
@@ -806,7 +785,7 @@ Item {
                     Rectangle {
                         width: parent.width
                         height: 52
-                        radius: 10
+                        radius: Theme.radiusSmall
                         color: scrollPage.theme.bgSubtle
 
                         RowLayout {
@@ -840,7 +819,7 @@ Item {
                     Rectangle {
                         width: parent.width
                         height: 118
-                        radius: 10
+                        radius: Theme.radiusSmall
                         color: scrollPage.theme.bgSubtle
 
                         ColumnLayout {
@@ -851,11 +830,11 @@ Item {
                                 topMargin: 10
                                 bottomMargin: 10
                             }
-                            spacing: 10
+                            spacing: 12
 
                             RowLayout {
                                 Layout.fillWidth: true
-                                spacing: 10
+                                spacing: 12
 
                                 Column {
                                     Layout.fillWidth: true
@@ -915,13 +894,13 @@ Item {
                                     value: backend.updateInstallProgress
                                 }
 
-                                SettingsButton {
+                                SurfaceButton {
                                     text: s["scroll.update_check"]
                                     enabled: !backend.updateInstallInProgress
                                     onClicked: backend.manualCheckForUpdates()
                                 }
 
-                                SettingsButton {
+                                SurfaceButton {
                                     text: backend.isWindows ? s["scroll.update_download"] : s["scroll.update_verify"]
                                     visible: backend.latestUpdateVersion !== ""
                                              && !backend.updateInstallCanInstall
@@ -930,7 +909,7 @@ Item {
                                     onClicked: backend.prepareLatestUpdate()
                                 }
 
-                                SettingsButton {
+                                SurfaceButton {
                                     text: s["scroll.update_cancel"]
                                     visible: backend.updateInstallStatus === "checking"
                                              || backend.updateInstallStatus === "downloading"
@@ -938,14 +917,14 @@ Item {
                                     onClicked: backend.cancelUpdatePreparation()
                                 }
 
-                                SettingsButton {
+                                SurfaceButton {
                                     text: s["scroll.update_install"]
                                     visible: backend.updateInstallCanInstall && backend.updateInstallEnabled
                                     enabled: !backend.updateInstallInProgress
                                     onClicked: backend.installPreparedUpdate()
                                 }
 
-                                SettingsButton {
+                                SurfaceButton {
                                     text: s["scroll.update_open_release"]
                                     visible: backend.latestUpdateVersion !== ""
                                     enabled: !backend.updateInstallInProgress
@@ -981,13 +960,13 @@ Item {
                         top: parent.top
                         margins: Theme.space16
                     }
-                    spacing: 10
+                    spacing: 12
 
                     Text {
                         text: s["scroll.screenshots"]
                         font {
                             family: uiState.fontFamily
-                            pixelSize: 16
+                            pixelSize: 18
                             bold: true
                         }
                         color: scrollPage.theme.textPrimary
@@ -997,7 +976,7 @@ Item {
                         text: s["scroll.screenshots_desc"]
                         font {
                             family: uiState.fontFamily
-                            pixelSize: 15
+                            pixelSize: 16
                         }
                         color: scrollPage.theme.textSecondary
                         wrapMode: Text.WordWrap
@@ -1007,7 +986,7 @@ Item {
                     Rectangle {
                         width: parent.width
                         height: 58
-                        radius: 10
+                        radius: Theme.radiusSmall
                         color: scrollPage.theme.bgSubtle
 
                         RowLayout {
@@ -1016,7 +995,7 @@ Item {
                                 leftMargin: 16
                                 rightMargin: 12
                             }
-                            spacing: 10
+                            spacing: 12
 
                             Column {
                                 Layout.fillWidth: true
@@ -1026,7 +1005,7 @@ Item {
                                     text: s["scroll.screenshots_save_to"]
                                     font {
                                         family: uiState.fontFamily
-                                        pixelSize: 15
+                                        pixelSize: 16
                                         bold: true
                                     }
                                     color: scrollPage.theme.textDim
@@ -1046,75 +1025,23 @@ Item {
                                 }
                             }
 
-                            Rectangle {
+                            SurfaceButton {
                                 id: chooseScreenshotButton
-                                Layout.preferredWidth: Math.max(88, chooseScreenshotText.implicitWidth + 24)
-                                Layout.preferredHeight: 34
-                                radius: 8
-                                color: chooseScreenshotMouse.containsMouse
-                                       ? scrollPage.theme.bgCardHover
-                                       : scrollPage.theme.bgCard
-                                border.width: 1
-                                border.color: scrollPage.theme.border
-
-                                Text {
-                                    id: chooseScreenshotText
-                                    anchors.centerIn: parent
-                                    text: s["scroll.screenshots_choose"]
-                                    font {
-                                        family: uiState.fontFamily
-                                        pixelSize: 15
-                                    }
-                                    color: scrollPage.theme.textPrimary
-                                }
-
-                                MouseArea {
-                                    id: chooseScreenshotMouse
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: backend.chooseScreenshotDirectory()
-                                }
+                                text: s["scroll.screenshots_choose"]
+                                onClicked: backend.chooseScreenshotDirectory()
                             }
-
-                            Rectangle {
+                            SurfaceButton {
                                 id: resetScreenshotButton
-                                Layout.preferredWidth: Math.max(102, resetScreenshotText.implicitWidth + 24)
-                                Layout.preferredHeight: 34
-                                radius: 8
-                                opacity: backend.hasCustomScreenshotDirectory ? 1.0 : 0.45
-                                color: resetScreenshotMouse.containsMouse && backend.hasCustomScreenshotDirectory
-                                       ? scrollPage.theme.bgCardHover
-                                       : scrollPage.theme.bgCard
-                                border.width: 1
-                                border.color: scrollPage.theme.border
-
-                                Text {
-                                    id: resetScreenshotText
-                                    anchors.centerIn: parent
-                                    text: s["scroll.screenshots_default"]
-                                    font {
-                                        family: uiState.fontFamily
-                                        pixelSize: 15
-                                    }
-                                    color: scrollPage.theme.textPrimary
-                                }
-
-                                MouseArea {
-                                    id: resetScreenshotMouse
-                                    anchors.fill: parent
-                                    enabled: backend.hasCustomScreenshotDirectory
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: backend.resetScreenshotDirectory()
-                                }
+                                text: s["scroll.screenshots_default"]
+                                enabled: backend.hasCustomScreenshotDirectory
+                                onClicked: backend.resetScreenshotDirectory()
                             }
                         }
                     }
                 }
             }
 
-            Item { width: 1; height: 14 }
+            Item { width: 1; height: 20 }
 
             // ── Scroll Direction ──────────────────────────────────
             Rectangle {
@@ -1135,13 +1062,13 @@ Item {
                         top: parent.top
                         margins: Theme.space16
                     }
-                    spacing: 10
+                    spacing: 12
 
                     Text {
                         text: s["scroll.scroll_direction"]
                         font {
                             family: uiState.fontFamily
-                            pixelSize: 16
+                            pixelSize: 18
                             bold: true
                         }
                         color: scrollPage.theme.textPrimary
@@ -1151,7 +1078,7 @@ Item {
                         text: s["scroll.scroll_direction_desc"]
                         font {
                             family: uiState.fontFamily
-                            pixelSize: 15
+                            pixelSize: 16
                         }
                         color: scrollPage.theme.textSecondary
                     }
@@ -1159,7 +1086,7 @@ Item {
                     Rectangle {
                         width: parent.width
                         height: 52
-                        radius: 10
+                        radius: Theme.radiusSmall
                         color: scrollPage.theme.bgSubtle
 
                         RowLayout {
@@ -1193,7 +1120,7 @@ Item {
                     Rectangle {
                         width: parent.width
                         height: 52
-                        radius: 10
+                        radius: Theme.radiusSmall
                         color: scrollPage.theme.bgSubtle
 
                         RowLayout {
@@ -1227,7 +1154,7 @@ Item {
                     Rectangle {
                         width: parent.width
                         height: 62
-                        radius: 10
+                        radius: Theme.radiusSmall
                         color: scrollPage.theme.bgSubtle
                         visible: backend.isMacOS
 
@@ -1237,7 +1164,7 @@ Item {
                                 leftMargin: 16
                                 rightMargin: 16
                             }
-                            spacing: 10
+                            spacing: 12
 
                             Column {
                                 Layout.fillWidth: true
@@ -1276,7 +1203,7 @@ Item {
                 }
             }
 
-            Item { width: 1; height: 14 }
+            Item { width: 1; height: 20 }
 
             // ── DPI note ──────────────────────────────────────────
             Rectangle {
@@ -1294,7 +1221,7 @@ Item {
                         fill: parent
                         margins: 14
                     }
-                    spacing: 10
+                    spacing: 12
 
                     AppIcon {
                         anchors.verticalCenter: parent.verticalCenter
@@ -1309,7 +1236,7 @@ Item {
                         text: s["scroll.dpi_note"]
                         font {
                             family: uiState.fontFamily
-                            pixelSize: 15
+                            pixelSize: 16
                         }
                         color: scrollPage.theme.textDim
                         wrapMode: Text.WordWrap

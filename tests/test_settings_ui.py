@@ -27,10 +27,10 @@ class SettingsUiTests(unittest.TestCase):
             output = os.environ.get('POURINPUT_SETTINGS_SCREENSHOTS')
             for language in ('en', 'zh_CN'):
                 self.lm.setLanguage(language)
-                for width, height in ((1280,900),(920,620)):
+                for width, height in ((1280,900),(920,620),(1600,900)):
                     self.window.resize(width,height)
                     QTest.qWait(150)
-                    for key in ('top','languageContent','startupContent','screenshotContent'):
+                    for key in ('top','languageContent','startupContent','screenshotContent','scrollContent'):
                         target = page.findChild(QObject,key) if key != 'top' else None
                         y = target.mapToItem(flick.property('contentItem'),target.boundingRect().topLeft()).y()-24 if target else 0
                         flick.setProperty('contentY',min(y,max(0,flick.property('contentHeight')-flick.height())))

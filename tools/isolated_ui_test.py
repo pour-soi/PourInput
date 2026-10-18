@@ -23,6 +23,8 @@ def prepare():
         path = root / folder
         path.mkdir(exist_ok=True)
         os.environ[variable] = str(path)
+    # Native Windows file dialogs expect a Desktop in the redirected profile.
+    (root / "profile" / "Desktop").mkdir()
     os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
     sys.dont_write_bytecode = True
     sys.path.insert(0, str(ROOT))
