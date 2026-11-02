@@ -63,7 +63,14 @@ ScrollView {
         spacing: 16
         Item { Layout.preferredHeight: 12 }
         Label {
-            text: s["reading.title"]
+            text: "PourInput"
+            Text {
+                x: parent.implicitWidth + 16
+                anchors.verticalCenter: parent.verticalCenter
+                text: " /   " + s["reading.title"]
+                font { family: uiState.fontFamily; pixelSize: 20; bold: false }
+                color: page.theme.textSecondary
+            }
             font { pixelSize: 28; bold: true }
             color: page.theme.textPrimary
             Layout.leftMargin: 28

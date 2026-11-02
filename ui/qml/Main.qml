@@ -76,8 +76,8 @@ ApplicationWindow {
                     spacing: Theme.space8
 
                     Item {
-                        width: 44
-                        height: 44
+                        width: 56
+                        height: 56
                         anchors.horizontalCenter: parent.horizontalCenter
 
                         Accessible.role: Accessible.StaticText
@@ -95,7 +95,7 @@ ApplicationWindow {
                         }
                     }
 
-                    Item { width: 1; height: 16 }
+                    Item { width: 1; height: 4 }
 
                     Repeater {
                         model: [

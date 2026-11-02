@@ -1,16 +1,16 @@
 <p align="center">
-  <img src="images/logo.png" alt="PourInput" width="140">
+  <img src="images/logo-readme.png" alt="PourInput" width="260">
 </p>
 
-# PourInput
+<h1 align="center">PourInput</h1>
 
-### 你的鼠标，由你掌控。
+<h3 align="center">你的鼠标，由你掌控。</h3>
 
-[English](README.md) · **简体中文**
+<p align="center"><a href="README.md">English</a> · <strong>简体中文</strong></p>
 
 **PourInput 是一款鼠标自定义软件。** 把复制、粘贴、切换标签页、截图、自定义快捷键等常用操作放到鼠标上。为支持的按键分别设置单击和长按动作，再按应用创建配置，让鼠标随着你正在使用的软件切换操作。
 
-[**下载 Windows 最新正式版**](https://github.com/pour-soi/PourInput/releases/latest) · [更新说明](https://github.com/pour-soi/PourInput/releases/latest) · [完整功能图集](docs/FEATURES_CN.md)
+<p align="center"><a href="https://github.com/pour-soi/PourInput/releases/latest"><strong>下载 Windows 最新正式版</strong></a> · <a href="https://github.com/pour-soi/PourInput/releases/latest">更新说明</a> · <a href="docs/FEATURES_CN.md">完整功能图集</a></p>
 
 
 ## 界面概览

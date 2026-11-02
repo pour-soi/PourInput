@@ -577,7 +577,14 @@ Item {
                         objectName: "mousePageHeading"
                         width: parent.width - 64
                         anchors.horizontalCenter: parent.horizontalCenter
-                        text: (lm.strings, lm.trCategory("Mouse"))
+                        text: "PourInput"
+                        Text {
+                            x: parent.implicitWidth + 16
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: " /   " + (lm.strings, lm.trCategory("Mouse"))
+                            font { family: uiState.fontFamily; pixelSize: 20; bold: false }
+                            color: theme.textSecondary
+                        }
                         font { family: uiState.fontFamily; pixelSize: 28; bold: true }
                         color: theme.textPrimary
                     }
