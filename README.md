@@ -138,4 +138,6 @@ python -m venv .venv
 
 Maintained by **pour-soi**. Early development used work from [Mouser](https://github.com/TomBadash/Mouser); PourInput is independently maintained and does not require Mouser to run.
 
+Original PourInput contributions by **pour-soi** are credited separately from the original Mouser work and other authors' contributions. See [Branding and attribution](BRANDING.md).
+
 [MIT license](LICENSE) · [Changelog](CHANGELOG.md) · [Issues](https://github.com/pour-soi/PourInput/issues)

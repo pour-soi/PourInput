@@ -138,4 +138,6 @@ python -m venv .venv
 
 由 **pour-soi** 维护。早期开发使用了 [Mouser](https://github.com/TomBadash/Mouser) 的部分工作；PourInput 现已独立维护，运行时不需要 Mouser。
 
+**pour-soi** 的 PourInput 原创贡献与 Mouser 原始工作及其他作者的贡献分别署名。详见[品牌与署名说明（英文）](BRANDING.md)。
+
 [MIT 许可证](LICENSE) · [更新记录](CHANGELOG.md) · [问题反馈](https://github.com/pour-soi/PourInput/issues)
