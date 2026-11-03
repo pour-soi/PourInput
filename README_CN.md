@@ -15,21 +15,21 @@
 
 ## 界面概览
 
-以下为 v1.5.0 界面示例，使用隔离测试数据生成。v1.5.1 进一步统一共享控件、动作与手势编辑器、阅读和设置布局，并更新通用鼠标插画。上方链接始终指向最新正式发布页。
+以下截图来自当前 `main` 分支已验收的实际 QML 界面，使用隔离示例数据渲染。品牌更新晚于目前可下载的 v1.5.1；下载链接始终指向最新正式发布页。[截图说明](images/screenshots-brand/README.md)。
 
-![鼠标页：大窗口双栏](images/screenshots-v1.5.0/mouse-zh-CN.png)
+![鼠标页：大窗口双栏](images/screenshots-brand/mouse-zh-CN.png)
 
-![独立动作分类](images/screenshots-v1.5.0/actions-zh-CN.png)
+![独立动作分类](images/screenshots-brand/actions-zh-CN.png)
 
-![阅读分区](images/screenshots-v1.5.0/reading-zh-CN.png)
+![阅读分区](images/screenshots-brand/reading-zh-CN.png)
 
-![设置](images/screenshots-v1.5.0/settings-zh-CN.png)
+![设置](images/screenshots-brand/settings-zh-CN.png)
 
-## 已发布 v1.4.3 功能介绍
+## 功能介绍
 
-![PourInput v1.4.3 鼠标按钮与应用配置](images/screenshots-v1.4.3/mouse-zh-CN.png)
+![鼠标按钮与应用配置](images/screenshots-brand/mouse-zh-CN.png)
 
-*截图使用 v1.4.3 实际界面渲染，搭配示例配置与设备能力数据。截图用于说明界面；具体硬件功能取决于鼠标型号和固件。*
+*截图使用示例配置与受支持的设备能力数据，不访问真实设备或用户数据。具体硬件功能取决于鼠标型号和固件。*
 
 ## 把常用操作放到鼠标上
 
@@ -37,7 +37,7 @@
 
 **一个按键，可以承担两种操作。** 例如，单击中键截取区域，长按中键复制。支持的按键可以分别设置单击和长按动作。
 
-![动作选择、截图、自定义快捷键与长按设置](images/screenshots-v1.4.3/actions-zh-CN.png)
+![动作选择、截图、自定义快捷键与长按设置](images/screenshots-brand/actions-zh-CN.png)
 
 [查看完整动作分类和快捷键编辑器 →](docs/FEATURES_CN.md#buttons-and-shortcuts)
 
@@ -45,17 +45,17 @@
 
 保留一套默认配置，再为浏览器、编辑器等软件添加应用配置。PourInput 会根据当前获得焦点的应用切换映射。同一个侧键，在浏览器里可以后退，在其他软件里也可以执行另一组快捷键。
 
-![应用配置选择](images/screenshots-v1.4.3/profiles-zh-CN.png)
+![应用配置选择](images/screenshots-brand/profiles-zh-CN.png)
 
 ## 普通鼠标与 MX 高级功能，都能发挥作用
 
 **通用鼠标模式**支持 Windows 标准中键和两个侧键，也适用于 ZOWIE 等普通鼠标。开启后，这些输入由通用模式独占处理；设置为“无操作”就不执行动作，不会调用原来的 MX 映射。关闭通用模式后会恢复设备专用路径，已保存的映射不会被删除。
 
-![开启通用鼠标模式](images/screenshots-v1.4.3/generic-zh-CN.png)
+![开启通用鼠标模式](images/screenshots-brand/generic-zh-CN.png)
 
 对于支持的 **MX Master 设备增强功能**，手势、水平滚动、模式切换、智能切换和 DPI 等不冲突的控制仍然可用。可以分别配置方向手势、调整触发阈值、设置水平滚动动作，并选择设备支持的滚轮行为。可用功能因设备和固件而异。
 
-![DPI、智能切换灵敏度、外观及语言设置](images/screenshots-v1.4.3/settings-1-zh-CN.png)
+![DPI、智能切换灵敏度、外观及语言设置](images/screenshots-brand/settings-zh-CN.png)
 
 [查看手势、水平滚动、滚轮模式和完整设置 →](docs/FEATURES_CN.md#mx-controls)
 
@@ -71,7 +71,7 @@
 
 导入 **TXT 或 EPUB**，用滚轮手动浏览，或开启可调速、可暂停的**自动连续滚动**。字号和浮窗大小保持稳定，放不下的文字接着往后显示。浮窗保持置顶，不抢走键盘焦点。
 
-![阅读控制、自动滚动与章节目录](images/screenshots-v1.4.3/reading-zh-CN.png)
+![阅读控制、自动滚动与章节目录](images/screenshots-brand/reading-zh-CN.png)
 
 ### 通过章节找到想读的位置
 
@@ -81,7 +81,9 @@
 
 拖动书页与树叶图标即可移动浮窗，拖动右下角调整大小。可自定义字号、文字颜色、不透明度和完全透明的背景，并选择**标准、简洁、隐约**三种显示方式。简洁与隐约模式允许鼠标点击穿过正文区域。
 
-![标题单独成行的标准阅读浮窗](images/screenshots-v1.4.3/overlay-zh-CN.png)
+![面板外观与控制](images/screenshots-brand/reading-appearance-zh-CN.png)
+
+![标题单独成行的标准阅读浮窗](images/screenshots-brand/overlay-zh-CN.png)
 
 **按一下隐藏，再按一下显示。** 松开按键后仍然隐藏；隐藏期间自动阅读暂停，显示后继续。阅读模式、阅读位置和滚轮接管保持不变。阅读开启时，选中的鼠标隐藏键只控制浮窗；键盘按键仍保留其原有作用。
 
