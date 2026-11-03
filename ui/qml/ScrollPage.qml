@@ -91,7 +91,14 @@ Item {
                     spacing: 4
 
                     Text {
-                        text: s["scroll.title"]
+                        text: "PourInput"
+                        Text {
+                            x: parent.implicitWidth + 16
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: " /   " + s["scroll.title"]
+                            font { family: uiState.fontFamily; pixelSize: 20; bold: false }
+                            color: scrollPage.theme.textSecondary
+                        }
                         font {
                             family: uiState.fontFamily
                             pixelSize: 28

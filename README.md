@@ -1,16 +1,16 @@
 <p align="center">
-  <img src="images/logo.png" alt="PourInput" width="140">
+  <img src="images/logo-readme.png" alt="PourInput" width="260">
 </p>
 
-# PourInput
+<h1 align="center">PourInput</h1>
 
-### Your mouse. Your controls.
+<h3 align="center">Your mouse. Your controls.</h3>
 
-**English** · [简体中文](README_CN.md)
+<p align="center"><strong>English</strong> · <a href="README_CN.md">简体中文</a></p>
 
 **PourInput is a mouse customization app.** Make supported mouse buttons perform the actions you need: copying, pasting, switching tabs, taking screenshots, running keyboard shortcuts, and more. Give a click and a long press different actions, then create application profiles that switch automatically as you work.
 
-[**Download the latest Windows release**](https://github.com/pour-soi/PourInput/releases/latest) · [Release notes](https://github.com/pour-soi/PourInput/releases/latest) · [Full feature gallery](docs/FEATURES.md)
+<p align="center"><a href="https://github.com/pour-soi/PourInput/releases/latest"><strong>Download the latest Windows release</strong></a> · <a href="https://github.com/pour-soi/PourInput/releases/latest">Release notes</a> · <a href="docs/FEATURES.md">Full feature gallery</a></p>
 
 
 ## Interface overview
@@ -137,5 +137,7 @@ python -m venv .venv
 ```
 
 Maintained by **pour-soi**. Early development used work from [Mouser](https://github.com/TomBadash/Mouser); PourInput is independently maintained and does not require Mouser to run.
+
+Original PourInput contributions by **pour-soi** are credited separately from the original Mouser work and other authors' contributions. See [Branding and attribution](BRANDING.md).
 
 [MIT license](LICENSE) · [Changelog](CHANGELOG.md) · [Issues](https://github.com/pour-soi/PourInput/issues)

@@ -2,6 +2,7 @@
 Run from a fresh interpreter; never imported by production startup.
 """
 import copy
+import ctypes
 import os
 from pathlib import Path
 import sys
@@ -109,14 +110,30 @@ def run():
         original_acquire = main_qml._acquire_windows_single_instance_mutex
 
         def acquire():
-            acquired = original_acquire()
-            if not acquired:
-                print("Exit the existing PourInput instance from its tray menu, then retry.")
-            return acquired
+            try:
+                acquired = original_acquire()
+                handle = getattr(main_qml, "_WINDOWS_SINGLE_INSTANCE_MUTEX_HANDLE", None)
+                if acquired is not True or type(handle) is not int or handle <= 0:
+                    raise RuntimeError("single-instance ownership was not confirmed")
+                flags = ctypes.c_ulong()
+                check_handle = ctypes.windll.kernel32.GetHandleInformation
+                check_handle.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_ulong)]
+                check_handle.restype = ctypes.c_int
+                if not check_handle(handle, ctypes.byref(flags)):
+                    raise RuntimeError("single-instance mutex handle is invalid")
+            except Exception as exc:
+                print(f"[Isolated test] Startup blocked: {exc}")
+                print("Exit any existing PourInput instance and resolve the mutex check before retrying.")
+                return False
+            return True
 
         main_qml._acquire_windows_single_instance_mutex = acquire
         print(f"{TITLE}\nIsolated state: {root}\nAll initial mappings: Do Nothing / Pass-through.")
         print("Do not enable auto-start or updates. Configure test mappings manually.")
+        if not acquire():
+            return 1
+        # Keep the original process-lifetime handle and atexit cleanup. Releasing
+        # when main() returns could be premature if an input thread is still alive.
         return main_qml.main()
 
 

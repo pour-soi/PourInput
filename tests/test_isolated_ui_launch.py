@@ -15,6 +15,7 @@ class IsolatedLaunchTests(unittest.TestCase):
     def test_fresh_process_uses_only_disposable_state_and_neutral_defaults(self):
         script = '''
 import json, os
+from pathlib import Path
 from tools.isolated_ui_test import prepare, WINDOW_STATE_FILE
 root = prepare()
 desktop = root / 'profile' / 'Desktop'
@@ -30,6 +31,15 @@ assert str(config.CONFIG_DIR).startswith(str(root))
 assert not (root / 'roaming/PourInput/reader').exists()
 assert not cfg['settings']['check_for_updates']
 assert not cfg['settings']['start_at_login']
+from core.reader import ReaderModel, ReaderStore
+store = ReaderStore(Path(config.CONFIG_DIR) / 'reader')
+reader = ReaderModel(store)
+reader.open_document('Isolated sample', ['First sample page.', 'Second sample page.'])
+reader.update(reading_enabled=True)
+reader.navigate(1)
+assert store.directory.is_relative_to(root)
+assert (store.directory / 'state.json').is_file()
+assert ReaderModel(ReaderStore(store.directory)).text == 'Second sample page.'
 assert not str(WINDOW_STATE_FILE).startswith(str(root))
 assert WINDOW_STATE_FILE.name == 'pourinput-ui-refinement-window-size.json'
 print('ISOLATION_OK')
@@ -45,23 +55,85 @@ print('ISOLATION_OK')
                     run()
                 prepare.assert_not_called()
 
-    def test_entry_identity_mutex_and_production_restoration(self):
+    def test_uncertain_mutex_ownership_never_enters_application(self):
         import core.startup as startup
         original = startup.supports_login_startup
-        main = Mock()
-        main._acquire_windows_single_instance_mutex.return_value = False
-        main.Backend = QObject
-        main.Engine = object
+        missing = object()
+        cases = [(False, 101, 1), (None, 101, 1), (1, 101, 1),
+                 (True, None, 1), (True, 0, 1), (True, True, 1),
+                 (True, '101', 1), (True, -1, 1), (True, object(), 1),
+                 (True, missing, 1), (RuntimeError('acquisition failed'), 101, 1),
+                 (True, 101, 0), (True, 101, OSError('native query failed'))]
+        for acquired, handle, native in cases:
+            with self.subTest(acquired=acquired, handle=handle, native=native):
+                main = Mock()
+                main.Backend = QObject
+                main.Engine = object
+                main._WINDOWS_SINGLE_INSTANCE_MUTEX_HANDLE = handle
+                if handle is missing:
+                    del main._WINDOWS_SINGLE_INSTANCE_MUTEX_HANDLE
+                acquire = main._acquire_windows_single_instance_mutex
+                if isinstance(acquired, Exception):
+                    acquire.side_effect = acquired
+                else:
+                    acquire.return_value = acquired
+                query = Mock(side_effect=native) if isinstance(native, Exception) else Mock(return_value=native)
+                with patch('tools.isolated_ui_test.prepare', return_value=Path('isolated')), patch.dict(sys.modules, {'main_qml': main}), patch.object(sys, 'argv', ['isolated_ui_test.py']), patch.object(sys, 'platform', 'win32'), patch('tools.isolated_ui_test.ctypes.windll', Mock(kernel32=Mock(GetHandleInformation=query)), create=True):
+                    self.assertEqual(run(), 1)
+                main.main.assert_not_called()
+                acquire.assert_called_once_with()
+                self.assertIs(startup.supports_login_startup, original)
+
+    def test_confirmed_mutex_is_retained_until_original_process_exit_cleanup(self):
+        import ctypes
+        import main_qml as main
+        import core.startup as startup
+        original_startup = startup.supports_login_startup
+        kernel = Mock()
+        kernel.CreateMutexW.return_value = 101
+        kernel.GetLastError.return_value = 0
+        kernel.GetHandleInformation.return_value = 1
+        native_acquire = main._acquire_windows_single_instance_mutex
         def fake_main():
             self.assertEqual(main.APP_NAME, TITLE)
             self.assertEqual(main.WINDOW_STATE_FILE, WINDOW_STATE_FILE)
             self.assertFalse(startup.supports_login_startup())
-            self.assertFalse(main._acquire_windows_single_instance_mutex())
-            return 0
-        main.main.side_effect = fake_main
-        with patch('tools.isolated_ui_test.prepare', return_value=Path('isolated')), patch.dict(sys.modules, {'main_qml': main}), patch.object(sys, 'argv', ['isolated_ui_test.py']), patch.object(sys, 'platform', 'win32'):
-            self.assertEqual(run(), 0)
-        self.assertIs(startup.supports_login_startup, original)
+            self.assertTrue(main._acquire_windows_single_instance_mutex())
+            self.assertEqual(main._WINDOWS_SINGLE_INSTANCE_MUTEX_HANDLE, 101)
+            kernel.CloseHandle.assert_not_called()
+            return 7
+        with patch('tools.isolated_ui_test.prepare', return_value=Path('isolated')), patch.object(sys, 'argv', ['isolated_ui_test.py']), patch.object(sys, 'platform', 'win32'), patch.object(ctypes, 'windll', Mock(kernel32=kernel), create=True), patch.object(main.atexit, 'register') as register, patch.multiple(main, APP_NAME=main.APP_NAME, WINDOW_STATE_FILE=main.WINDOW_STATE_FILE, Backend=main.Backend, Engine=main.Engine, _acquire_windows_single_instance_mutex=native_acquire, _WINDOWS_SINGLE_INSTANCE_MUTEX_HANDLE=None), patch.object(main, 'main', side_effect=fake_main):
+            self.assertEqual(run(), 7)
+            kernel.CreateMutexW.assert_called_once_with(None, False, main._windows_single_instance_mutex_name())
+            self.assertEqual(kernel.GetHandleInformation.call_count, 2)
+            self.assertEqual(main._WINDOWS_SINGLE_INSTANCE_MUTEX_HANDLE, 101)
+            kernel.CloseHandle.assert_not_called()
+            register.assert_called_once_with(main._release_windows_single_instance_mutex)
+            cleanup = register.call_args.args[0]
+            cleanup()
+            kernel.CloseHandle.assert_called_once_with(101)
+            self.assertIsNone(main._WINDOWS_SINGLE_INSTANCE_MUTEX_HANDLE)
+            cleanup()
+            kernel.CloseHandle.assert_called_once_with(101)
+        self.assertIs(startup.supports_login_startup, original_startup)
+
+    def test_production_fail_open_mutex_result_is_rejected_by_test_launcher(self):
+        import ctypes
+        import main_qml as main
+        native_acquire = main._acquire_windows_single_instance_mutex
+        for creation in (0, OSError('mutex API unavailable')):
+            with self.subTest(creation=creation):
+                kernel = Mock()
+                if isinstance(creation, Exception):
+                    kernel.CreateMutexW.side_effect = creation
+                else:
+                    kernel.CreateMutexW.return_value = creation
+                with patch('tools.isolated_ui_test.prepare', return_value=Path('isolated')), patch.object(sys, 'argv', ['isolated_ui_test.py']), patch.object(sys, 'platform', 'win32'), patch.object(ctypes, 'windll', Mock(kernel32=kernel), create=True), patch.object(main.atexit, 'register') as register, patch.multiple(main, APP_NAME=main.APP_NAME, WINDOW_STATE_FILE=main.WINDOW_STATE_FILE, Backend=main.Backend, Engine=main.Engine, _acquire_windows_single_instance_mutex=native_acquire, _WINDOWS_SINGLE_INSTANCE_MUTEX_HANDLE=None), patch.object(main, 'main') as app:
+                    self.assertEqual(run(), 1)
+                    app.assert_not_called()
+                    kernel.GetHandleInformation.assert_not_called()
+                    kernel.CloseHandle.assert_not_called()
+                    register.assert_not_called()
 
     def test_qt_slots_cannot_enable_startup_or_install_updates(self):
         from tests.test_mouse_page_ui import MousePageUiTests
