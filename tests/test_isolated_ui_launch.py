@@ -78,7 +78,7 @@ print('ISOLATION_OK')
                 else:
                     acquire.return_value = acquired
                 query = Mock(side_effect=native) if isinstance(native, Exception) else Mock(return_value=native)
-                with patch('tools.isolated_ui_test.prepare', return_value=Path('isolated')), patch.dict(sys.modules, {'main_qml': main}), patch.object(sys, 'argv', ['isolated_ui_test.py']), patch.object(sys, 'platform', 'win32'), patch('tools.isolated_ui_test.ctypes.windll.kernel32.GetHandleInformation', query):
+                with patch('tools.isolated_ui_test.prepare', return_value=Path('isolated')), patch.dict(sys.modules, {'main_qml': main}), patch.object(sys, 'argv', ['isolated_ui_test.py']), patch.object(sys, 'platform', 'win32'), patch('tools.isolated_ui_test.ctypes.windll', Mock(kernel32=Mock(GetHandleInformation=query)), create=True):
                     self.assertEqual(run(), 1)
                 main.main.assert_not_called()
                 acquire.assert_called_once_with()
@@ -102,7 +102,7 @@ print('ISOLATION_OK')
             self.assertEqual(main._WINDOWS_SINGLE_INSTANCE_MUTEX_HANDLE, 101)
             kernel.CloseHandle.assert_not_called()
             return 7
-        with patch('tools.isolated_ui_test.prepare', return_value=Path('isolated')), patch.object(sys, 'argv', ['isolated_ui_test.py']), patch.object(sys, 'platform', 'win32'), patch.object(ctypes.windll, 'kernel32', kernel), patch.object(main.atexit, 'register') as register, patch.multiple(main, APP_NAME=main.APP_NAME, WINDOW_STATE_FILE=main.WINDOW_STATE_FILE, Backend=main.Backend, Engine=main.Engine, _acquire_windows_single_instance_mutex=native_acquire, _WINDOWS_SINGLE_INSTANCE_MUTEX_HANDLE=None), patch.object(main, 'main', side_effect=fake_main):
+        with patch('tools.isolated_ui_test.prepare', return_value=Path('isolated')), patch.object(sys, 'argv', ['isolated_ui_test.py']), patch.object(sys, 'platform', 'win32'), patch.object(ctypes, 'windll', Mock(kernel32=kernel), create=True), patch.object(main.atexit, 'register') as register, patch.multiple(main, APP_NAME=main.APP_NAME, WINDOW_STATE_FILE=main.WINDOW_STATE_FILE, Backend=main.Backend, Engine=main.Engine, _acquire_windows_single_instance_mutex=native_acquire, _WINDOWS_SINGLE_INSTANCE_MUTEX_HANDLE=None), patch.object(main, 'main', side_effect=fake_main):
             self.assertEqual(run(), 7)
             kernel.CreateMutexW.assert_called_once_with(None, False, main._windows_single_instance_mutex_name())
             self.assertEqual(kernel.GetHandleInformation.call_count, 2)
@@ -128,7 +128,7 @@ print('ISOLATION_OK')
                     kernel.CreateMutexW.side_effect = creation
                 else:
                     kernel.CreateMutexW.return_value = creation
-                with patch('tools.isolated_ui_test.prepare', return_value=Path('isolated')), patch.object(sys, 'argv', ['isolated_ui_test.py']), patch.object(sys, 'platform', 'win32'), patch.object(ctypes.windll, 'kernel32', kernel), patch.object(main.atexit, 'register') as register, patch.multiple(main, APP_NAME=main.APP_NAME, WINDOW_STATE_FILE=main.WINDOW_STATE_FILE, Backend=main.Backend, Engine=main.Engine, _acquire_windows_single_instance_mutex=native_acquire, _WINDOWS_SINGLE_INSTANCE_MUTEX_HANDLE=None), patch.object(main, 'main') as app:
+                with patch('tools.isolated_ui_test.prepare', return_value=Path('isolated')), patch.object(sys, 'argv', ['isolated_ui_test.py']), patch.object(sys, 'platform', 'win32'), patch.object(ctypes, 'windll', Mock(kernel32=kernel), create=True), patch.object(main.atexit, 'register') as register, patch.multiple(main, APP_NAME=main.APP_NAME, WINDOW_STATE_FILE=main.WINDOW_STATE_FILE, Backend=main.Backend, Engine=main.Engine, _acquire_windows_single_instance_mutex=native_acquire, _WINDOWS_SINGLE_INSTANCE_MUTEX_HANDLE=None), patch.object(main, 'main') as app:
                     self.assertEqual(run(), 1)
                     app.assert_not_called()
                     kernel.GetHandleInformation.assert_not_called()
